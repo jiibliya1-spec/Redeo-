@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { signIn } from '@/services/authService';
+import { useStore } from '@/store/useStore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,6 +11,7 @@ import { Car, Eye, EyeOff, Loader2 } from 'lucide-react';
 
 export function LoginPage() {
   const navigate = useNavigate();
+  const { initAuth } = useStore();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -20,6 +22,8 @@ export function LoginPage() {
     setIsLoading(true);
     try {
       await signIn(email, password);
+      // Refresh the auth state so the store has the current user
+      await initAuth();
       toast.success('Welcome back!');
       navigate('/dashboard');
     } catch (err: any) {

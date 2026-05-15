@@ -2,13 +2,22 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useStore } from '@/store/useStore';
-import { supabase } from '@/lib/supabase';
+import { apiGet } from '@/lib/supabase';
 import { MOROCCAN_CITIES } from '@/lib/data';
 import type { Trip } from '@/types';
 import { Button } from '@/components/ui/button';
 import {
   ArrowLeft, MapPin, Clock, Star, Users, Filter, Loader2
 } from 'lucide-react';
+
+const LOCAL_TRIPS_KEY = 'wansniauto_trips';
+
+function getLocalTrips(): Trip[] {
+  try {
+    const raw = localStorage.getItem(LOCAL_TRIPS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+}
 
 function TripCard({ trip, index }: { trip: Trip; index: number }) {
   const navigate = useNavigate();
@@ -22,7 +31,11 @@ function TripCard({ trip, index }: { trip: Trip; index: number }) {
     >
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
-          <img src={trip.driver?.avatar || '/images/avatar-driver-1.jpg'} alt={trip.driver?.name} className="w-12 h-12 rounded-full object-cover ring-2 ring-[#FF6B00]/20" />
+          <img 
+            src={trip.driver?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${trip.driver?.name || 'driver'}`} 
+            alt={trip.driver?.name} 
+            className="w-12 h-12 rounded-full object-cover ring-2 ring-[#FF6B00]/20 bg-[#1B1F27]" 
+          />
           <div>
             <p className="text-sm font-medium text-white">{trip.driver?.name || 'Driver'}</p>
             <div className="flex items-center gap-1">
@@ -50,7 +63,7 @@ function TripCard({ trip, index }: { trip: Trip; index: number }) {
         </div>
         <div className="flex-1 text-right">
           <div className="flex items-center justify-end gap-2 mb-1">
-            <span className="text-lg font-medium text-white">{trip.arrival_time}</span>
+            <span className="text-lg font-medium text-white">{trip.arrival_time || '??'}</span>
             <div className="w-3 h-3 rounded-full border-2 border-[#FF6B00]" />
           </div>
           <p className="text-sm text-[#A0A0A0] mr-5">{trip.to_location}</p>
@@ -83,34 +96,58 @@ export function SearchResultsPage() {
   useEffect(() => {
     setIsLoading(true);
 
-    let query = supabase
-      .from('trips')
-      .select('*, driver:profiles(*), vehicle:vehicles(*)')
-      .eq('status', 'upcoming')
-      .order('departure_date', { ascending: true });
+    const loadResults = async () => {
+      try {
+        // Use REST API directly
+        const data = await apiGet('trips');
+        
+        let filtered = (data || []).filter((t: any) => t.status === 'upcoming');
+        
+        if (searchFilters.from) {
+          filtered = filtered.filter((t: any) => 
+            t.from_location?.toLowerCase().includes(searchFilters.from.toLowerCase())
+          );
+        }
+        if (searchFilters.to) {
+          filtered = filtered.filter((t: any) => 
+            t.to_location?.toLowerCase().includes(searchFilters.to.toLowerCase())
+          );
+        }
+        if (searchFilters.date) {
+          filtered = filtered.filter((t: any) => t.departure_date === searchFilters.date);
+        }
+        if (searchFilters.passengers > 0) {
+          filtered = filtered.filter((t: any) => (t.available_seats || 0) >= searchFilters.passengers);
+        }
 
-    if (searchFilters.from) {
-      query = query.ilike('from_location', `%${searchFilters.from}%`);
-    }
-    if (searchFilters.to) {
-      query = query.ilike('to_location', `%${searchFilters.to}%`);
-    }
-    if (searchFilters.date) {
-      query = query.eq('departure_date', searchFilters.date);
-    }
-    if (searchFilters.passengers > 0) {
-      query = query.gte('available_seats', searchFilters.passengers);
-    }
+        // Enrich with driver data from localStorage
+        const localTrips = getLocalTrips();
+        const enriched = filtered.map((t: any) => {
+          const localTrip = localTrips.find((lt: Trip) => lt.id === t.id);
+          return {
+            ...t,
+            driver: localTrip?.driver || { name: 'Driver', rating: 5, trips_count: 0 },
+            ...(!t.duration && { duration: localTrip?.duration || '' }),
+            ...(!t.distance && { distance: localTrip?.distance || '' }),
+          };
+        });
 
-    query.then(({ data, error }) => {
-      if (error) {
-        console.error('Search error:', error);
-        setResults([]);
-      } else {
-        setResults((data || []) as Trip[]);
+        setResults(enriched);
+      } catch {
+        // Fallback: search from localStorage only
+        const localTrips = getLocalTrips();
+        let filtered = localTrips.filter((t: Trip) => t.status === 'upcoming');
+        if (searchFilters.from) filtered = filtered.filter(t => t.from_location.toLowerCase().includes(searchFilters.from.toLowerCase()));
+        if (searchFilters.to) filtered = filtered.filter(t => t.to_location.toLowerCase().includes(searchFilters.to.toLowerCase()));
+        if (searchFilters.date) filtered = filtered.filter(t => t.departure_date === searchFilters.date);
+        if (searchFilters.passengers > 0) filtered = filtered.filter(t => (t.available_seats || 0) >= searchFilters.passengers);
+        setResults(filtered);
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
-    });
+    };
+
+    loadResults();
   }, [searchFilters]);
 
   const sorted = [...results].sort((a, b) => {

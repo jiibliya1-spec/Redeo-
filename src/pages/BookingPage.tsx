@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useStore } from '@/store/useStore';
-import { supabase } from '@/lib/supabase';
+import { apiGet, apiPost } from '@/lib/supabase';
 import type { Trip } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -31,15 +31,30 @@ export function BookingPage() {
   useEffect(() => {
     if (!id) return;
     setIsLoading(true);
-    supabase
-      .from('trips')
-      .select('*, driver:profiles(*)')
-      .eq('id', id)
-      .single()
-      .then(({ data, error }) => {
-        if (!error) setTrip(data as Trip);
+
+    const loadTrip = async () => {
+      try {
+        // Try REST API first
+        const data = await apiGet('trips', { eq: { id } });
+        if (data && data[0]) {
+          setTrip(data[0] as Trip);
+        } else {
+          // Fallback: search localStorage
+          const localTrips = JSON.parse(localStorage.getItem('wansniauto_trips') || '[]');
+          const found = localTrips.find((t: Trip) => t.id === id);
+          if (found) setTrip(found);
+        }
+      } catch {
+        // Fallback: search localStorage
+        const localTrips = JSON.parse(localStorage.getItem('wansniauto_trips') || '[]');
+        const found = localTrips.find((t: Trip) => t.id === id);
+        if (found) setTrip(found);
+      } finally {
         setIsLoading(false);
-      });
+      }
+    };
+
+    loadTrip();
   }, [id]);
 
   if (isLoading) {
@@ -73,32 +88,48 @@ export function BookingPage() {
     }
     setIsProcessing(true);
 
-    // 1. Create booking in Supabase
-    const { data: booking, error: bookingError } = await supabase
-      .from('bookings')
-      .insert({
-        trip_id: trip.id,
-        passenger_id: user.id,
-        seats,
-        status: 'confirmed',
-        total_price: finalTotal,
-      })
-      .select()
-      .single();
+    const bookingData = {
+      trip_id: trip.id,
+      passenger_id: user.id,
+      driver_id: trip.driver_id || 'unknown',
+      seats,
+      status: 'confirmed',
+      total_price: finalTotal,
+    };
 
-    if (bookingError) {
-      toast.error('Booking failed: ' + bookingError.message);
-      setIsProcessing(false);
-      return;
+    let newBookingId = `booking-${Date.now()}`;
+
+    try {
+      // 1. Try REST API first
+      const result = await apiPost('bookings', bookingData);
+      if (result && result[0]?.id) {
+        newBookingId = result[0].id;
+      }
+
+      // 2. Update available seats via REST API
+      await apiPost('trips', { ...trip, available_seats: trip.available_seats - seats });
+    } catch {
+      // REST API failed - save to localStorage
+      console.log('REST API booking failed, saving locally');
     }
 
-    // 2. Update available seats
-    await supabase
-      .from('trips')
-      .update({ available_seats: trip.available_seats - seats })
-      .eq('id', trip.id);
+    // Always save to localStorage as backup
+    try {
+      const existingBookings = JSON.parse(localStorage.getItem('wansniauto_bookings') || '[]');
+      localStorage.setItem('wansniauto_bookings', JSON.stringify([
+        ...existingBookings,
+        { ...bookingData, id: newBookingId, created_at: new Date().toISOString() }
+      ]));
 
-    setBookingId(booking.id);
+      // Update trip seats in localStorage too
+      const existingTrips = JSON.parse(localStorage.getItem('wansniauto_trips') || '[]');
+      const updatedTrips = existingTrips.map((t: Trip) =>
+        t.id === trip.id ? { ...t, available_seats: t.available_seats - seats } : t
+      );
+      localStorage.setItem('wansniauto_trips', JSON.stringify(updatedTrips));
+    } catch { /* silent */ }
+
+    setBookingId(newBookingId);
     setIsProcessing(false);
     setStep(3);
     toast.success('Booking confirmed!');

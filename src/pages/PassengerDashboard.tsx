@@ -2,9 +2,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useStore } from '@/store/useStore';
-import { supabase } from '@/lib/supabase';
+import { apiGet } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
-import { toast } from 'sonner';
 import type { Trip, Booking } from '@/types';
 import {
   Car,
@@ -16,11 +15,27 @@ import {
   MapPin,
   Calendar,
   ChevronRight,
-  AlertCircle,
 } from 'lucide-react';
 
 interface BookingWithTrip extends Booking {
   trip?: Trip;
+}
+
+const LOCAL_BOOKINGS_KEY = 'wansniauto_bookings';
+const LOCAL_TRIPS_KEY = 'wansniauto_trips';
+
+function getLocalBookings(): BookingWithTrip[] {
+  try {
+    const raw = localStorage.getItem(LOCAL_BOOKINGS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+}
+
+function getLocalTrips(): Trip[] {
+  try {
+    const raw = localStorage.getItem(LOCAL_TRIPS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
 }
 
 export function PassengerDashboard() {
@@ -37,156 +52,89 @@ export function PassengerDashboard() {
   const [totalSaved, setTotalSaved] = useState(0);
   const [rating, setRating] = useState(0);
 
-  // Load bookings with trip data
+  // Load bookings
   useEffect(() => {
     if (!user?.id) return;
     loadBookings();
-    loadStats();
   }, [user?.id]);
 
   async function loadBookings() {
     try {
       setLoading(true);
-
-      // Get bookings for this passenger
-      const { data: bookingsData, error: bookingsError } = await supabase
-        .from('bookings')
-        .select('*')
-        .eq('passenger_id', user!.id)
-        .order('created_at', { ascending: false });
-
-      if (bookingsError) throw bookingsError;
-
-      // For each booking, fetch the trip details
-      const bookingsWithTrips = await Promise.all(
-        (bookingsData || []).map(async (booking: any) => {
-          const { data: tripData } = await supabase
-            .from('trips')
-            .select('*')
-            .eq('id', booking.trip_id)
-            .single();
-
-          return {
-            ...booking,
-            trip: tripData || undefined,
-          } as BookingWithTrip;
-        })
-      );
-
-      setBookings(bookingsWithTrips);
-    } catch (err: any) {
-      toast.error('Failed to load bookings: ' + err.message);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function loadStats() {
-    try {
       setStatsLoading(true);
 
-      // Count confirmed bookings
-      const { count: tripsCount, error: countError } = await supabase
-        .from('bookings')
-        .select('*', { count: 'exact', head: true })
-        .eq('passenger_id', user!.id)
-        .eq('status', 'confirmed');
+      let allBookings: BookingWithTrip[] = [];
 
-      if (countError) throw countError;
+      try {
+        // Try REST API first
+        const data = await apiGet('bookings');
+        
+        if (data && data.length > 0) {
+          // Enrich with trip data
+          const enriched = await Promise.all(
+            data.map(async (b: any) => {
+              try {
+                const trips = await apiGet('trips', { eq: { id: b.trip_id } });
+                return { ...b, trip: trips?.[0] || undefined };
+              } catch { return b; }
+            })
+          );
+          allBookings = enriched;
+        }
+      } catch {
+        console.log('REST API bookings not available, using localStorage');
+      }
 
-      // Total spent
-      const { data: spentData } = await supabase
-        .from('bookings')
-        .select('total_price')
-        .eq('passenger_id', user!.id)
-        .eq('status', 'confirmed');
+      // Fallback: use localStorage
+      if (allBookings.length === 0) {
+        const localBookings = getLocalBookings();
+        const localTrips = getLocalTrips();
 
-      const totalSpent = (spentData || []).reduce(
-        (sum: number, b: any) => sum + (b.total_price || 0),
-        0
-      );
+        allBookings = localBookings
+          .map((b: BookingWithTrip) => {
+            const trip = localTrips.find((t: Trip) => t.id === b.trip_id);
+            return { ...b, trip };
+          })
+          .filter((b: BookingWithTrip) => b.passenger_id === user!.id);
+      }
 
-      setTotalTrips(tripsCount || 0);
+      setBookings(allBookings);
+
+      // Calculate stats
+      const confirmedBookings = allBookings.filter((b: BookingWithTrip) => b.status === 'confirmed');
+      const totalSpent = confirmedBookings.reduce((sum: number, b: BookingWithTrip) => sum + (b.total_price || 0), 0);
+
+      setTotalTrips(confirmedBookings.length);
       setTotalSaved(totalSpent);
       setRating(user?.rating || 5);
     } catch {
       // silent
     } finally {
+      setLoading(false);
       setStatsLoading(false);
     }
   }
 
-  // Split bookings into upcoming and past based on trip date
+  // Split bookings into upcoming and past
   const now = new Date().toISOString().split('T')[0];
 
   const upcomingBookings = bookings.filter(
-    (b) =>
-      b.trip &&
-      b.trip.departure_date >= now &&
-      b.status !== 'cancelled'
+    (b) => b.trip && b.trip.departure_date >= now && b.status !== 'cancelled'
   );
 
   const pastBookings = bookings.filter(
-    (b) =>
-      !b.trip ||
-      b.trip.departure_date < now ||
-      b.status === 'cancelled'
+    (b) => !b.trip || b.trip.departure_date < now || b.status === 'cancelled'
   );
 
   const stats = [
-    {
-      label: 'Trips',
-      value: statsLoading ? '...' : totalTrips,
-      icon: Car,
-    },
-    {
-      label: 'Rating',
-      value: statsLoading ? '...' : rating,
-      icon: Star,
-      suffix: '/5',
-    },
-    {
-      label: 'Spent',
-      value: statsLoading ? '...' : totalSaved,
-      icon: Wallet,
-      prefix: 'MAD ',
-    },
+    { label: 'Trips', value: statsLoading ? '...' : totalTrips, icon: Car },
+    { label: 'Rating', value: statsLoading ? '...' : rating, icon: Star, suffix: '/5' },
+    { label: 'Spent', value: statsLoading ? '...' : totalSaved, icon: Wallet, prefix: 'MAD ' },
   ];
 
   const renderBookingItem = (booking: BookingWithTrip, index: number) => {
     const trip = booking.trip;
-    if (!trip) {
-      return (
-        <motion.div
-          key={booking.id}
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: index * 0.05 }}
-          className="flex items-center gap-4 p-4 rounded-xl bg-white/[0.02]"
-        >
-          <div className="w-12 h-12 rounded-xl bg-red-500/10 flex items-center justify-center shrink-0">
-            <AlertCircle className="w-5 h-5 text-red-400" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm text-white">Trip unavailable</p>
-            <p className="text-xs text-[#A0A0A0]">
-              Booking #{booking.id?.slice(0, 8)}
-            </p>
-          </div>
-          <span
-            className={`text-xs px-2 py-1 rounded-full font-medium ${
-              booking.status === 'confirmed'
-                ? 'bg-green-500/10 text-green-400'
-                : booking.status === 'pending'
-                  ? 'bg-yellow-500/10 text-yellow-400'
-                  : 'bg-red-500/10 text-red-400'
-            }`}
-          >
-            {booking.status}
-          </span>
-        </motion.div>
-      );
-    }
+    if (!trip) return null;
 
     return (
       <motion.div
@@ -218,24 +166,16 @@ export function PassengerDashboard() {
             </span>
           </div>
           {booking.seats > 1 && (
-            <p className="text-xs text-[#A0A0A0] mt-1">
-              {booking.seats} seats booked
-            </p>
+            <p className="text-xs text-[#A0A0A0] mt-1">{booking.seats} seats booked</p>
           )}
         </div>
         <div className="text-right shrink-0">
-          <p className="text-sm font-bold text-[#FF6B00]">
-            {booking.total_price} MAD
-          </p>
-          <span
-            className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-              booking.status === 'confirmed'
-                ? 'bg-green-500/10 text-green-400'
-                : booking.status === 'pending'
-                  ? 'bg-yellow-500/10 text-yellow-400'
-                  : 'bg-red-500/10 text-red-400'
-            }`}
-          >
+          <p className="text-sm font-bold text-[#FF6B00]">{booking.total_price} MAD</p>
+          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+            booking.status === 'confirmed' ? 'bg-green-500/10 text-green-400' :
+            booking.status === 'pending' ? 'bg-yellow-500/10 text-yellow-400' :
+            'bg-red-500/10 text-red-400'
+          }`}>
             {booking.status}
           </span>
         </div>
@@ -251,29 +191,19 @@ export function PassengerDashboard() {
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-4">
             <img
-              src={
-                user?.avatar ||
-                `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(user?.name || 'user')}`
-              }
+              src={user?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(user?.name || 'user')}`}
               alt={user?.name}
               className="w-14 h-14 rounded-full object-cover ring-2 ring-[#FF6B00]/30"
             />
             <div>
-              <h1 className="text-2xl font-bold text-white">
-                {user?.name || 'Passenger'}
-              </h1>
+              <h1 className="text-2xl font-bold text-white">{user?.name || 'Passenger'}</h1>
               <div className="flex items-center gap-2 mt-1">
                 <Shield className="w-3.5 h-3.5 text-[#FF6B00]" />
-                <span className="text-xs text-[#FF6B00]">
-                  {user?.is_verified ? 'Verified' : 'Unverified'}
-                </span>
+                <span className="text-xs text-[#FF6B00]">{user?.is_verified ? 'Verified' : 'Unverified'}</span>
               </div>
             </div>
           </div>
-          <Button
-            onClick={() => navigate('/search')}
-            className="bg-[#FF6B00] text-white hover:bg-[#E56000] rounded-xl"
-          >
+          <Button onClick={() => navigate('/search')} className="bg-[#FF6B00] text-white hover:bg-[#E56000] rounded-xl">
             <Car className="w-4 h-4 mr-2" /> Book a Ride
           </Button>
         </div>
@@ -289,11 +219,7 @@ export function PassengerDashboard() {
               className="bg-[#1B1F27] rounded-2xl border border-white/5 p-4"
             >
               <s.icon className="w-5 h-5 text-[#FF6B00] mb-2" />
-              <p className="text-2xl font-bold text-white">
-                {s.prefix}
-                {s.value}
-                {s.suffix}
-              </p>
+              <p className="text-2xl font-bold text-white">{s.prefix}{s.value}{s.suffix}</p>
               <p className="text-xs text-[#A0A0A0]">{s.label}</p>
             </motion.div>
           ))}
@@ -307,38 +233,25 @@ export function PassengerDashboard() {
                 key={tab}
                 onClick={() => setActiveTab(tab)}
                 className={`flex-1 py-3.5 text-sm font-medium transition-colors capitalize ${
-                  activeTab === tab
-                    ? 'text-[#FF6B00] border-b-2 border-[#FF6B00]'
-                    : 'text-[#A0A0A0] hover:text-white'
+                  activeTab === tab ? 'text-[#FF6B00] border-b-2 border-[#FF6B00]' : 'text-[#A0A0A0] hover:text-white'
                 }`}
               >
                 {tab}
                 {tab === 'upcoming' && upcomingBookings.length > 0 && (
-                  <span className="ml-1.5 text-xs bg-[#FF6B00]/20 text-[#FF6B00] px-1.5 py-0.5 rounded-full">
-                    {upcomingBookings.length}
-                  </span>
-                )}
-                {tab === 'past' && pastBookings.length > 0 && (
-                  <span className="ml-1.5 text-xs bg-white/10 text-[#A0A0A0] px-1.5 py-0.5 rounded-full">
-                    {pastBookings.length}
-                  </span>
+                  <span className="ml-1.5 text-xs bg-[#FF6B00]/20 text-[#FF6B00] px-1.5 py-0.5 rounded-full">{upcomingBookings.length}</span>
                 )}
               </button>
             ))}
           </div>
 
           <div className="p-4">
-            {/* Loading */}
             {loading && (
               <div className="text-center py-8">
                 <Loader2 className="w-6 h-6 animate-spin text-[#FF6B00] mx-auto" />
-                <p className="text-sm text-[#A0A0A0] mt-2">
-                  Loading your trips...
-                </p>
+                <p className="text-sm text-[#A0A0A0] mt-2">Loading your trips...</p>
               </div>
             )}
 
-            {/* Upcoming Tab */}
             {!loading && activeTab === 'upcoming' && (
               <div className="space-y-2">
                 {upcomingBookings.length > 0 ? (
@@ -346,14 +259,8 @@ export function PassengerDashboard() {
                 ) : (
                   <div className="text-center py-8">
                     <Car className="w-10 h-10 text-[#A0A0A0] mx-auto mb-3" />
-                    <p className="text-sm text-[#A0A0A0]">
-                      No upcoming trips
-                    </p>
-                    <Button
-                      onClick={() => navigate('/search')}
-                      variant="outline"
-                      className="mt-3 border-[#FF6B00]/30 text-[#FF6B00] rounded-xl text-sm"
-                    >
+                    <p className="text-sm text-[#A0A0A0]">No upcoming trips</p>
+                    <Button onClick={() => navigate('/search')} variant="outline" className="mt-3 border-[#FF6B00]/30 text-[#FF6B00] rounded-xl text-sm">
                       Find a ride
                     </Button>
                   </div>
@@ -361,7 +268,6 @@ export function PassengerDashboard() {
               </div>
             )}
 
-            {/* Past Tab */}
             {!loading && activeTab === 'past' && (
               <div className="space-y-2">
                 {pastBookings.length > 0 ? (
@@ -369,21 +275,16 @@ export function PassengerDashboard() {
                 ) : (
                   <div className="text-center py-8">
                     <Clock className="w-10 h-10 text-[#A0A0A0] mx-auto mb-3" />
-                    <p className="text-sm text-[#A0A0A0]">
-                      No past trips yet
-                    </p>
+                    <p className="text-sm text-[#A0A0A0]">No past trips yet</p>
                   </div>
                 )}
               </div>
             )}
 
-            {/* Favorites Tab */}
             {!loading && activeTab === 'favorites' && (
               <div className="text-center py-8">
                 <Star className="w-10 h-10 text-[#A0A0A0] mx-auto mb-3" />
-                <p className="text-sm text-[#A0A0A0]">
-                  Favorite routes coming soon
-                </p>
+                <p className="text-sm text-[#A0A0A0]">Favorite routes coming soon</p>
               </div>
             )}
           </div>
@@ -392,19 +293,17 @@ export function PassengerDashboard() {
         {/* Quick Actions */}
         <div className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-3">
           {[
-            { label: 'Profile', icon: 'User', action: () => navigate('/profile') },
-            { label: 'Messages', icon: 'MessageCircle', action: () => navigate('/messages') },
-            { label: 'Verification', icon: 'Shield', action: () => navigate('/verification') },
-            { label: 'Support', icon: 'Headphones', action: () => toast.info('Support coming soon') },
+            { label: 'Profile', action: () => navigate('/profile') },
+            { label: 'Messages', action: () => navigate('/messages') },
+            { label: 'Verification', action: () => navigate('/verification') },
+            { label: 'Support', action: () => navigate('/messages') },
           ].map((item) => (
             <button
               key={item.label}
               onClick={item.action}
               className="bg-[#1B1F27] rounded-xl border border-white/5 p-4 text-center hover:bg-[#FF6B00]/10 hover:border-[#FF6B00]/20 transition-all group"
             >
-              <p className="text-sm font-medium text-white group-hover:text-[#FF6B00] transition-colors">
-                {item.label}
-              </p>
+              <p className="text-sm font-medium text-white group-hover:text-[#FF6B00] transition-colors">{item.label}</p>
             </button>
           ))}
         </div>

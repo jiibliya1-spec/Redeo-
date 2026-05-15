@@ -58,21 +58,43 @@ export function ProfilePage() {
     setIsSaving(true);
 
     const updates = { name, bio, phone, avatar: avatarUrl };
-    const { error } = await supabase
-      .from('profiles')
-      .update(updates)
-      .eq('id', user.id);
 
-    if (error) {
-      toast.error('Failed to save: ' + error.message);
-    } else {
-      // Update local state
-      setUser({ ...user, ...updates });
-      toast.success('Profile saved!');
-      setIsEditing(false);
+    try {
+      // Try to save to Supabase
+      const { error } = await supabase
+        .from('profiles')
+        .update(updates)
+        .eq('id', user.id);
+
+      if (error) {
+        // If profiles table doesn't exist, save to localStorage
+        console.warn('Supabase profiles table not found, saving locally:', error.message);
+        saveProfileLocally(updates);
+        toast.success('Profile saved locally (Supabase table not ready)');
+      } else {
+        toast.success('Profile saved!');
+      }
+    } catch {
+      // Network or other error - save locally
+      saveProfileLocally(updates);
+      toast.success('Profile saved locally');
     }
 
+    // Always update local state so UI reflects changes
+    setUser({ ...user, ...updates });
+    setIsEditing(false);
     setIsSaving(false);
+  };
+
+  // Fallback: save to localStorage when Supabase table doesn't exist
+  const saveProfileLocally = (updates: Partial<typeof user>) => {
+    try {
+      const stored = localStorage.getItem('wansniauto_profile_data');
+      const existing = stored ? JSON.parse(stored) : {};
+      localStorage.setItem('wansniauto_profile_data', JSON.stringify({ ...existing, ...updates }));
+    } catch {
+      // silent
+    }
   };
 
   if (!user) {

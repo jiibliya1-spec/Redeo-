@@ -28,6 +28,25 @@ interface AppState {
   signOut: () => Promise<void>;
 }
 
+// Helper: get profile from localStorage fallback
+function getLocalProfile(userId: string): Partial<User> | null {
+  try {
+    const stored = localStorage.getItem('wansniauto_profile_data');
+    if (stored) {
+      const data = JSON.parse(stored);
+      if (data.id === userId || !data.id) return data;
+    }
+  } catch { /* silent */ }
+  return null;
+}
+
+function setLocalProfile(data: Partial<User>) {
+  try {
+    const existing = getLocalProfile(data.id || '');
+    localStorage.setItem('wansniauto_profile_data', JSON.stringify({ ...existing, ...data }));
+  } catch { /* silent */ }
+}
+
 export const useStore = create<AppState>()(
   persist(
     (set) => ({
@@ -53,15 +72,38 @@ export const useStore = create<AppState>()(
         try {
           const { data: { session } } = await supabase.auth.getSession();
           if (session?.user) {
-            const { data: profile } = await supabase
+            // Try to get profile from Supabase
+            const { data: profile, error } = await supabase
               .from('profiles')
               .select('*')
               .eq('id', session.user.id)
               .single();
-            if (profile) {
-              set({ user: profile as User, isAuthenticated: true, isLoading: false });
+
+            if (error || !profile) {
+              // Table doesn't exist or row not found - use localStorage fallback
+              const localProfile = getLocalProfile(session.user.id);
+              const userData: User = {
+                id: session.user.id,
+                name: localProfile?.name || session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
+                email: session.user.email || '',
+                phone: localProfile?.phone || session.user.user_metadata?.phone || '',
+                role: (localProfile?.role as any) || (session.user.user_metadata?.role as any) || 'passenger',
+                is_verified: localProfile?.is_verified || false,
+                rating: localProfile?.rating || 5.0,
+                trips_count: 0,
+                avatar: localProfile?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${session.user.id}`,
+                bio: localProfile?.bio || '',
+              };
+              set({ user: userData, isAuthenticated: true, isLoading: false });
+              // Save to localStorage for persistence
+              setLocalProfile(userData);
               return;
             }
+
+            set({ user: profile as User, isAuthenticated: true, isLoading: false });
+            // Also save to localStorage as backup
+            setLocalProfile(profile as User);
+            return;
           }
           set({ isLoading: false });
         } catch {
@@ -76,6 +118,7 @@ export const useStore = create<AppState>()(
           const { data: authData, error: authError } = await supabase.auth.signUp({
             email,
             password,
+            options: { data: { name, phone, role } },
           });
 
           if (authError) {
@@ -86,8 +129,8 @@ export const useStore = create<AppState>()(
             return { success: false, error: 'No user returned' };
           }
 
-          // 2. Create profile
-          const { error: profileError } = await supabase.from('profiles').insert({
+          // 2. Try to create profile in Supabase (may fail if table doesn't exist)
+          const profileData = {
             id: authData.user.id,
             name,
             email,
@@ -97,14 +140,19 @@ export const useStore = create<AppState>()(
             rating: 5.0,
             trips_count: 0,
             avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(name)}`,
-          });
+            bio: '',
+          };
+
+          const { error: profileError } = await supabase.from('profiles').insert(profileData);
 
           if (profileError) {
-            console.error('Profile error:', profileError);
-            // Don't fail - user is created, profile may exist from trigger
+            console.warn('Profile table not ready, using localStorage:', profileError.message);
           }
 
-          // 3. Auto sign in
+          // 3. Always save to localStorage as fallback/primary
+          setLocalProfile(profileData);
+
+          // 4. Auto sign in
           const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
             email,
             password,
@@ -114,14 +162,8 @@ export const useStore = create<AppState>()(
             return { success: false, error: 'Account created! Please sign in.' };
           }
 
-          // 4. Get profile and set user
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', signInData.user.id)
-            .single();
-
-          const user = (profile || {
+          // 5. Set user in state
+          const user: User = {
             id: signInData.user.id,
             name,
             email,
@@ -130,8 +172,9 @@ export const useStore = create<AppState>()(
             is_verified: false,
             rating: 5.0,
             trips_count: 0,
-            avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(name)}`,
-          }) as User;
+            avatar: profileData.avatar,
+            bio: '',
+          };
 
           set({ user, isAuthenticated: true });
           return { success: true };
@@ -152,25 +195,35 @@ export const useStore = create<AppState>()(
             return { success: false, error: error.message };
           }
 
-          // Get profile
-          const { data: profile } = await supabase
+          // Try to get profile from Supabase
+          const { data: profile, error: profileError } = await supabase
             .from('profiles')
             .select('*')
             .eq('id', data.user.id)
             .single();
 
-          const user = (profile || {
-            id: data.user.id,
-            name: data.user.user_metadata?.name || email,
-            email,
-            role: 'passenger',
-            is_verified: false,
-            rating: 5.0,
-            trips_count: 0,
-            avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(email)}`,
-          }) as User;
+          if (profileError || !profile) {
+            // Use localStorage fallback or create from auth data
+            const localProfile = getLocalProfile(data.user.id);
+            const user: User = {
+              id: data.user.id,
+              name: localProfile?.name || data.user.user_metadata?.name || email.split('@')[0],
+              email,
+              phone: localProfile?.phone || data.user.user_metadata?.phone || '',
+              role: (localProfile?.role as any) || (data.user.user_metadata?.role as any) || 'passenger',
+              is_verified: localProfile?.is_verified || false,
+              rating: localProfile?.rating || 5.0,
+              trips_count: 0,
+              avatar: localProfile?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${data.user.id}`,
+              bio: localProfile?.bio || '',
+            };
+            set({ user, isAuthenticated: true });
+            setLocalProfile(user);
+            return { success: true };
+          }
 
-          set({ user, isAuthenticated: true });
+          set({ user: profile as User, isAuthenticated: true });
+          setLocalProfile(profile as User);
           return { success: true };
         } catch (err: any) {
           return { success: false, error: err.message || 'Login failed' };

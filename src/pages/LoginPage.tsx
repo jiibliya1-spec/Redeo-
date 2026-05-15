@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { signIn } from '@/services/authService';
 import { useStore } from '@/store/useStore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,7 +10,7 @@ import { Car, Eye, EyeOff, Loader2 } from 'lucide-react';
 
 export function LoginPage() {
   const navigate = useNavigate();
-  const { initAuth } = useStore();
+  const { signIn } = useStore();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -20,17 +19,17 @@ export function LoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    try {
-      await signIn(email, password);
-      // Refresh the auth state so the store has the current user
-      await initAuth();
+
+    const result = await signIn(email, password);
+
+    if (result.success) {
       toast.success('Welcome back!');
       navigate('/dashboard');
-    } catch (err: any) {
-      toast.error(err.message || 'Invalid credentials');
-    } finally {
-      setIsLoading(false);
+    } else {
+      toast.error(result.error || 'Login failed');
     }
+
+    setIsLoading(false);
   };
 
   const quickLogin = (role: 'passenger' | 'driver' | 'admin') => {

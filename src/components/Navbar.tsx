@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 export function Navbar() {
-  const { user, isAuthenticated, logout, notifications, unreadCount } = useStore();
+  const { user, isAuthenticated, signOut, notifications, unreadCount } = useStore();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
@@ -137,7 +137,7 @@ export function Navbar() {
                       <MessageCircle className="w-4 h-4 mr-2.5 text-[#A0A0A0]" /> Messages
                     </DropdownMenuItem>
                     <DropdownMenuSeparator className="bg-white/5" />
-                    <DropdownMenuItem onClick={logout} className="cursor-pointer text-red-400 px-4 py-2.5">
+                    <DropdownMenuItem onClick={signOut} className="cursor-pointer text-red-400 px-4 py-2.5">
                       <LogOut className="w-4 h-4 mr-2.5" /> Logout
                     </DropdownMenuItem>
                   </DropdownMenuContent>
@@ -169,7 +169,7 @@ export function Navbar() {
             {isAuthenticated ? (
               <>
                 <Link to="/profile" onClick={() => setMobileMenuOpen(false)} className="block px-4 py-2.5 text-white hover:bg-white/5 rounded-xl transition-colors text-sm font-medium">Profile</Link>
-                <button onClick={() => { logout(); setMobileMenuOpen(false); }} className="block w-full text-left px-4 py-2.5 text-red-400 hover:bg-white/5 rounded-xl transition-colors text-sm">Logout</button>
+                <button onClick={() => { signOut(); setMobileMenuOpen(false); }} className="block w-full text-left px-4 py-2.5 text-red-400 hover:bg-white/5 rounded-xl transition-colors text-sm">Logout</button>
               </>
             ) : (
               <Link to="/login" onClick={() => setMobileMenuOpen(false)} className="block px-4 py-2.5 text-[#FF6B00] hover:bg-white/5 rounded-xl transition-colors text-sm font-medium">Sign in</Link>

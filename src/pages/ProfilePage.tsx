@@ -11,7 +11,7 @@ import { Camera, Edit, Check, Shield, Star, Car, Calendar, ChevronRight, Loader2
 
 export function ProfilePage() {
   const navigate = useNavigate();
-  const { user, logout } = useStore();
+  const { user, signOut } = useStore();
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState(user?.name || '');
   const [bio, setBio] = useState(user?.bio || '');
@@ -77,7 +77,7 @@ export function ProfilePage() {
           ))}
         </div>
 
-        <Button onClick={logout} variant="outline" className="w-full border-red-500/30 text-red-400 hover:bg-red-500/10 rounded-xl">Logout</Button>
+        <Button onClick={signOut} variant="outline" className="w-full border-red-500/30 text-red-400 hover:bg-red-500/10 rounded-xl">Logout</Button>
       </div>
     </div>
   );

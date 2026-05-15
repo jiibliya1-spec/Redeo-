@@ -1,132 +1,191 @@
 import { create } from 'zustand';
-import type { User, Trip, Booking, Notification, SearchFilters } from '@/types';
-import { getCurrentUser, getSession, onAuthStateChange, signOut } from '@/services/authService';
-import { fetchTrips } from '@/services/tripService';
-import { fetchNotifications } from '@/services/notificationService';
-import { fetchUserBookings } from '@/services/bookingService';
+import { persist } from 'zustand/middleware';
+import type { User, Trip, Booking, SearchFilters } from '@/types';
+import { supabase } from '@/lib/supabase';
 
 interface AppState {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  trips: Trip[];
-  bookings: Booking[];
-  notifications: Notification[];
-  unreadCount: number;
   selectedTrip: Trip | null;
   searchFilters: SearchFilters;
   language: 'en' | 'fr' | 'ar';
+  bookings: Booking[];
+  notifications: any[];
+  unreadCount: number;
 
   setUser: (user: User | null) => void;
-  setIsAuthenticated: (val: boolean) => void;
   setIsLoading: (val: boolean) => void;
-  login: (user: User) => void;
-  logout: () => Promise<void>;
-  initAuth: () => Promise<void>;
-  setTrips: (trips: Trip[]) => void;
-  loadTrips: (filters?: SearchFilters) => Promise<void>;
   setSelectedTrip: (trip: Trip | null) => void;
   setSearchFilters: (filters: SearchFilters) => void;
-  setBookings: (bookings: Booking[]) => void;
-  loadBookings: (userId: string) => Promise<void>;
-  addBooking: (booking: Booking) => void;
-  setNotifications: (notifications: Notification[]) => void;
-  loadNotifications: (userId: string) => Promise<void>;
-  markNotificationRead: (id: string) => void;
   setLanguage: (lang: 'en' | 'fr' | 'ar') => void;
+  addBooking: (booking: Booking) => void;
+
+  // Auth
+  initAuth: () => Promise<void>;
+  signUp: (email: string, password: string, name: string, phone: string, role: 'passenger' | 'driver') => Promise<{ success: boolean; error?: string }>;
+  signIn: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  signOut: () => Promise<void>;
 }
 
-export const useStore = create<AppState>((set, get) => ({
-  user: null,
-  isAuthenticated: false,
-  isLoading: true,
-  trips: [],
-  bookings: [],
-  notifications: [],
-  unreadCount: 0,
-  selectedTrip: null,
-  searchFilters: { from: '', to: '', date: '', passengers: 1 },
-  language: 'en',
+export const useStore = create<AppState>()(
+  persist(
+    (set) => ({
+      user: null,
+      isAuthenticated: false,
+      isLoading: true,
+      selectedTrip: null,
+      searchFilters: { from: '', to: '', date: '', passengers: 1 },
+      language: 'en',
+      bookings: [],
+      notifications: [],
+      unreadCount: 0,
 
-  setUser: (user) => set({ user }),
-  setIsAuthenticated: (val) => set({ isAuthenticated: val }),
-  setIsLoading: (val) => set({ isLoading: val }),
+      setUser: (user) => set({ user, isAuthenticated: !!user }),
+      setIsLoading: (isLoading) => set({ isLoading }),
+      setSelectedTrip: (selectedTrip) => set({ selectedTrip }),
+      setSearchFilters: (searchFilters) => set({ searchFilters }),
+      setLanguage: (language) => set({ language }),
+      addBooking: (booking) => set((s) => ({ bookings: [booking, ...s.bookings] })),
 
-  login: (user) => set({ user, isAuthenticated: true }),
-
-  logout: async () => {
-    await signOut();
-    set({ user: null, isAuthenticated: false, bookings: [], notifications: [] });
-  },
-
-  initAuth: async () => {
-    try {
-      const session = await getSession();
-      if (session?.user) {
-        const user = await getCurrentUser();
-        if (user) {
-          set({ user, isAuthenticated: true });
-          get().loadNotifications(user.id);
-          get().loadBookings(user.id);
+      // Initialize auth state from Supabase session
+      initAuth: async () => {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.user) {
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', session.user.id)
+              .single();
+            if (profile) {
+              set({ user: profile as User, isAuthenticated: true, isLoading: false });
+              return;
+            }
+          }
+          set({ isLoading: false });
+        } catch {
+          set({ isLoading: false });
         }
-      }
-    } catch (e) {
-      console.error('Auth init error:', e);
-    } finally {
-      set({ isLoading: false });
-    }
+      },
 
-    onAuthStateChange((user) => {
-      set({ user, isAuthenticated: !!user });
-      if (user) {
-        get().loadNotifications(user.id);
-        get().loadBookings(user.id);
-      }
-    });
-  },
+      // Sign up with Supabase
+      signUp: async (email, password, name, phone, role) => {
+        try {
+          // 1. Create auth user
+          const { data: authData, error: authError } = await supabase.auth.signUp({
+            email,
+            password,
+          });
 
-  setTrips: (trips) => set({ trips }),
-  loadTrips: async (filters) => {
-    try {
-      const trips = await fetchTrips(filters);
-      set({ trips });
-    } catch (e) {
-      console.error('Load trips error:', e);
-    }
-  },
+          if (authError) {
+            return { success: false, error: authError.message };
+          }
 
-  setSelectedTrip: (trip) => set({ selectedTrip: trip }),
-  setSearchFilters: (filters) => set({ searchFilters: filters }),
+          if (!authData.user) {
+            return { success: false, error: 'No user returned' };
+          }
 
-  setBookings: (bookings) => set({ bookings }),
-  loadBookings: async (userId) => {
-    try {
-      const bookings = await fetchUserBookings(userId);
-      set({ bookings });
-    } catch (e) {
-      console.error('Load bookings error:', e);
-    }
-  },
-  addBooking: (booking) => set((s) => ({ bookings: [booking, ...s.bookings] })),
+          // 2. Create profile
+          const { error: profileError } = await supabase.from('profiles').insert({
+            id: authData.user.id,
+            name,
+            email,
+            phone,
+            role,
+            is_verified: false,
+            rating: 5.0,
+            trips_count: 0,
+            avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(name)}`,
+          });
 
-  setNotifications: (notifications) => {
-    const unread = notifications.filter((n) => !n.read).length;
-    set({ notifications, unreadCount: unread });
-  },
-  loadNotifications: async (userId) => {
-    try {
-      const notifications = await fetchNotifications(userId);
-      const unread = notifications.filter((n) => !n.read).length;
-      set({ notifications, unreadCount: unread });
-    } catch (e) {
-      console.error('Load notifications error:', e);
-    }
-  },
-  markNotificationRead: (id) =>
-    set((s) => {
-      const updated = s.notifications.map((n) => (n.id === id ? { ...n, read: true } : n));
-      return { notifications: updated, unreadCount: updated.filter((n) => !n.read).length };
+          if (profileError) {
+            console.error('Profile error:', profileError);
+            // Don't fail - user is created, profile may exist from trigger
+          }
+
+          // 3. Auto sign in
+          const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+            email,
+            password,
+          });
+
+          if (signInError) {
+            return { success: false, error: 'Account created! Please sign in.' };
+          }
+
+          // 4. Get profile and set user
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', signInData.user.id)
+            .single();
+
+          const user = (profile || {
+            id: signInData.user.id,
+            name,
+            email,
+            phone,
+            role,
+            is_verified: false,
+            rating: 5.0,
+            trips_count: 0,
+            avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(name)}`,
+          }) as User;
+
+          set({ user, isAuthenticated: true });
+          return { success: true };
+        } catch (err: any) {
+          return { success: false, error: err.message || 'Registration failed' };
+        }
+      },
+
+      // Sign in with Supabase
+      signIn: async (email, password) => {
+        try {
+          const { data, error } = await supabase.auth.signInWithPassword({
+            email,
+            password,
+          });
+
+          if (error) {
+            return { success: false, error: error.message };
+          }
+
+          // Get profile
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', data.user.id)
+            .single();
+
+          const user = (profile || {
+            id: data.user.id,
+            name: data.user.user_metadata?.name || email,
+            email,
+            role: 'passenger',
+            is_verified: false,
+            rating: 5.0,
+            trips_count: 0,
+            avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(email)}`,
+          }) as User;
+
+          set({ user, isAuthenticated: true });
+          return { success: true };
+        } catch (err: any) {
+          return { success: false, error: err.message || 'Login failed' };
+        }
+      },
+
+      // Sign out
+      signOut: async () => {
+        await supabase.auth.signOut();
+        set({ user: null, isAuthenticated: false });
+      },
     }),
-
-  setLanguage: (language) => set({ language }),
-}));
+    {
+      name: 'wansniauto-storage',
+      partialize: (state) => ({ language: state.language }),
+    }
+  )
+);

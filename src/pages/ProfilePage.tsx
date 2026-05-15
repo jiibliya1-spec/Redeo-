@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useStore } from '@/store/useStore';
+import { useI18n } from '@/lib/i18n';
 import { supabase } from '@/lib/supabase';
 import { uploadAvatar } from '@/services/storageService';
 import { Button } from '@/components/ui/button';
@@ -9,11 +10,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { Camera, Edit, Check, Shield, Star, Car, Calendar, ChevronRight, Loader2, LogOut, Upload } from 'lucide-react';
+import { Camera, Edit, Check, Shield, Star, Car, Calendar, ChevronRight, Loader2, LogOut, Upload, Globe } from 'lucide-react';
 
 export function ProfilePage() {
   const navigate = useNavigate();
   const { user, signOut, setUser } = useStore();
+  const { lang, setLang, t } = useI18n();
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState('');
   const [bio, setBio] = useState('');
@@ -127,16 +129,16 @@ export function ProfilePage() {
   if (!user) {
     return (
       <div className="min-h-screen bg-[#0F1115] pt-20 flex items-center justify-center">
-        <p className="text-[#A0A0A0]">Please sign in to view your profile.</p>
+        <p className="text-[#A0A0A0]">{t('auth.login')}</p>
       </div>
     );
   }
 
   const menuItems = [
-    { icon: Shield, label: 'Verification Center', desc: 'Verify your identity', action: () => navigate('/verification') },
-    { icon: Car, label: 'My Trips', desc: 'View trip history', action: () => navigate('/dashboard') },
-    { icon: Star, label: 'My Reviews', desc: 'Your ratings & reviews', action: () => toast.info('Coming soon!') },
-    { icon: Calendar, label: 'Preferences', desc: 'Travel preferences', action: () => toast.info('Coming soon!') },
+    { icon: Shield, label: t('verify.title'), desc: t('verify.subtitle'), action: () => navigate('/verification') },
+    { icon: Car, label: t('passenger.title'), desc: t('passenger.title'), action: () => navigate('/dashboard') },
+    { icon: Star, label: t('profile.my_reviews'), desc: t('profile.my_reviews'), action: () => toast.info(t('common.favorite_routes')) },
+    { icon: Calendar, label: t('profile.preferences'), desc: t('profile.preferences'), action: () => toast.info(t('common.favorite_routes')) },
   ];
 
   return (
@@ -220,7 +222,8 @@ export function ProfilePage() {
                 )}
                 <p className="text-sm text-[#A0A0A0]">{user.email}</p>
                 <div className="flex items-center gap-2 mt-1">
-                  {user.is_verified && <span className="flex items-center gap-1 text-xs text-[#FF6B00]"><Shield className="w-3 h-3" /> Verified</span>}
+                  {user.is_verified && <span className="flex items-center gap-1 text-xs text-[#FF6B00]"><Shield className="w-3 h-3" /> {t('profile.verified')}</span>}
+                  {!user.is_verified && <span className="flex items-center gap-1 text-xs text-[#A0A0A0]"><Shield className="w-3 h-3" /> {t('profile.unverified')}</span>}
                   <span className="flex items-center gap-1 text-xs text-[#A0A0A0]"><Star className="w-3 h-3 text-[#FF6B00] fill-[#FF6B00]" /> {user.rating || 5}</span>
                 </div>
               </div>
@@ -237,21 +240,49 @@ export function ProfilePage() {
           </div>
 
           <div className="mb-4">
-            <Label className="text-sm text-[#A0A0A0] mb-2 block">Bio</Label>
+            <Label className="text-sm text-[#A0A0A0] mb-2 block">{t('profile.bio')}</Label>
             {isEditing ? (
-              <Textarea value={bio} onChange={e => setBio(e.target.value)} placeholder="Tell us about yourself..." className="bg-[#0F1115] border-white/10 text-white rounded-xl min-h-[80px]" />
+              <Textarea value={bio} onChange={e => setBio(e.target.value)} placeholder={t('profile.bio_placeholder')} className="bg-[#0F1115] border-white/10 text-white rounded-xl min-h-[80px]" />
             ) : (
-              <p className="text-sm text-[#A0A0A0]">{user.bio || 'No bio yet.'}</p>
+              <p className="text-sm text-[#A0A0A0]">{user.bio || t('common.no_bio')}</p>
             )}
           </div>
 
           <div>
-            <Label className="text-sm text-[#A0A0A0] mb-2 block">Phone</Label>
+            <Label className="text-sm text-[#A0A0A0] mb-2 block">{t('profile.phone')}</Label>
             {isEditing ? (
               <Input value={phone} onChange={e => setPhone(e.target.value)} className="bg-[#0F1115] border-white/10 text-white h-9 rounded-xl" />
             ) : (
-              <p className="text-sm text-[#A0A0A0]">{user.phone || 'Not set'}</p>
+              <p className="text-sm text-[#A0A0A0]">{user.phone || t('common.not_set')}</p>
             )}
+          </div>
+        </motion.div>
+
+        {/* Language Selector */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="bg-[#1B1F27] rounded-2xl border border-white/5 p-6 mb-6">
+          <div className="flex items-center gap-3 mb-4">
+            <Globe className="w-5 h-5 text-[#FF6B00]" />
+            <h3 className="text-sm font-medium text-white">{t('lang.select')}</h3>
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            {([
+              { code: 'en' as const, label: 'English', flag: 'EN' },
+              { code: 'fr' as const, label: 'Francais', flag: 'FR' },
+              { code: 'ar' as const, label: 'Arabe', flag: 'AR' },
+            ]).map((l) => (
+              <button
+                key={l.code}
+                onClick={() => setLang(l.code)}
+                className={`p-3 rounded-xl border text-center transition-all ${
+                  lang === l.code
+                    ? 'border-[#FF6B00] bg-[#FF6B00]/10 text-[#FF6B00]'
+                    : 'border-white/10 text-white hover:border-white/20'
+                }`}
+              >
+                <span className="text-xs font-bold block mb-1">{l.flag}</span>
+                <span className="text-xs">{l.label}</span>
+              </button>
+            ))}
           </div>
         </motion.div>
 
@@ -280,11 +311,11 @@ export function ProfilePage() {
 
         {/* Logout */}
         <Button
-          onClick={async () => { await signOut(); navigate('/'); toast.success('Logged out'); }}
+          onClick={async () => { await signOut(); navigate('/'); toast.success(t('profile.logout')); }}
           variant="outline"
           className="w-full border-red-500/30 text-red-400 hover:bg-red-500/10 rounded-xl h-12"
         >
-          <LogOut className="w-4 h-4 mr-2" /> Logout
+          <LogOut className="w-4 h-4 mr-2" /> {t('profile.logout')}
         </Button>
       </div>
     </div>

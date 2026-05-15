@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useStore } from '@/store/useStore';
+import { useI18n } from '@/lib/i18n';
 import { apiGet } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import type { Trip, Booking } from '@/types';
@@ -41,6 +42,7 @@ function getLocalTrips(): Trip[] {
 export function PassengerDashboard() {
   const navigate = useNavigate();
   const { user } = useStore();
+  const { t, dir } = useI18n();
 
   const [activeTab, setActiveTab] = useState<'upcoming' | 'past' | 'favorites'>('upcoming');
   const [bookings, setBookings] = useState<BookingWithTrip[]>([]);
@@ -127,9 +129,9 @@ export function PassengerDashboard() {
   );
 
   const stats = [
-    { label: 'Trips', value: statsLoading ? '...' : totalTrips, icon: Car },
-    { label: 'Rating', value: statsLoading ? '...' : rating, icon: Star, suffix: '/5' },
-    { label: 'Spent', value: statsLoading ? '...' : totalSaved, icon: Wallet, prefix: 'MAD ' },
+    { label: t('passenger.trips'), value: statsLoading ? '...' : totalTrips, icon: Car },
+    { label: t('trip.rating'), value: statsLoading ? '...' : rating, icon: Star, suffix: '/5' },
+    { label: t('passenger.spent'), value: statsLoading ? '...' : totalSaved, icon: Wallet, prefix: 'MAD ' },
   ];
 
   const renderBookingItem = (booking: BookingWithTrip, index: number) => {
@@ -196,15 +198,15 @@ export function PassengerDashboard() {
               className="w-14 h-14 rounded-full object-cover ring-2 ring-[#FF6B00]/30"
             />
             <div>
-              <h1 className="text-2xl font-bold text-white">{user?.name || 'Passenger'}</h1>
+              <h1 className="text-2xl font-bold text-white" dir={dir}>{user?.name || 'Passenger'}</h1>
               <div className="flex items-center gap-2 mt-1">
                 <Shield className="w-3.5 h-3.5 text-[#FF6B00]" />
-                <span className="text-xs text-[#FF6B00]">{user?.is_verified ? 'Verified' : 'Unverified'}</span>
+                <span className="text-xs text-[#FF6B00]">{user?.is_verified ? t('profile.verified') : t('profile.unverified')}</span>
               </div>
             </div>
           </div>
           <Button onClick={() => navigate('/search')} className="bg-[#FF6B00] text-white hover:bg-[#E56000] rounded-xl">
-            <Car className="w-4 h-4 mr-2" /> Book a Ride
+            <Car className="w-4 h-4 mr-2" /> {t('passenger.book_ride')}
           </Button>
         </div>
 
@@ -228,16 +230,20 @@ export function PassengerDashboard() {
         {/* Tabs */}
         <div className="bg-[#1B1F27] rounded-2xl border border-white/5 overflow-hidden">
           <div className="flex border-b border-white/5">
-            {(['upcoming', 'past', 'favorites'] as const).map((tab) => (
+            {([
+              { key: 'upcoming' as const, label: t('passenger.upcoming') },
+              { key: 'past' as const, label: t('passenger.past') },
+              { key: 'favorites' as const, label: t('passenger.favorites') },
+            ]).map((tab) => (
               <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
                 className={`flex-1 py-3.5 text-sm font-medium transition-colors capitalize ${
-                  activeTab === tab ? 'text-[#FF6B00] border-b-2 border-[#FF6B00]' : 'text-[#A0A0A0] hover:text-white'
+                  activeTab === tab.key ? 'text-[#FF6B00] border-b-2 border-[#FF6B00]' : 'text-[#A0A0A0] hover:text-white'
                 }`}
               >
-                {tab}
-                {tab === 'upcoming' && upcomingBookings.length > 0 && (
+                {tab.label}
+                {tab.key === 'upcoming' && upcomingBookings.length > 0 && (
                   <span className="ml-1.5 text-xs bg-[#FF6B00]/20 text-[#FF6B00] px-1.5 py-0.5 rounded-full">{upcomingBookings.length}</span>
                 )}
               </button>
@@ -248,7 +254,7 @@ export function PassengerDashboard() {
             {loading && (
               <div className="text-center py-8">
                 <Loader2 className="w-6 h-6 animate-spin text-[#FF6B00] mx-auto" />
-                <p className="text-sm text-[#A0A0A0] mt-2">Loading your trips...</p>
+                <p className="text-sm text-[#A0A0A0] mt-2">{t('common.loading')}</p>
               </div>
             )}
 
@@ -259,9 +265,9 @@ export function PassengerDashboard() {
                 ) : (
                   <div className="text-center py-8">
                     <Car className="w-10 h-10 text-[#A0A0A0] mx-auto mb-3" />
-                    <p className="text-sm text-[#A0A0A0]">No upcoming trips</p>
+                    <p className="text-sm text-[#A0A0A0]">{t('passenger.no_upcoming')}</p>
                     <Button onClick={() => navigate('/search')} variant="outline" className="mt-3 border-[#FF6B00]/30 text-[#FF6B00] rounded-xl text-sm">
-                      Find a ride
+                      {t('passenger.find_ride')}
                     </Button>
                   </div>
                 )}
@@ -275,7 +281,7 @@ export function PassengerDashboard() {
                 ) : (
                   <div className="text-center py-8">
                     <Clock className="w-10 h-10 text-[#A0A0A0] mx-auto mb-3" />
-                    <p className="text-sm text-[#A0A0A0]">No past trips yet</p>
+                    <p className="text-sm text-[#A0A0A0]">{t('passenger.no_past')}</p>
                   </div>
                 )}
               </div>
@@ -284,7 +290,7 @@ export function PassengerDashboard() {
             {!loading && activeTab === 'favorites' && (
               <div className="text-center py-8">
                 <Star className="w-10 h-10 text-[#A0A0A0] mx-auto mb-3" />
-                <p className="text-sm text-[#A0A0A0]">Favorite routes coming soon</p>
+                <p className="text-sm text-[#A0A0A0]">{t('common.favorite_routes')}</p>
               </div>
             )}
           </div>

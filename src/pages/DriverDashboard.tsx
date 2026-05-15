@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useStore } from '@/store/useStore';
+import { useI18n } from '@/lib/i18n';
 import { apiGet, apiPost } from '@/lib/supabase';
 import { MOROCCAN_CITIES } from '@/lib/data';
 import { Button } from '@/components/ui/button';
@@ -49,6 +50,7 @@ function getLocalBookings(): any[] {
 export function DriverDashboard() {
   const navigate = useNavigate();
   const { user } = useStore();
+  const { t, dir } = useI18n();
 
   const [trips, setTrips] = useState<Trip[]>([]);
   const [loading, setLoading] = useState(true);
@@ -203,10 +205,10 @@ export function DriverDashboard() {
   };
 
   const stats = [
-    { label: 'Earnings', value: statsLoading ? '...' : totalEarnings, icon: DollarSign, prefix: 'MAD ' },
-    { label: 'Rating', value: statsLoading ? '...' : avgRating, icon: Star, suffix: '/5' },
-    { label: 'Trips', value: statsLoading ? '...' : totalTrips, icon: Car },
-    { label: 'Passengers', value: statsLoading ? '...' : totalPassengers, icon: Users },
+    { label: t('driver.earnings'), value: statsLoading ? '...' : totalEarnings, icon: DollarSign, prefix: 'MAD ' },
+    { label: t('driver.rating'), value: statsLoading ? '...' : avgRating, icon: Star, suffix: '/5' },
+    { label: t('driver.trips'), value: statsLoading ? '...' : totalTrips, icon: Car },
+    { label: t('driver.passengers'), value: statsLoading ? '...' : totalPassengers, icon: Users },
   ];
 
   return (
@@ -214,11 +216,11 @@ export function DriverDashboard() {
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-2xl font-bold text-white">Driver Dashboard</h1>
-            <p className="text-sm text-[#A0A0A0] mt-1">Manage your rides and earnings</p>
+            <h1 className="text-2xl font-bold text-white" dir={dir}>{t('driver.title')}</h1>
+            <p className="text-sm text-[#A0A0A0] mt-1">{t('driver.subtitle')}</p>
           </div>
           <Button onClick={() => setShowPublish(true)} className="bg-[#FF6B00] text-white hover:bg-[#E56000] rounded-xl">
-            <Plus className="w-4 h-4 mr-2" /> Publish Trip
+            <Plus className="w-4 h-4 mr-2" /> {t('driver.publish')}
           </Button>
         </div>
 
@@ -238,55 +240,55 @@ export function DriverDashboard() {
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
             <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} className="bg-[#1B1F27] rounded-2xl border border-white/10 p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-bold text-white">Publish a Trip</h2>
+                <h2 className="text-xl font-bold text-white">{t('driver.publish')}</h2>
                 <button onClick={() => setShowPublish(false)} className="p-2 rounded-xl hover:bg-white/5"><X className="w-5 h-5 text-[#A0A0A0]" /></button>
               </div>
               <form onSubmit={handlePublish} className="space-y-4">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <Label className="text-sm text-[#A0A0A0] mb-1.5 block">From</Label>
+                    <Label className="text-sm text-[#A0A0A0] mb-1.5 block">{t('driver.from')}</Label>
                     <select value={from} onChange={e => setFrom(e.target.value)} className="w-full bg-[#0F1115] border border-white/10 text-white rounded-xl h-11 px-3 text-sm outline-none appearance-none" required>
-                      <option value="">Select city</option>
+                      <option value="">{t('common.select_city')}</option>
                       {MOROCCAN_CITIES.map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
                   </div>
                   <div>
-                    <Label className="text-sm text-[#A0A0A0] mb-1.5 block">To</Label>
+                    <Label className="text-sm text-[#A0A0A0] mb-1.5 block">{t('driver.to')}</Label>
                     <select value={to} onChange={e => setTo(e.target.value)} className="w-full bg-[#0F1115] border border-white/10 text-white rounded-xl h-11 px-3 text-sm outline-none appearance-none" required>
-                      <option value="">Select city</option>
+                      <option value="">{t('common.select_city')}</option>
                       {MOROCCAN_CITIES.filter(c => c !== from).map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <Label className="text-sm text-[#A0A0A0] mb-1.5 block">Date</Label>
+                    <Label className="text-sm text-[#A0A0A0] mb-1.5 block">{t('driver.date')}</Label>
                     <input type="date" value={date} onChange={e => setDate(e.target.value)} min={new Date().toISOString().split('T')[0]} className="w-full h-11 px-3 bg-[#0F1115] border border-white/10 text-white rounded-xl text-sm outline-none" required />
                   </div>
                   <div>
-                    <Label className="text-sm text-[#A0A0A0] mb-1.5 block">Time</Label>
+                    <Label className="text-sm text-[#A0A0A0] mb-1.5 block">{t('driver.time')}</Label>
                     <input type="time" value={time} onChange={e => setTime(e.target.value)} className="w-full h-11 px-3 bg-[#0F1115] border border-white/10 text-white rounded-xl text-sm outline-none" required />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <Label className="text-sm text-[#A0A0A0] mb-1.5 block">Price (MAD)</Label>
+                    <Label className="text-sm text-[#A0A0A0] mb-1.5 block">{t('driver.price')}</Label>
                     <Input type="number" min="1" value={price} onChange={e => setPrice(e.target.value)} placeholder="100" className="bg-[#0F1115] border-white/10 text-white rounded-xl" required />
                   </div>
                   <div>
-                    <Label className="text-sm text-[#A0A0A0] mb-1.5 block">Seats</Label>
+                    <Label className="text-sm text-[#A0A0A0] mb-1.5 block">{t('driver.seats')}</Label>
                     <select value={seats} onChange={e => setSeats(e.target.value)} className="w-full bg-[#0F1115] border border-white/10 text-white rounded-xl h-11 px-3 text-sm outline-none appearance-none">
-                      {[1,2,3,4,5,6,7].map(n => <option key={n} value={n}>{n} seat{n > 1 ? 's' : ''}</option>)}
+                      {[1,2,3,4,5,6,7].map(n => <option key={n} value={n}>{n}</option>)}
                     </select>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <Label className="text-sm text-[#A0A0A0] mb-1.5 block">Distance (optional)</Label>
+                    <Label className="text-sm text-[#A0A0A0] mb-1.5 block">{t('driver.distance')}</Label>
                     <Input type="text" value={distance} onChange={e => setDistance(e.target.value)} placeholder="e.g. 240 km" className="bg-[#0F1115] border-white/10 text-white rounded-xl" />
                   </div>
                   <div>
-                    <Label className="text-sm text-[#A0A0A0] mb-1.5 block">Duration (optional)</Label>
+                    <Label className="text-sm text-[#A0A0A0] mb-1.5 block">{t('driver.duration')}</Label>
                     <Input type="text" value={duration} onChange={e => setDuration(e.target.value)} placeholder="e.g. 2h 30min" className="bg-[#0F1115] border-white/10 text-white rounded-xl" />
                   </div>
                 </div>
@@ -295,21 +297,21 @@ export function DriverDashboard() {
                 <div className="border border-[#FF6B00]/20 rounded-xl p-4 space-y-3 bg-[#FF6B00]/5">
                   <div className="flex items-center gap-2 text-[#FF6B00]">
                     <AlertCircle className="w-4 h-4" />
-                    <p className="text-sm font-medium">Vehicle Information</p>
+                    <p className="text-sm font-medium">{t('driver.vehicle_info')}</p>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
-                    <Input placeholder="Make (e.g. Mercedes)" value={vehicleMake} onChange={e => setVehicleMake(e.target.value)} className="bg-[#0F1115] border-white/10 text-white rounded-xl" required />
-                    <Input placeholder="Model (e.g. C-Class)" value={vehicleModel} onChange={e => setVehicleModel(e.target.value)} className="bg-[#0F1115] border-white/10 text-white rounded-xl" required />
+                    <Input placeholder={t('driver.make')} value={vehicleMake} onChange={e => setVehicleMake(e.target.value)} className="bg-[#0F1115] border-white/10 text-white rounded-xl" required />
+                    <Input placeholder={t('driver.model')} value={vehicleModel} onChange={e => setVehicleModel(e.target.value)} className="bg-[#0F1115] border-white/10 text-white rounded-xl" required />
                   </div>
                   <div className="grid grid-cols-3 gap-3">
-                    <Input placeholder="Year" type="number" value={vehicleYear} onChange={e => setVehicleYear(e.target.value)} className="bg-[#0F1115] border-white/10 text-white rounded-xl" />
-                    <Input placeholder="Color" value={vehicleColor} onChange={e => setVehicleColor(e.target.value)} className="bg-[#0F1115] border-white/10 text-white rounded-xl" />
-                    <Input placeholder="Plate #" value={plateNumber} onChange={e => setPlateNumber(e.target.value)} className="bg-[#0F1115] border-white/10 text-white rounded-xl" required />
+                    <Input placeholder={t('driver.year')} type="number" value={vehicleYear} onChange={e => setVehicleYear(e.target.value)} className="bg-[#0F1115] border-white/10 text-white rounded-xl" />
+                    <Input placeholder={t('driver.color')} value={vehicleColor} onChange={e => setVehicleColor(e.target.value)} className="bg-[#0F1115] border-white/10 text-white rounded-xl" />
+                    <Input placeholder={t('driver.plate')} value={plateNumber} onChange={e => setPlateNumber(e.target.value)} className="bg-[#0F1115] border-white/10 text-white rounded-xl" required />
                   </div>
                 </div>
 
                 <Button type="submit" disabled={isPublishing} className="w-full bg-[#FF6B00] text-white rounded-xl h-12 font-semibold disabled:opacity-50 mt-2">
-                  {isPublishing ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Publish Trip'}
+                  {isPublishing ? <Loader2 className="w-5 h-5 animate-spin" /> : t('driver.publish_btn')}
                 </Button>
               </form>
             </motion.div>
@@ -319,8 +321,8 @@ export function DriverDashboard() {
         {/* My Trips */}
         <div className="bg-[#1B1F27] rounded-2xl border border-white/5 overflow-hidden">
           <div className="p-5 border-b border-white/5 flex items-center justify-between">
-            <h3 className="text-xs font-medium text-[#A0A0A0] uppercase tracking-wider">My Published Trips</h3>
-            <span className="text-xs text-[#A0A0A0]">{trips.length} trips</span>
+            <h3 className="text-xs font-medium text-[#A0A0A0] uppercase tracking-wider">{t('driver.my_trips')}</h3>
+            <span className="text-xs text-[#A0A0A0]">{trips.length} {t('driver.trips').toLowerCase()}</span>
           </div>
 
           {loading ? (
@@ -331,9 +333,9 @@ export function DriverDashboard() {
           ) : trips.length === 0 ? (
             <div className="p-8 text-center">
               <Car className="w-12 h-12 text-[#A0A0A0] mx-auto mb-3" />
-              <p className="text-sm text-[#A0A0A0]">No trips published yet</p>
+              <p className="text-sm text-[#A0A0A0]">{t('driver.no_trips')}</p>
               <Button onClick={() => setShowPublish(true)} variant="outline" className="mt-3 border-[#FF6B00]/30 text-[#FF6B00] rounded-xl text-sm">
-                Publish your first trip
+                {t('driver.publish_first')}
               </Button>
             </div>
           ) : (

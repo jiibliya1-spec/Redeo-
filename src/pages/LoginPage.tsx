@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useStore } from '@/store/useStore';
+import { useI18n } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,6 +12,7 @@ import { Car, Eye, EyeOff, Loader2 } from 'lucide-react';
 export function LoginPage() {
   const navigate = useNavigate();
   const { signIn } = useStore();
+  const { t } = useI18n();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -52,25 +54,25 @@ export function LoginPage() {
             </div>
             <span className="text-2xl font-semibold text-white">Wansni<span className="text-[#FF6B00]">Auto</span></span>
           </Link>
-          <h1 className="text-2xl font-bold text-white">Welcome back</h1>
-          <p className="text-sm text-[#A0A0A0] mt-1">Sign in to your account</p>
+          <h1 className="text-2xl font-bold text-white">{t('auth.welcome_back')}</h1>
+          <p className="text-sm text-[#A0A0A0] mt-1">{t('auth.login')}</p>
         </div>
 
         <div className="flex gap-2 mb-6">
           {(['passenger', 'driver', 'admin'] as const).map(role => (
             <button key={role} onClick={() => quickLogin(role)} className="flex-1 py-2 px-3 rounded-xl bg-white/5 border border-white/5 text-xs text-[#A0A0A0] hover:bg-[#FF6B00]/10 hover:border-[#FF6B00]/20 hover:text-[#FF6B00] transition-all capitalize">
-              {role}
+              {role === 'passenger' ? t('auth.passenger') : role === 'driver' ? t('auth.driver') : role}
             </button>
           ))}
         </div>
 
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
-            <Label className="text-sm text-[#A0A0A0] mb-2 block">Email</Label>
+            <Label className="text-sm text-[#A0A0A0] mb-2 block">{t('auth.email')}</Label>
             <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@email.ma" className="bg-[#1B1F27] border-white/10 text-white placeholder:text-[#A0A0A0]/40 h-12 rounded-xl" required />
           </div>
           <div>
-            <Label className="text-sm text-[#A0A0A0] mb-2 block">Password</Label>
+            <Label className="text-sm text-[#A0A0A0] mb-2 block">{t('auth.password')}</Label>
             <div className="relative">
               <Input type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Enter password" className="bg-[#1B1F27] border-white/10 text-white placeholder:text-[#A0A0A0]/40 h-12 rounded-xl pr-10" required />
               <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#A0A0A0]">
@@ -79,12 +81,12 @@ export function LoginPage() {
             </div>
           </div>
           <Button type="submit" disabled={isLoading} className="w-full bg-[#FF6B00] text-white hover:bg-[#E56000] rounded-xl h-12 text-base font-semibold disabled:opacity-50">
-            {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Sign in'}
+            {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : t('auth.login_btn')}
           </Button>
         </form>
 
         <p className="text-center text-sm text-[#A0A0A0] mt-6">
-          Don't have an account? <Link to="/register" className="text-[#FF6B00] hover:underline font-medium">Sign up</Link>
+          {t('auth.no_account')} <Link to="/register" className="text-[#FF6B00] hover:underline font-medium">{t('auth.register_now')}</Link>
         </p>
       </motion.div>
     </div>

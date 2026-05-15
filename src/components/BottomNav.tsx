@@ -1,9 +1,11 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useStore } from '@/store/useStore';
+import { useI18n } from '@/lib/i18n';
 import { Home, Search, Car, User, MessageCircle } from 'lucide-react';
 
 export function BottomNav() {
   const { isAuthenticated, user } = useStore();
+  const { t } = useI18n();
   const location = useLocation();
 
   if (!isAuthenticated) return null;
@@ -11,12 +13,12 @@ export function BottomNav() {
   const isActive = (path: string) => location.pathname === path;
 
   const navItems = [
-    { icon: Home, label: 'Home', path: '/' },
-    { icon: Search, label: 'Search', path: '/search' },
-    ...(user?.role === 'driver' ? [{ icon: Car, label: 'Drive', path: '/driver' }] : []),
-    ...(user?.role === 'passenger' ? [{ icon: Car, label: 'Trips', path: '/dashboard' }] : []),
-    { icon: MessageCircle, label: 'Chat', path: '/messages' },
-    { icon: User, label: 'Profile', path: '/profile' },
+    { icon: Home, label: t('nav.home'), path: '/' },
+    { icon: Search, label: t('nav.search'), path: '/search' },
+    ...(user?.role === 'driver' ? [{ icon: Car, label: t('nav.trips'), path: '/driver' }] : []),
+    ...(user?.role === 'passenger' ? [{ icon: Car, label: t('nav.trips'), path: '/dashboard' }] : []),
+    { icon: MessageCircle, label: t('nav.chat'), path: '/messages' },
+    { icon: User, label: t('nav.profile'), path: '/profile' },
   ];
 
   return (

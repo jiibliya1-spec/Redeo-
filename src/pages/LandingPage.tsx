@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useStore } from '@/store/useStore';
+import { useI18n } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
 import { MOROCCAN_CITIES } from '@/lib/data';
 import {
@@ -48,6 +49,7 @@ function FadeUp({ children, delay = 0 }: { children: React.ReactNode; delay?: nu
 export function LandingPage() {
   const navigate = useNavigate();
   const { setSearchFilters } = useStore();
+  const { lang, setLang, t, dir } = useI18n();
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
   const [date, setDate] = useState('');
@@ -84,12 +86,11 @@ export function LandingPage() {
                   <span className="w-2 h-2 bg-[#FF6B00] rounded-full animate-pulse" />
                   <span className="text-sm text-[#FF6B00] font-medium">Morocco's #1 Ride-Sharing</span>
                 </div>
-                <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white leading-tight mb-6">
-                  Travel across Morocco,<br />
-                  <span className="text-[#FF6B00]">share the cost.</span>
+                <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white leading-tight mb-6" dir={dir}>
+                  {t('landing.hero_title')}
                 </h1>
-                <p className="text-lg text-[#A0A0A0] mb-8 max-w-lg">
-                  Connect with verified drivers going your way. Save money, meet new people, and travel safely between Moroccan cities.
+                <p className="text-lg text-[#A0A0A0] mb-8 max-w-lg" dir={dir}>
+                  {t('landing.hero_subtitle')}
                 </p>
               </motion.div>
 
@@ -97,34 +98,34 @@ export function LandingPage() {
               <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.3 }} className="bg-[#1B1F27]/90 backdrop-blur-xl border border-white/10 rounded-2xl p-5 space-y-4">
                 <div className="grid sm:grid-cols-2 gap-3">
                   <div className="space-y-1">
-                    <label className="text-xs text-[#A0A0A0] font-medium ml-1">From</label>
+                    <label className="text-xs text-[#A0A0A0] font-medium ml-1">{t('landing.search_from')}</label>
                     <select value={from} onChange={(e) => setFrom(e.target.value)} className="w-full bg-[#0F1115] border border-white/10 rounded-xl h-12 px-4 text-white text-sm outline-none focus:border-[#FF6B00]/50 appearance-none">
-                      <option value="">Select city</option>
+                      <option value="">{t('common.select_city')}</option>
                       {MOROCCAN_CITIES.map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
                   </div>
                   <div className="space-y-1">
-                    <label className="text-xs text-[#A0A0A0] font-medium ml-1">To</label>
+                    <label className="text-xs text-[#A0A0A0] font-medium ml-1">{t('landing.search_to')}</label>
                     <select value={to} onChange={(e) => setTo(e.target.value)} className="w-full bg-[#0F1115] border border-white/10 rounded-xl h-12 px-4 text-white text-sm outline-none focus:border-[#FF6B00]/50 appearance-none">
-                      <option value="">Select city</option>
+                      <option value="">{t('common.select_city')}</option>
                       {MOROCCAN_CITIES.filter(c => c !== from).map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
                   </div>
                 </div>
                 <div className="grid sm:grid-cols-2 gap-3">
                   <div className="space-y-1">
-                    <label className="text-xs text-[#A0A0A0] font-medium ml-1">Date</label>
+                    <label className="text-xs text-[#A0A0A0] font-medium ml-1">{t('landing.search_date')}</label>
                     <input type="date" value={date} onChange={(e) => setDate(e.target.value)} min={new Date().toISOString().split('T')[0]} className="w-full bg-[#0F1115] border border-white/10 rounded-xl h-12 px-4 text-white text-sm outline-none focus:border-[#FF6B00]/50" />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-xs text-[#A0A0A0] font-medium ml-1">Passengers</label>
+                    <label className="text-xs text-[#A0A0A0] font-medium ml-1">{t('landing.search_passengers')}</label>
                     <select value={passengers} onChange={(e) => setPassengers(Number(e.target.value))} className="w-full bg-[#0F1115] border border-white/10 rounded-xl h-12 px-4 text-white text-sm outline-none focus:border-[#FF6B00]/50 appearance-none">
-                      {[1,2,3,4,5,6].map(n => <option key={n} value={n}>{n} passenger{n > 1 ? 's' : ''}</option>)}
+                      {[1,2,3,4,5,6].map(n => <option key={n} value={n}>{n}</option>)}
                     </select>
                   </div>
                 </div>
                 <Button onClick={handleSearch} className="w-full bg-[#FF6B00] hover:bg-[#E56000] text-white h-12 rounded-xl text-base font-semibold shadow-lg shadow-[#FF6B00]/20">
-                  <Search className="w-5 h-5 mr-2" /> Search Rides
+                  <Search className="w-5 h-5 mr-2" /> {t('landing.search_btn')}
                 </Button>
               </motion.div>
             </div>
@@ -157,15 +158,15 @@ export function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <FadeUp>
             <div className="text-center mb-14">
-              <h2 className="text-3xl md:text-4xl font-bold text-white mb-3">How it works</h2>
-              <p className="text-[#A0A0A0] max-w-xl mx-auto">Get from A to B in 3 simple steps</p>
+              <h2 className="text-3xl md:text-4xl font-bold text-white mb-3" dir={dir}>{t('landing.how_title')}</h2>
+              <p className="text-[#A0A0A0] max-w-xl mx-auto" dir={dir}>{t('landing.how_1_desc')}</p>
             </div>
           </FadeUp>
           <div className="grid md:grid-cols-3 gap-8">
             {[
-              { step: '01', title: 'Search', desc: 'Enter your departure, destination, and date to find available rides.', icon: Search },
-              { step: '02', title: 'Book', desc: 'Choose a driver, select seats, and book instantly with secure payment.', icon: CreditCard },
-              { step: '03', title: 'Travel', desc: 'Meet your driver at the pickup point and enjoy a comfortable journey!', icon: Car },
+              { step: '01', title: t('landing.how_1'), desc: t('landing.how_1_desc'), icon: Search },
+              { step: '02', title: t('landing.how_2'), desc: t('landing.how_2_desc'), icon: CreditCard },
+              { step: '03', title: t('landing.how_3'), desc: t('landing.how_3_desc'), icon: Car },
             ].map((item, i) => (
               <FadeUp key={item.step} delay={i * 0.15}>
                 <div className="bg-[#1B1F27] border border-white/5 rounded-2xl p-8 text-center card-hover relative overflow-hidden">
@@ -188,7 +189,7 @@ export function LandingPage() {
           <FadeUp>
             <div className="text-center mb-14">
               <h2 className="text-3xl md:text-4xl font-bold text-white mb-3">Why WansniAuto?</h2>
-              <p className="text-[#A0A0A0] max-w-xl mx-auto">Built for safety, comfort, and community</p>
+              <p className="text-[#A0A0A0] max-w-xl mx-auto" dir={dir}>{t('landing.feature_share')}</p>
             </div>
           </FadeUp>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -213,10 +214,10 @@ export function LandingPage() {
           <FadeUp>
             <div className="flex items-center justify-between mb-10">
               <div>
-                <h2 className="text-3xl md:text-4xl font-bold text-white mb-2">Popular Routes</h2>
-                <p className="text-[#A0A0A0]">Most traveled destinations in Morocco</p>
+                <h2 className="text-3xl md:text-4xl font-bold text-white mb-2" dir={dir}>{t('landing.popular_title')}</h2>
+                <p className="text-[#A0A0A0]" dir={dir}>{t('landing.popular_subtitle')}</p>
               </div>
-              <Button onClick={() => navigate('/search')} variant="outline" className="hidden sm:flex border-[#FF6B00]/30 text-[#FF6B00] hover:bg-[#FF6B00]/10 rounded-xl">View all</Button>
+              <Button onClick={() => navigate('/search')} variant="outline" className="hidden sm:flex border-[#FF6B00]/30 text-[#FF6B00] hover:bg-[#FF6B00]/10 rounded-xl">{t('landing.search_btn')}</Button>
             </div>
           </FadeUp>
           <div className="grid md:grid-cols-3 gap-6">
@@ -246,8 +247,8 @@ export function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <FadeUp>
             <div className="text-center mb-14">
-              <h2 className="text-3xl md:text-4xl font-bold text-white mb-3">What travelers say</h2>
-              <p className="text-[#A0A0A0]">Real stories from our community</p>
+              <h2 className="text-3xl md:text-4xl font-bold text-white mb-3">{t('landing.popular_title')}</h2>
+              <p className="text-[#A0A0A0]">{t('landing.cta_subtitle')}</p>
             </div>
           </FadeUp>
           <div className="grid md:grid-cols-3 gap-6">
@@ -277,11 +278,11 @@ export function LandingPage() {
               <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
               <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/10 rounded-full translate-y-1/2 -translate-x-1/2" />
               <div className="relative z-10">
-                <h2 className="text-3xl md:text-5xl font-bold text-white mb-4">Ready to hit the road?</h2>
-                <p className="text-white/80 text-lg mb-8 max-w-xl mx-auto">Join WansniAuto today. Save money, meet people, and travel sustainably across Morocco.</p>
+                <h2 className="text-3xl md:text-5xl font-bold text-white mb-4" dir={dir}>{t('landing.cta_title')}</h2>
+                <p className="text-white/80 text-lg mb-8 max-w-xl mx-auto" dir={dir}>{t('landing.cta_subtitle')}</p>
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                  <Button onClick={() => navigate('/register')} className="bg-white text-[#FF6B00] hover:bg-white/90 rounded-xl px-8 py-6 text-base font-semibold shadow-lg">Get Started Free</Button>
-                  <Button onClick={() => navigate('/search')} variant="outline" className="border-white/30 text-white hover:bg-white/10 rounded-xl px-8 py-6 text-base font-semibold">Find a Ride</Button>
+                  <Button onClick={() => navigate('/register')} className="bg-white text-[#FF6B00] hover:bg-white/90 rounded-xl px-8 py-6 text-base font-semibold shadow-lg">{t('landing.cta_btn')}</Button>
+                  <Button onClick={() => navigate('/search')} variant="outline" className="border-white/30 text-white hover:bg-white/10 rounded-xl px-8 py-6 text-base font-semibold">{t('landing.search_btn')}</Button>
                 </div>
               </div>
             </div>
@@ -316,9 +317,9 @@ export function LandingPage() {
           <div className="border-t border-white/5 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
             <p className="text-sm text-[#A0A0A0]">&copy; 2025 WansniAuto. All rights reserved.</p>
             <div className="flex items-center gap-4">
-              <button className="text-sm text-[#A0A0A0] hover:text-[#FF6B00] transition-colors">EN</button>
-              <button className="text-sm text-[#A0A0A0] hover:text-[#FF6B00] transition-colors">FR</button>
-              <button className="text-sm text-[#A0A0A0] hover:text-[#FF6B00] transition-colors">AR</button>
+              <button onClick={() => setLang('en')} className={`text-sm transition-colors ${lang === 'en' ? 'text-[#FF6B00] font-bold' : 'text-[#A0A0A0] hover:text-[#FF6B00]'}`}>EN</button>
+              <button onClick={() => setLang('fr')} className={`text-sm transition-colors ${lang === 'fr' ? 'text-[#FF6B00] font-bold' : 'text-[#A0A0A0] hover:text-[#FF6B00]'}`}>FR</button>
+              <button onClick={() => setLang('ar')} className={`text-sm transition-colors ${lang === 'ar' ? 'text-[#FF6B00] font-bold' : 'text-[#A0A0A0] hover:text-[#FF6B00]'}`}>AR</button>
             </div>
           </div>
         </div>

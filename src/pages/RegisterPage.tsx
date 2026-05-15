@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useStore } from '@/store/useStore';
+import { useI18n } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,6 +12,7 @@ import { Car, Eye, EyeOff, Loader2 } from 'lucide-react';
 export function RegisterPage() {
   const navigate = useNavigate();
   const { signUp } = useStore();
+  const { t } = useI18n();
   const [step, setStep] = useState(1);
   const [role, setRole] = useState<'passenger' | 'driver'>('passenger');
   const [name, setName] = useState('');
@@ -66,8 +68,8 @@ export function RegisterPage() {
             </div>
             <span className="text-2xl font-semibold text-white">Wansni<span className="text-[#FF6B00]">Auto</span></span>
           </Link>
-          <h1 className="text-2xl font-bold text-white">{step === 1 ? 'Create account' : 'Almost there'}</h1>
-          <p className="text-sm text-[#A0A0A0] mt-1">{step === 1 ? 'Join WansniAuto today' : 'Review and confirm'}</p>
+          <h1 className="text-2xl font-bold text-white">{step === 1 ? t('auth.create_account') : 'Almost there'}</h1>
+          <p className="text-sm text-[#A0A0A0] mt-1">{step === 1 ? t('auth.no_account') : 'Review and confirm'}</p>
         </div>
 
         <div className="flex gap-2 mb-8">
@@ -81,14 +83,14 @@ export function RegisterPage() {
                 {(['passenger', 'driver'] as const).map(r => (
                   <button key={r} type="button" onClick={() => setRole(r)} className={`p-4 rounded-xl border text-center transition-all ${role === r ? 'border-[#FF6B00]/50 bg-[#FF6B00]/5' : 'border-white/5 hover:border-white/10'}`}>
                     <Car className={`w-6 h-6 mx-auto mb-2 ${role === r ? 'text-[#FF6B00]' : 'text-[#A0A0A0]'}`} />
-                    <p className="text-sm text-white font-medium capitalize">{r}</p>
+                    <p className="text-sm text-white font-medium capitalize">{r === 'passenger' ? t('auth.passenger') : t('auth.driver')}</p>
                   </button>
                 ))}
               </div>
-              <div><Label className="text-sm text-[#A0A0A0] mb-2 block">Full name</Label><Input value={name} onChange={e => setName(e.target.value)} placeholder="Your name" className="bg-[#1B1F27] border-white/10 text-white placeholder:text-[#A0A0A0]/40 h-12 rounded-xl" required /></div>
-              <div><Label className="text-sm text-[#A0A0A0] mb-2 block">Email</Label><Input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@email.ma" className="bg-[#1B1F27] border-white/10 text-white placeholder:text-[#A0A0A0]/40 h-12 rounded-xl" required /></div>
-              <div><Label className="text-sm text-[#A0A0A0] mb-2 block">Phone</Label><Input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="+212 6XX XXX XXX" className="bg-[#1B1F27] border-white/10 text-white placeholder:text-[#A0A0A0]/40 h-12 rounded-xl" required /></div>
-              <div><Label className="text-sm text-[#A0A0A0] mb-2 block">Password</Label>
+              <div><Label className="text-sm text-[#A0A0A0] mb-2 block">{t('auth.name')}</Label><Input value={name} onChange={e => setName(e.target.value)} placeholder="Your name" className="bg-[#1B1F27] border-white/10 text-white placeholder:text-[#A0A0A0]/40 h-12 rounded-xl" required /></div>
+              <div><Label className="text-sm text-[#A0A0A0] mb-2 block">{t('auth.email')}</Label><Input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@email.ma" className="bg-[#1B1F27] border-white/10 text-white placeholder:text-[#A0A0A0]/40 h-12 rounded-xl" required /></div>
+              <div><Label className="text-sm text-[#A0A0A0] mb-2 block">{t('auth.phone')}</Label><Input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="+212 6XX XXX XXX" className="bg-[#1B1F27] border-white/10 text-white placeholder:text-[#A0A0A0]/40 h-12 rounded-xl" required /></div>
+              <div><Label className="text-sm text-[#A0A0A0] mb-2 block">{t('auth.password')}</Label>
                 <div className="relative">
                   <Input type={showPassword ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} placeholder="Min 6 characters" className="bg-[#1B1F27] border-white/10 text-white placeholder:text-[#A0A0A0]/40 h-12 rounded-xl pr-10" required minLength={6} />
                   <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#A0A0A0]">{showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}</button>
@@ -102,7 +104,7 @@ export function RegisterPage() {
               <div className="bg-[#1B1F27] rounded-xl p-4 border border-[#FF6B00]/20 mb-4">
                 <p className="text-sm text-white font-medium">{name}</p>
                 <p className="text-xs text-[#A0A0A0]">{email} &middot; {phone}</p>
-                <p className="text-xs text-[#FF6B00] mt-1 capitalize">Registering as: {role}</p>
+                <p className="text-xs text-[#FF6B00] mt-1 capitalize">{t('auth.role')}: {role === 'passenger' ? t('auth.passenger') : t('auth.driver')}</p>
               </div>
               <label className="flex items-start gap-3 cursor-pointer p-4 rounded-xl border border-white/5 hover:border-white/10">
                 <input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)} className="mt-0.5 rounded border-white/20" />
@@ -112,12 +114,12 @@ export function RegisterPage() {
           )}
 
           <Button type="submit" disabled={isLoading || (step === 2 && !agreed)} className="w-full bg-[#FF6B00] text-white hover:bg-[#E56000] rounded-xl h-12 font-semibold disabled:opacity-50 mt-2">
-            {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : step === 1 ? 'Continue' : 'Create Account'}
+            {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : step === 1 ? t('auth.login_btn') : t('auth.register_btn')}
           </Button>
           {step === 2 && <Button type="button" variant="outline" onClick={() => setStep(1)} className="w-full border-white/10 text-[#A0A0A0] hover:bg-white/5 rounded-xl h-12">Back</Button>}
         </form>
 
-        <p className="text-center text-sm text-[#A0A0A0] mt-6">Already have an account? <Link to="/login" className="text-[#FF6B00] hover:underline font-medium">Sign in</Link></p>
+        <p className="text-center text-sm text-[#A0A0A0] mt-6">{t('auth.has_account')} <Link to="/login" className="text-[#FF6B00] hover:underline font-medium">{t('auth.login_now')}</Link></p>
       </motion.div>
     </div>
   );

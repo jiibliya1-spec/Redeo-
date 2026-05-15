@@ -1,18 +1,57 @@
 import { useParams, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useStore } from '@/store/useStore';
-import { MOCK_TRIPS } from '@/lib/data';
+import { supabase } from '@/lib/supabase';
+import type { Trip } from '@/types';
 import { Button } from '@/components/ui/button';
 import {
-  ArrowLeft, MapPin, Clock, Star, Check,
-  MessageCircle, Calendar, Shield, Wifi, Usb, Music, Armchair
+  ArrowLeft, MapPin, Clock, Star, Check, MessageCircle, Calendar, Shield, Wifi, Usb, Music, Armchair
 } from 'lucide-react';
 
 export function TripDetailsPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { setSelectedTrip } = useStore();
-  const trip = MOCK_TRIPS.find(t => t.id === id);
+  const [trip, setTrip] = useState<Trip | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (!id) return;
+    setIsLoading(true);
+
+    supabase
+      .from('trips')
+      .select('*, driver:profiles(*), vehicle:vehicles(*)')
+      .eq('id', id)
+      .single()
+      .then(({ data, error }) => {
+        if (error) {
+          console.error('Trip load error:', error);
+        } else {
+          setTrip(data as Trip);
+        }
+        setIsLoading(false);
+      });
+  }, [id]);
+
+  const handleBook = () => {
+    if (!trip) return;
+    setSelectedTrip(trip);
+    navigate(`/booking/${trip.id}`);
+  };
+
+  const amenityIcons: Record<string, typeof Wifi> = {
+    'WiFi': Wifi, 'USB Charging': Usb, 'Music': Music, 'Air Conditioning': Armchair,
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[#0F1115] pt-20 flex items-center justify-center">
+        <div className="animate-spin w-8 h-8 border-2 border-[#FF6B00] border-t-transparent rounded-full" />
+      </div>
+    );
+  }
 
   if (!trip) {
     return (
@@ -25,15 +64,8 @@ export function TripDetailsPage() {
     );
   }
 
-  const handleBook = () => {
-    setSelectedTrip(trip);
-    navigate(`/booking/${trip.id}`);
-  };
-
-  const amenityIcons: Record<string, typeof Wifi> = { 'WiFi': Wifi, 'USB Charging': Usb, 'Music': Music, 'Air Conditioning': Armchair };
-
   return (
-    <div className="min-h-screen bg-[#0F1115] pt-20">
+    <div className="min-h-screen bg-[#0F1115] pt-20 pb-8">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex items-center gap-4 mb-6">
           <button onClick={() => navigate('/search')} className="p-2 rounded-xl hover:bg-white/5 transition-colors"><ArrowLeft className="w-5 h-5 text-[#A0A0A0]" /></button>
@@ -45,7 +77,7 @@ export function TripDetailsPage() {
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-4">
               <div className="relative">
-                <img src={trip.driver?.avatar || '/images/avatar-driver-1.jpg'} alt={trip.driver?.name} className="w-16 h-16 rounded-full object-cover ring-2 ring-[#FF6B00]/30" />
+                <img src={trip.driver?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${trip.driver?.name || 'driver'}`} alt={trip.driver?.name} className="w-16 h-16 rounded-full object-cover ring-2 ring-[#FF6B00]/30" />
                 {(trip.driver?.is_verified) && <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-[#FF6B00] rounded-full flex items-center justify-center"><Check className="w-3.5 h-3.5 text-white" /></div>}
               </div>
               <div>

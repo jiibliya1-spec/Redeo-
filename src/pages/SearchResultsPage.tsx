@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useStore } from '@/store/useStore';
-import { MOCK_TRIPS } from '@/lib/data';
+import { supabase } from '@/lib/supabase';
 import { MOROCCAN_CITIES } from '@/lib/data';
 import type { Trip } from '@/types';
 import { Button } from '@/components/ui/button';
@@ -82,15 +82,35 @@ export function SearchResultsPage() {
 
   useEffect(() => {
     setIsLoading(true);
-    setTimeout(() => {
-      let trips = [...MOCK_TRIPS];
-      if (searchFilters.from) trips = trips.filter(t => t.from_location.toLowerCase().includes(searchFilters.from.toLowerCase()));
-      if (searchFilters.to) trips = trips.filter(t => t.to_location.toLowerCase().includes(searchFilters.to.toLowerCase()));
-      if (searchFilters.date) trips = trips.filter(t => t.departure_date === searchFilters.date);
-      if (searchFilters.passengers) trips = trips.filter(t => t.available_seats >= searchFilters.passengers);
-      setResults(trips);
+
+    let query = supabase
+      .from('trips')
+      .select('*, driver:profiles(*), vehicle:vehicles(*)')
+      .eq('status', 'upcoming')
+      .order('departure_date', { ascending: true });
+
+    if (searchFilters.from) {
+      query = query.ilike('from_location', `%${searchFilters.from}%`);
+    }
+    if (searchFilters.to) {
+      query = query.ilike('to_location', `%${searchFilters.to}%`);
+    }
+    if (searchFilters.date) {
+      query = query.eq('departure_date', searchFilters.date);
+    }
+    if (searchFilters.passengers > 0) {
+      query = query.gte('available_seats', searchFilters.passengers);
+    }
+
+    query.then(({ data, error }) => {
+      if (error) {
+        console.error('Search error:', error);
+        setResults([]);
+      } else {
+        setResults((data || []) as Trip[]);
+      }
       setIsLoading(false);
-    }, 500);
+    });
   }, [searchFilters]);
 
   const sorted = [...results].sort((a, b) => {

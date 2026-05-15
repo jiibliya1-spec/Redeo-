@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useStore } from '@/store/useStore';
-import { MOCK_TRIPS } from '@/lib/data';
+import { supabase } from '@/lib/supabase';
+import type { Trip } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,22 +15,47 @@ type PaymentMethod = 'card' | 'wallet' | 'cash';
 export function BookingPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { addBooking } = useStore();
-  const trip = MOCK_TRIPS.find(t => t.id === id);
+  const { user } = useStore();
+  const [trip, setTrip] = useState<Trip | null>(null);
   const [seats, setSeats] = useState(1);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('card');
   const [step, setStep] = useState(1);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [bookingId, setBookingId] = useState('');
+  // Card fields
   const [cardNumber, setCardNumber] = useState('');
   const [expiry, setExpiry] = useState('');
   const [cvv, setCvv] = useState('');
+
+  useEffect(() => {
+    if (!id) return;
+    setIsLoading(true);
+    supabase
+      .from('trips')
+      .select('*, driver:profiles(*)')
+      .eq('id', id)
+      .single()
+      .then(({ data, error }) => {
+        if (!error) setTrip(data as Trip);
+        setIsLoading(false);
+      });
+  }, [id]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[#0F1115] pt-20 flex items-center justify-center">
+        <div className="animate-spin w-8 h-8 border-2 border-[#FF6B00] border-t-transparent rounded-full" />
+      </div>
+    );
+  }
 
   if (!trip) {
     return (
       <div className="min-h-screen bg-[#0F1115] pt-20 flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-xl text-white mb-4">Trip not found</h2>
-          <Button onClick={() => navigate('/search')} variant="outline" className="border-[#FF6B00]/30 text-[#FF6B00] rounded-xl">Back to search</Button>
+          <Button onClick={() => navigate('/search')} variant="outline" className="border-[#FF6B00]/30 text-[#FF6B00] rounded-xl">Back</Button>
         </div>
       </div>
     );
@@ -39,17 +65,46 @@ export function BookingPage() {
   const serviceFee = Math.round(totalPrice * 0.05);
   const finalTotal = totalPrice + serviceFee;
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
+    if (!user?.id) {
+      toast.error('Please sign in to book');
+      navigate('/login');
+      return;
+    }
     setIsProcessing(true);
-    setTimeout(() => {
-      const booking = { id: `B${Date.now()}`, trip_id: trip.id, passenger_id: 'current-user', seats, status: 'confirmed' as const, total_price: finalTotal, created_at: new Date().toISOString() };
-      addBooking(booking);
+
+    // 1. Create booking in Supabase
+    const { data: booking, error: bookingError } = await supabase
+      .from('bookings')
+      .insert({
+        trip_id: trip.id,
+        passenger_id: user.id,
+        seats,
+        status: 'confirmed',
+        total_price: finalTotal,
+      })
+      .select()
+      .single();
+
+    if (bookingError) {
+      toast.error('Booking failed: ' + bookingError.message);
       setIsProcessing(false);
-      setStep(3);
-      toast.success('Booking confirmed!');
-    }, 2000);
+      return;
+    }
+
+    // 2. Update available seats
+    await supabase
+      .from('trips')
+      .update({ available_seats: trip.available_seats - seats })
+      .eq('id', trip.id);
+
+    setBookingId(booking.id);
+    setIsProcessing(false);
+    setStep(3);
+    toast.success('Booking confirmed!');
   };
 
+  // Confirmation screen
   if (step === 3) {
     return (
       <div className="min-h-screen bg-[#0F1115] pt-20">
@@ -60,8 +115,10 @@ export function BookingPage() {
           <h2 className="text-2xl font-bold text-white mb-2">Booking Confirmed!</h2>
           <p className="text-[#A0A0A0] mb-8">{trip.from_location} &rarr; {trip.to_location}</p>
           <div className="bg-[#1B1F27] rounded-2xl border border-[#FF6B00]/20 p-6 mb-8 text-left space-y-3">
+            <div className="flex justify-between"><span className="text-sm text-[#A0A0A0]">Booking ID</span><span className="text-sm text-white font-mono">{bookingId.slice(0, 8)}</span></div>
             <div className="flex justify-between"><span className="text-sm text-[#A0A0A0]">Date</span><span className="text-sm text-white">{trip.departure_date} at {trip.departure_time}</span></div>
             <div className="flex justify-between"><span className="text-sm text-[#A0A0A0]">Seats</span><span className="text-sm text-white">{seats}</span></div>
+            <div className="flex justify-between"><span className="text-sm text-[#A0A0A0]">Payment</span><span className="text-sm text-white capitalize">{paymentMethod}</span></div>
             <div className="flex justify-between pt-3 border-t border-white/5"><span className="font-semibold text-white">Total</span><span className="font-bold text-[#FF6B00]">{finalTotal} MAD</span></div>
           </div>
           <Button onClick={() => navigate('/dashboard')} className="w-full bg-[#FF6B00] text-white rounded-xl py-6 font-semibold mb-3">View My Trips</Button>
@@ -72,7 +129,7 @@ export function BookingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0F1115] pt-20">
+    <div className="min-h-screen bg-[#0F1115] pt-20 pb-8">
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex items-center gap-4 mb-8">
           <button onClick={() => step === 1 ? navigate(`/trip/${trip.id}`) : setStep(1)} className="p-2 rounded-xl hover:bg-white/5 transition-colors"><ArrowLeft className="w-5 h-5 text-[#A0A0A0]" /></button>
@@ -125,10 +182,7 @@ export function BookingPage() {
                 ].map(m => (
                   <button key={m.id} onClick={() => setPaymentMethod(m.id)} className={`w-full flex items-center gap-4 p-4 rounded-xl border transition-all ${paymentMethod === m.id ? 'border-[#FF6B00]/50 bg-[#FF6B00]/5' : 'border-white/5 hover:border-white/10'}`}>
                     <m.icon className="w-5 h-5 text-[#FF6B00]" />
-                    <div className="flex-1 text-left">
-                      <p className="text-sm text-white font-medium">{m.title}</p>
-                      <p className="text-xs text-[#A0A0A0]">{m.desc}</p>
-                    </div>
+                    <div className="flex-1 text-left"><p className="text-sm text-white font-medium">{m.title}</p><p className="text-xs text-[#A0A0A0]">{m.desc}</p></div>
                     {paymentMethod === m.id && <Check className="w-5 h-5 text-[#FF6B00]" />}
                   </button>
                 ))}

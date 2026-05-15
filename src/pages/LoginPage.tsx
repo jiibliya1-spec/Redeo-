@@ -1,0 +1,89 @@
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { signIn } from '@/services/authService';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { toast } from 'sonner';
+import { Car, Eye, EyeOff, Loader2 } from 'lucide-react';
+
+export function LoginPage() {
+  const navigate = useNavigate();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    try {
+      await signIn(email, password);
+      toast.success('Welcome back!');
+      navigate('/dashboard');
+    } catch (err: any) {
+      toast.error(err.message || 'Invalid credentials');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const quickLogin = (role: 'passenger' | 'driver' | 'admin') => {
+    const demos: Record<string, { email: string; pass: string }> = {
+      passenger: { email: 'layla@demo.ma', pass: 'demo1234' },
+      driver: { email: 'youssef@demo.ma', pass: 'demo1234' },
+      admin: { email: 'admin@demo.ma', pass: 'demo1234' },
+    };
+    setEmail(demos[role].email);
+    setPassword(demos[role].pass);
+  };
+
+  return (
+    <div className="min-h-screen bg-[#0F1115] flex items-center justify-center px-4 pt-16">
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="w-full max-w-md">
+        <div className="text-center mb-8">
+          <Link to="/" className="inline-flex items-center gap-2 mb-6">
+            <div className="w-10 h-10 rounded-xl bg-[#FF6B00] flex items-center justify-center">
+              <Car className="w-5 h-5 text-white" />
+            </div>
+            <span className="text-2xl font-semibold text-white">Wansni<span className="text-[#FF6B00]">Auto</span></span>
+          </Link>
+          <h1 className="text-2xl font-bold text-white">Welcome back</h1>
+          <p className="text-sm text-[#A0A0A0] mt-1">Sign in to your account</p>
+        </div>
+
+        <div className="flex gap-2 mb-6">
+          {(['passenger', 'driver', 'admin'] as const).map(role => (
+            <button key={role} onClick={() => quickLogin(role)} className="flex-1 py-2 px-3 rounded-xl bg-white/5 border border-white/5 text-xs text-[#A0A0A0] hover:bg-[#FF6B00]/10 hover:border-[#FF6B00]/20 hover:text-[#FF6B00] transition-all capitalize">
+              {role}
+            </button>
+          ))}
+        </div>
+
+        <form onSubmit={handleLogin} className="space-y-4">
+          <div>
+            <Label className="text-sm text-[#A0A0A0] mb-2 block">Email</Label>
+            <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@email.ma" className="bg-[#1B1F27] border-white/10 text-white placeholder:text-[#A0A0A0]/40 h-12 rounded-xl" required />
+          </div>
+          <div>
+            <Label className="text-sm text-[#A0A0A0] mb-2 block">Password</Label>
+            <div className="relative">
+              <Input type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Enter password" className="bg-[#1B1F27] border-white/10 text-white placeholder:text-[#A0A0A0]/40 h-12 rounded-xl pr-10" required />
+              <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#A0A0A0]">
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+          </div>
+          <Button type="submit" disabled={isLoading} className="w-full bg-[#FF6B00] text-white hover:bg-[#E56000] rounded-xl h-12 text-base font-semibold disabled:opacity-50">
+            {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Sign in'}
+          </Button>
+        </form>
+
+        <p className="text-center text-sm text-[#A0A0A0] mt-6">
+          Don't have an account? <Link to="/register" className="text-[#FF6B00] hover:underline font-medium">Sign up</Link>
+        </p>
+      </motion.div>
+    </div>
+  );
+}

@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { Camera, Edit, Check, Shield, Star, Car, Calendar, ChevronRight, Loader2, LogOut } from 'lucide-react';
+import { Camera, Edit, Check, Shield, Star, Car, Calendar, ChevronRight, Loader2, LogOut, Upload } from 'lucide-react';
 
 export function ProfilePage() {
   const navigate = useNavigate();
@@ -21,7 +21,11 @@ export function ProfilePage() {
   const [avatarUrl, setAvatarUrl] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [showUploadMenu, setShowUploadMenu] = useState(false);
+
+  // Separate refs for gallery vs camera
+  const galleryInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   // Load user data into form
   useEffect(() => {
@@ -33,24 +37,55 @@ export function ProfilePage() {
     }
   }, [user]);
 
-  const handleAvatarClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !user?.id) return;
+  // Process uploaded avatar file
+  const processAvatarFile = async (file: File) => {
+    if (!user?.id) return;
 
     setIsUploading(true);
+    setShowUploadMenu(false);
     try {
       const url = await uploadAvatar(user.id, file);
       setAvatarUrl(url);
+
+      // Also update Supabase profile
+      try {
+        await supabase.from('profiles').update({ avatar: url }).eq('id', user.id);
+      } catch {
+        // table may not exist
+      }
+
+      // Update local user state
+      setUser({ ...user, avatar: url });
       toast.success('Avatar uploaded!');
     } catch (err: any) {
-      toast.error(err.message || 'Upload failed');
+      // Fallback: show as data URL
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const dataUrl = e.target?.result as string;
+        setAvatarUrl(dataUrl);
+        setUser({ ...user, avatar: dataUrl });
+        toast.success('Avatar saved locally!');
+      };
+      reader.readAsDataURL(file);
     } finally {
       setIsUploading(false);
     }
+  };
+
+  // Gallery file handler
+  const handleGalleryFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+    await processAvatarFile(file);
+  };
+
+  // Camera file handler
+  const handleCameraFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+    await processAvatarFile(file);
   };
 
   const handleSave = async () => {
@@ -60,41 +95,33 @@ export function ProfilePage() {
     const updates = { name, bio, phone, avatar: avatarUrl };
 
     try {
-      // Try to save to Supabase
       const { error } = await supabase
         .from('profiles')
         .update(updates)
         .eq('id', user.id);
 
       if (error) {
-        // If profiles table doesn't exist, save to localStorage
-        console.warn('Supabase profiles table not found, saving locally:', error.message);
         saveProfileLocally(updates);
         toast.success('Profile saved locally (Supabase table not ready)');
       } else {
         toast.success('Profile saved!');
       }
     } catch {
-      // Network or other error - save locally
       saveProfileLocally(updates);
       toast.success('Profile saved locally');
     }
 
-    // Always update local state so UI reflects changes
     setUser({ ...user, ...updates });
     setIsEditing(false);
     setIsSaving(false);
   };
 
-  // Fallback: save to localStorage when Supabase table doesn't exist
   const saveProfileLocally = (updates: Partial<typeof user>) => {
     try {
       const stored = localStorage.getItem('wansniauto_profile_data');
       const existing = stored ? JSON.parse(stored) : {};
       localStorage.setItem('wansniauto_profile_data', JSON.stringify({ ...existing, ...updates }));
-    } catch {
-      // silent
-    }
+    } catch { /* silent */ }
   };
 
   if (!user) {
@@ -114,30 +141,77 @@ export function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-[#0F1115] pt-20 pb-8">
+      {/* Hidden inputs for avatar upload */}
+      <input
+        ref={galleryInputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        className="hidden"
+        onChange={handleGalleryFile}
+      />
+      <input
+        ref={cameraInputRef}
+        type="file"
+        accept="image/*"
+        capture="user"
+        className="hidden"
+        onChange={handleCameraFile}
+      />
+
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Profile Card */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-[#1B1F27] rounded-2xl border border-white/5 p-6 mb-6">
           <div className="flex items-start justify-between mb-6">
             <div className="flex items-center gap-4">
-              <div className="relative cursor-pointer" onClick={handleAvatarClick}>
-                {isUploading ? (
-                  <div className="w-20 h-20 rounded-full bg-[#FF6B00]/10 flex items-center justify-center">
-                    <Loader2 className="w-8 h-8 text-[#FF6B00] animate-spin" />
-                  </div>
-                ) : (
-                  <>
-                    <img
-                      src={avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name}`}
-                      alt={user.name}
-                      className="w-20 h-20 rounded-full object-cover ring-2 ring-[#FF6B00]/30"
-                    />
-                    <div className="absolute bottom-0 right-0 w-7 h-7 bg-[#FF6B00] rounded-full flex items-center justify-center">
-                      <Camera className="w-3.5 h-3.5 text-white" />
+              {/* Avatar with upload menu */}
+              <div className="relative">
+                <div
+                  className="cursor-pointer"
+                  onClick={() => setShowUploadMenu(!showUploadMenu)}
+                >
+                  {isUploading ? (
+                    <div className="w-20 h-20 rounded-full bg-[#FF6B00]/10 flex items-center justify-center">
+                      <Loader2 className="w-8 h-8 text-[#FF6B00] animate-spin" />
                     </div>
-                  </>
+                  ) : (
+                    <>
+                      <img
+                        src={avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name}`}
+                        alt={user.name}
+                        className="w-20 h-20 rounded-full object-cover ring-2 ring-[#FF6B00]/30"
+                      />
+                      <div className="absolute bottom-0 right-0 w-7 h-7 bg-[#FF6B00] rounded-full flex items-center justify-center">
+                        <Camera className="w-3.5 h-3.5 text-white" />
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                {/* Upload menu popup */}
+                {showUploadMenu && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="absolute top-full left-0 mt-2 bg-[#1B1F27] border border-white/10 rounded-xl shadow-xl overflow-hidden z-50 min-w-[160px]"
+                  >
+                    <button
+                      onClick={() => { galleryInputRef.current?.click(); setShowUploadMenu(false); }}
+                      className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition-colors text-left"
+                    >
+                      <Upload className="w-4 h-4 text-[#FF6B00]" />
+                      <span className="text-sm text-white">Gallery</span>
+                    </button>
+                    <button
+                      onClick={() => { cameraInputRef.current?.click(); setShowUploadMenu(false); }}
+                      className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition-colors text-left border-t border-white/5"
+                    >
+                      <Camera className="w-4 h-4 text-[#FF6B00]" />
+                      <span className="text-sm text-white">Camera</span>
+                    </button>
+                  </motion.div>
                 )}
-                <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleFileChange} />
               </div>
+
               <div>
                 {isEditing ? (
                   <Input value={name} onChange={e => setName(e.target.value)} className="bg-[#0F1115] border-white/10 text-white h-9 rounded-xl mb-2" />

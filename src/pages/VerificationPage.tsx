@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { uploadVerificationDoc } from '@/services/storageService';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { Shield, Check, Upload, CreditCard, Camera, FileText, AlertCircle, Loader2 } from 'lucide-react';
+import { Shield, Check, Upload, CreditCard, Camera, FileText, AlertCircle, Loader2, X } from 'lucide-react';
 
 type DocType = 'cin' | 'license' | 'selfie' | 'registration' | 'insurance';
 
@@ -20,9 +20,15 @@ interface VStep {
 
 export function VerificationPage() {
   const { user } = useStore();
-  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Separate refs for gallery vs camera
+  const galleryInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+
   const [activeDoc, setActiveDoc] = useState<DocType | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
   const [steps, setSteps] = useState<VStep[]>([
     { id: 'cin', title: 'National ID (CIN)', desc: 'Upload front and back of your CIN', icon: CreditCard, status: 'pending' },
     { id: 'selfie', title: 'Selfie Verification', desc: 'Take a selfie for identity match', icon: Camera, status: 'pending' },
@@ -35,50 +41,102 @@ export function VerificationPage() {
   useEffect(() => {
     if (!user?.id) return;
 
-    supabase
-      .from('verifications')
-      .select('*')
-      .eq('user_id', user.id)
-      .then(({ data }) => {
+    const load = async () => {
+      try {
+        const { data } = await Promise.resolve(
+          supabase.from('verifications').select('*').eq('user_id', user.id)
+        );
         if (!data) return;
         setSteps(prev =>
           prev.map(s => {
             const found = data.find((d: any) => d.doc_type === s.id);
-            return found
-              ? { ...s, status: found.status, url: found.url }
-              : s;
+            return found ? { ...s, status: found.status, url: found.url } : s;
           })
         );
-      });
+      } catch { /* silent - table may not exist */ }
+    };
+    load();
   }, [user?.id]);
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !user?.id || !activeDoc) return;
+  // Process uploaded file (shared by both gallery and camera)
+  const processFile = async (file: File) => {
+    if (!user?.id || !activeDoc) return;
+
+    // Show preview
+    const reader = new FileReader();
+    reader.onload = (e) => setPreviewUrl(e.target?.result as string);
+    reader.readAsDataURL(file);
 
     setIsUploading(true);
     try {
       const url = await uploadVerificationDoc(user.id, activeDoc, file);
+
+      // Save to verifications table (best effort)
+      await supabase
+        .from('verifications')
+        .upsert(
+          { user_id: user.id, doc_type: activeDoc, status: 'pending', url },
+          { onConflict: 'user_id,doc_type' }
+        );
+
       setSteps(prev =>
         prev.map(s => s.id === activeDoc ? { ...s, status: 'uploaded' as const, url } : s)
       );
       toast.success(`${activeDoc.toUpperCase()} uploaded successfully!`);
     } catch (err: any) {
-      toast.error(err.message || 'Upload failed');
+      // Try to save locally as fallback
+      try {
+        const localKey = `verification_${user.id}_${activeDoc}`;
+        const reader2 = new FileReader();
+        reader2.onload = (e) => {
+          localStorage.setItem(localKey, JSON.stringify({
+            url: e.target?.result,
+            status: 'pending',
+            type: activeDoc,
+          }));
+        };
+        reader2.readAsDataURL(file);
+      } catch { /* silent */ }
+
+      toast.error(err.message || 'Upload failed - saved locally');
     } finally {
       setIsUploading(false);
+      setPreviewUrl(null);
       setActiveDoc(null);
     }
   };
 
-  const triggerUpload = (docType: DocType) => {
-    setActiveDoc(docType);
-    fileInputRef.current?.click();
+  // Handle file from gallery
+  const handleGalleryFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = ''; // reset input
+    await processFile(file);
   };
 
+  // Handle file from camera
+  const handleCameraFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = ''; // reset input
+    await processFile(file);
+  };
+
+  // Open gallery file picker
+  const openGallery = (docType: DocType) => {
+    setActiveDoc(docType);
+    // Small delay to ensure state is set before click
+    setTimeout(() => {
+      galleryInputRef.current?.click();
+    }, 50);
+  };
+
+  // Open camera
   const openCamera = (docType: DocType) => {
     setActiveDoc(docType);
-    fileInputRef.current?.click();
+    setTimeout(() => {
+      cameraInputRef.current?.click();
+    }, 50);
   };
 
   const completed = steps.filter(s => s.status !== 'pending').length;
@@ -94,14 +152,47 @@ export function VerificationPage() {
 
   return (
     <div className="min-h-screen bg-[#0F1115] pt-20 pb-8">
+      {/* TWO SEPARATE HIDDEN INPUTS: Gallery vs Camera */}
+      {/* Gallery/File input - NO capture attribute */}
       <input
-        ref={fileInputRef}
+        ref={galleryInputRef}
         type="file"
         accept="image/jpeg,image/png,image/webp,application/pdf"
+        className="hidden"
+        onChange={handleGalleryFile}
+      />
+      {/* Camera input - WITH capture="environment" */}
+      <input
+        ref={cameraInputRef}
+        type="file"
+        accept="image/*"
         capture="environment"
         className="hidden"
-        onChange={handleFileChange}
+        onChange={handleCameraFile}
       />
+
+      {/* Preview Modal */}
+      {previewUrl && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="bg-[#1B1F27] rounded-2xl border border-white/10 p-4 max-w-sm w-full"
+          >
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-sm text-white font-medium">Uploading...</p>
+              <button onClick={() => setPreviewUrl(null)} className="p-1 rounded-lg hover:bg-white/5">
+                <X className="w-4 h-4 text-[#A0A0A0]" />
+              </button>
+            </div>
+            <img src={previewUrl} alt="Preview" className="w-full rounded-xl" />
+            <div className="mt-3 flex items-center gap-2 text-[#A0A0A0]">
+              <Loader2 className="w-4 h-4 animate-spin text-[#FF6B00]" />
+              <span className="text-xs">Uploading to secure storage...</span>
+            </div>
+          </motion.div>
+        </div>
+      )}
 
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-8">
@@ -172,7 +263,7 @@ export function VerificationPage() {
                     <step.icon className={`w-5 h-5 ${step.status === 'uploaded' ? 'text-yellow-400' : 'text-[#FF6B00]'}`} />
                   )}
                 </div>
-                <div className="flex-1">
+                <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-1">
                     <h3 className="text-sm font-semibold text-white">{step.title}</h3>
                     <span className={`text-xs px-2 py-0.5 rounded-full capitalize ${
@@ -183,12 +274,24 @@ export function VerificationPage() {
                   </div>
                   <p className="text-xs text-[#A0A0A0] mb-3">{step.desc}</p>
 
+                  {/* Preview if uploaded */}
+                  {step.url && (
+                    <div className="mb-3">
+                      <img
+                        src={step.url}
+                        alt={step.title}
+                        className="w-full max-h-40 object-cover rounded-xl border border-white/5"
+                        onClick={() => window.open(step.url, '_blank')}
+                      />
+                    </div>
+                  )}
+
                   {step.status === 'pending' && (
                     <div className="flex gap-2">
                       <Button
                         size="sm"
-                        onClick={() => triggerUpload(step.id)}
-                        disabled={isUploading && activeDoc === step.id}
+                        onClick={() => openGallery(step.id)}
+                        disabled={isUploading}
                         variant="outline"
                         className="border-[#FF6B00]/30 text-[#FF6B00] hover:bg-[#FF6B00]/10 rounded-xl h-8 text-xs"
                       >
@@ -202,7 +305,7 @@ export function VerificationPage() {
                       <Button
                         size="sm"
                         onClick={() => openCamera(step.id)}
-                        disabled={isUploading && activeDoc === step.id}
+                        disabled={isUploading}
                         variant="outline"
                         className="border-white/10 text-[#A0A0A0] hover:bg-white/5 rounded-xl h-8 text-xs"
                       >
@@ -213,13 +316,14 @@ export function VerificationPage() {
                   )}
 
                   {step.status === 'uploaded' && (
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-3">
                       <p className="text-xs text-yellow-400">Under review by our team</p>
-                      {step.url && (
-                        <a href={step.url} target="_blank" rel="noopener noreferrer" className="text-xs text-[#FF6B00] hover:underline">
-                          View
-                        </a>
-                      )}
+                      <button
+                        onClick={() => openGallery(step.id)}
+                        className="text-xs text-[#FF6B00] hover:underline"
+                      >
+                        Re-upload
+                      </button>
                     </div>
                   )}
 

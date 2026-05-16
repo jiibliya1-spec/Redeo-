@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useStore } from '@/store/useStore';
@@ -11,22 +11,8 @@ import { Car, Eye, EyeOff, Loader2 } from 'lucide-react';
 
 export function LoginPage() {
   const navigate = useNavigate();
-  const { signIn, user, isAuthenticated } = useStore();
+  const { signIn, refreshProfile } = useStore();
   const { t } = useI18n();
-
-  // Redirect based on role after login
-  useEffect(() => {
-    if (isAuthenticated && user) {
-      console.log('[LoginPage] User authenticated, role:', user.role);
-      if (user.role === 'admin') {
-        console.log('[LoginPage] Admin detected → redirecting to /admin');
-        navigate('/admin', { replace: true });
-      } else {
-        console.log('[LoginPage] Non-admin → redirecting to /dashboard');
-        navigate('/dashboard', { replace: true });
-      }
-    }
-  }, [isAuthenticated, user, navigate]);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -36,11 +22,27 @@ export function LoginPage() {
     e.preventDefault();
     setIsLoading(true);
 
+    // Clear ALL cached profile data before login
+    // This forces fresh fetch from Supabase to get the LATEST role
+    try {
+      localStorage.removeItem('wansniauto_profile_data');
+      localStorage.removeItem('wansniauto-storage'); // zustand persist
+      console.log('[LoginPage] Cleared all caches');
+    } catch { /* silent */ }
+
     const result = await signIn(email, password);
 
     if (result.success) {
       toast.success('Welcome back!');
-      // useEffect will handle redirect based on role
+      // Force refresh to get latest role from Supabase
+      await refreshProfile();
+      const { user: freshUser } = useStore.getState();
+      console.log('[LoginPage] Role after refresh:', freshUser?.role);
+      if (freshUser?.role === 'admin') {
+        navigate('/admin', { replace: true });
+      } else {
+        navigate('/dashboard', { replace: true });
+      }
     } else {
       toast.error(result.error || 'Login failed');
     }

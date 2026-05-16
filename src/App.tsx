@@ -86,10 +86,21 @@ function AdminRoutes() {
 
 /* ─── App content with conditional navbar ─── */
 function AppContent() {
-  const { isAuthenticated, user, isLoading, initAuth } = useStore();
+  const { isAuthenticated, user, isLoading, initAuth, refreshProfile } = useStore();
 
   useEffect(() => {
-    initAuth();
+    const boot = async () => {
+      // Clear old localStorage profile cache to force fresh fetch from Supabase
+      // This ensures the latest role is always loaded
+      try {
+        localStorage.removeItem('wansniauto_profile_data');
+        console.log('[App] Cleared profile cache, fetching fresh from Supabase');
+      } catch { /* silent */ }
+      await initAuth();
+      // Always refresh profile from Supabase after init
+      await refreshProfile();
+    };
+    boot();
   }, []);
 
   if (isLoading) {

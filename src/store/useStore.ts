@@ -26,15 +26,18 @@ interface AppState {
 
   // Auth
   initAuth: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
   signUp: (email: string, password: string, name: string, phone: string, role: string) => Promise<{ success: boolean; error?: string }>;
   signIn: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   signOut: () => Promise<void>;
 }
 
-// Helper: get profile from localStorage fallback
+// ─── localStorage Helpers ───
+const PROFILE_KEY = 'wansniauto_profile_data';
+
 function getLocalProfile(userId: string): Partial<User> | null {
   try {
-    const stored = localStorage.getItem('wansniauto_profile_data');
+    const stored = localStorage.getItem(PROFILE_KEY);
     if (stored) {
       const data = JSON.parse(stored);
       if (data.id === userId || !data.id) return data;
@@ -46,13 +49,71 @@ function getLocalProfile(userId: string): Partial<User> | null {
 function setLocalProfile(data: Partial<User>) {
   try {
     const existing = getLocalProfile(data.id || '');
-    localStorage.setItem('wansniauto_profile_data', JSON.stringify({ ...existing, ...data }));
+    localStorage.setItem(PROFILE_KEY, JSON.stringify({ ...existing, ...data }));
   } catch { /* silent */ }
+}
+
+function clearLocalProfile() {
+  try {
+    localStorage.removeItem(PROFILE_KEY);
+    console.log('[clearLocalProfile] Profile cleared from localStorage');
+  } catch { /* silent */ }
+}
+
+// ─── Fetch profile from Supabase ───
+async function fetchProfileFromSupabase(userId: string): Promise<Partial<User> | null> {
+  try {
+    // Use maybeSingle() instead of single() to avoid "no rows" error
+    const { data: profile, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (error) {
+      console.log('[fetchProfile] Supabase error:', error.message);
+      return null;
+    }
+
+    if (!profile) {
+      console.log('[fetchProfile] No profile row found for user:', userId);
+      return null;
+    }
+
+    const role = (profile as any).role || 'passenger';
+    console.log('[fetchProfile] Got profile from Supabase. Role:', role);
+
+    return {
+      ...profile,
+      role,
+      avatar: (profile as any).avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${userId}`,
+    } as Partial<User>;
+  } catch (err: any) {
+    console.log('[fetchProfile] Exception:', err.message);
+    return null;
+  }
+}
+
+// ─── Build user object ───
+function buildUser(sessionUser: any, profileData: Partial<User> | null): User {
+  const resolvedRole = profileData?.role || sessionUser.user_metadata?.role || 'passenger';
+  return {
+    id: sessionUser.id,
+    name: profileData?.name || sessionUser.user_metadata?.name || sessionUser.email?.split('@')[0] || 'User',
+    email: sessionUser.email || '',
+    phone: profileData?.phone || sessionUser.user_metadata?.phone || '',
+    role: resolvedRole as 'passenger' | 'driver' | 'admin',
+    is_verified: profileData?.is_verified || false,
+    rating: profileData?.rating || 5.0,
+    trips_count: profileData?.trips_count || 0,
+    avatar: profileData?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${sessionUser.id}`,
+    bio: profileData?.bio || '',
+  };
 }
 
 export const useStore = create<AppState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       user: null,
       isAuthenticated: false,
       isLoading: true,
@@ -73,125 +134,90 @@ export const useStore = create<AppState>()(
       incrementUnread: () => set((s) => ({ unreadCount: s.unreadCount + 1 })),
       clearUnread: () => set({ unreadCount: 0 }),
 
-      // Initialize auth state from Supabase session
+      // ─── Initialize auth on app load ───
       initAuth: async () => {
+        console.log('[initAuth] Starting...');
         try {
           const { data: { session } } = await supabase.auth.getSession();
-          if (session?.user) {
-            // Try to get profile from Supabase
-            const { data: profile, error } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('id', session.user.id)
-              .single();
-
-            if (error || !profile) {
-              // Table doesn't exist or row not found - use localStorage fallback
-              const localProfile = getLocalProfile(session.user.id);
-              const resolvedRole = (localProfile?.role as any) || (session.user.user_metadata?.role as any) || 'passenger';
-              console.log('[initAuth] Profile not found, using localStorage. Role:', resolvedRole);
-              const userData: User = {
-                id: session.user.id,
-                name: localProfile?.name || session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
-                email: session.user.email || '',
-                phone: localProfile?.phone || session.user.user_metadata?.phone || '',
-                role: resolvedRole,
-                is_verified: localProfile?.is_verified || false,
-                rating: localProfile?.rating || 5.0,
-                trips_count: 0,
-                avatar: localProfile?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${session.user.id}`,
-                bio: localProfile?.bio || '',
-              };
-              set({ user: userData, isAuthenticated: true, isLoading: false });
-              setLocalProfile(userData);
-              return;
-            }
-
-            // ALWAYS preserve the role from Supabase profile
-            const resolvedRole = (profile as any).role || 'passenger';
-            console.log('[initAuth] Profile loaded from Supabase. Role:', resolvedRole);
-            const userWithRole = { ...profile, role: resolvedRole } as User;
-            set({ user: userWithRole, isAuthenticated: true, isLoading: false });
-            setLocalProfile(userWithRole);
+          if (!session?.user) {
+            console.log('[initAuth] No session');
+            clearLocalProfile();
+            set({ isLoading: false });
             return;
           }
-          set({ isLoading: false });
-        } catch {
+
+          // ALWAYS fetch fresh profile from Supabase
+          const freshProfile = await fetchProfileFromSupabase(session.user.id);
+
+          if (freshProfile) {
+            const user = buildUser(session.user, freshProfile);
+            console.log('[initAuth] Using Supabase profile. Role:', user.role);
+            set({ user, isAuthenticated: true, isLoading: false });
+            setLocalProfile(user);
+            return;
+          }
+
+          // Fallback to localStorage ONLY if Supabase fails
+          const localProfile = getLocalProfile(session.user.id);
+          const user = buildUser(session.user, localProfile);
+          console.log('[initAuth] Using localStorage fallback. Role:', user.role);
+          set({ user, isAuthenticated: true, isLoading: false });
+          setLocalProfile(user);
+        } catch (err: any) {
+          console.error('[initAuth] Error:', err.message);
           set({ isLoading: false });
         }
       },
 
-      // Sign up with Supabase
+      // ─── Force refresh profile from Supabase ───
+      refreshProfile: async () => {
+        const { user: currentUser } = get();
+        if (!currentUser?.id) return;
+
+        console.log('[refreshProfile] Refreshing for user:', currentUser.id);
+        const freshProfile = await fetchProfileFromSupabase(currentUser.id);
+
+        if (freshProfile) {
+          const user = buildUser({ id: currentUser.id, email: currentUser.email, user_metadata: {} }, freshProfile);
+          console.log('[refreshProfile] Profile refreshed. Role:', user.role);
+          set({ user: { ...currentUser, ...user } as User });
+          setLocalProfile(user);
+        }
+      },
+
+      // ─── Sign Up ───
       signUp: async (email, password, name, phone, role) => {
-        // SECURITY: Prevent anyone from registering as admin
+        // SECURITY: Block admin registration
         if (role === 'admin') {
-          console.warn('[signUp] Blocked: admin registration not allowed');
-          return { success: false, error: 'Admin registration is not allowed. Contact the platform owner.' };
+          return { success: false, error: 'Admin registration is not allowed.' };
         }
 
         try {
-          // 1. Create auth user
           const { data: authData, error: authError } = await supabase.auth.signUp({
-            email,
-            password,
+            email, password,
             options: { data: { name, phone, role } },
           });
 
-          if (authError) {
-            return { success: false, error: authError.message };
-          }
+          if (authError) return { success: false, error: authError.message };
+          if (!authData.user) return { success: false, error: 'No user returned' };
 
-          if (!authData.user) {
-            return { success: false, error: 'No user returned' };
-          }
-
-          // 2. Try to create profile in Supabase (may fail if table doesn't exist)
+          // Try insert profile
           const profileData = {
-            id: authData.user.id,
-            name,
-            email,
-            phone,
-            role,
-            is_verified: false,
-            rating: 5.0,
-            trips_count: 0,
-            avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(name)}`,
-            bio: '',
+            id: authData.user.id, name, email, phone, role,
+            is_verified: false, rating: 5.0, trips_count: 0,
+            avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(name)}`, bio: '',
           };
 
           const { error: profileError } = await supabase.from('profiles').insert(profileData);
+          if (profileError) console.warn('Profile insert:', profileError.message);
 
-          if (profileError) {
-            console.warn('Profile table not ready, using localStorage:', profileError.message);
-          }
+          setLocalProfile(profileData as any);
 
-          // 3. Always save to localStorage as fallback/primary
-          setLocalProfile({ ...profileData, role: profileData.role as any });
+          // Auto sign in
+          const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+          if (signInError) return { success: true };
 
-          // 4. Auto sign in
-          const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-            email,
-            password,
-          });
-
-          if (signInError) {
-            return { success: false, error: 'Account created! Please sign in.' };
-          }
-
-          // 5. Set user in state
-          const user: User = {
-            id: signInData.user.id,
-            name,
-            email,
-            phone,
-            role: role as 'passenger' | 'driver' | 'admin',
-            is_verified: false,
-            rating: 5.0,
-            trips_count: 0,
-            avatar: profileData.avatar,
-            bio: '',
-          };
-
+          const user = buildUser(signInData.user, profileData as Partial<User>);
           set({ user, isAuthenticated: true });
           return { success: true };
         } catch (err: any) {
@@ -199,63 +225,45 @@ export const useStore = create<AppState>()(
         }
       },
 
-      // Sign in with Supabase
+      // ─── Sign In ───
       signIn: async (email, password) => {
         try {
-          const { data, error } = await supabase.auth.signInWithPassword({
-            email,
-            password,
-          });
+          const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+          if (error) return { success: false, error: error.message };
 
-          if (error) {
-            return { success: false, error: error.message };
-          }
+          // ALWAYS fetch fresh from Supabase
+          const freshProfile = await fetchProfileFromSupabase(data.user.id);
 
-          // Try to get profile from Supabase
-          const { data: profile, error: profileError } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', data.user.id)
-            .single();
-
-          if (profileError || !profile) {
-            // Use localStorage fallback or create from auth data
-            const localProfile = getLocalProfile(data.user.id);
-            const resolvedRole = (localProfile?.role as any) || (data.user.user_metadata?.role as any) || 'passenger';
-            console.log('[signIn] Profile not found, using fallback. Role:', resolvedRole);
-            const user: User = {
-              id: data.user.id,
-              name: localProfile?.name || data.user.user_metadata?.name || email.split('@')[0],
-              email,
-              phone: localProfile?.phone || data.user.user_metadata?.phone || '',
-              role: resolvedRole,
-              is_verified: localProfile?.is_verified || false,
-              rating: localProfile?.rating || 5.0,
-              trips_count: 0,
-              avatar: localProfile?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${data.user.id}`,
-              bio: localProfile?.bio || '',
-            };
+          if (freshProfile) {
+            const user = buildUser(data.user, freshProfile);
+            console.log('[signIn] Supabase profile. Role:', user.role);
             set({ user, isAuthenticated: true });
             setLocalProfile(user);
             return { success: true };
           }
 
-          // ALWAYS preserve the role from Supabase profile
-          const resolvedRole = (profile as any).role || 'passenger';
-          console.log('[signIn] Profile loaded. Role:', resolvedRole);
-          const userWithRole = { ...profile, role: resolvedRole } as User;
-          set({ user: userWithRole, isAuthenticated: true });
-          setLocalProfile(userWithRole);
+          // Fallback to localStorage
+          const localProfile = getLocalProfile(data.user.id);
+          const user = buildUser(data.user, localProfile);
+          console.log('[signIn] localStorage fallback. Role:', user.role);
+          set({ user, isAuthenticated: true });
+          setLocalProfile(user);
           return { success: true };
         } catch (err: any) {
           return { success: false, error: err.message || 'Login failed' };
         }
       },
 
-      // Sign out
+      // ─── Sign Out ───
       signOut: async () => {
         await supabase.auth.signOut();
-        set({ user: null, isAuthenticated: false });
+        clearLocalProfile();
+        // Clear ALL caches
+        try {
+          localStorage.removeItem('wansniauto-storage');
+          localStorage.removeItem('wansniauto_profile_data');
+        } catch { /* silent */ }
+        set({ user: null, isAuthenticated: false, selectedTrip: null });
       },
     }),
     {

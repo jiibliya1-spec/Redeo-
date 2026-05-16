@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { MOROCCAN_CITIES } from '@/lib/data';
 import {
   ArrowRight, Shield, MessageCircle, CreditCard, MapPin,
-  Leaf, Headphones, Star, Car
+  Leaf, Headphones, Star, Car, PlusCircle
 } from 'lucide-react';
 
 const FEATURES = [
@@ -48,12 +48,15 @@ function FadeUp({ children, delay = 0 }: { children: React.ReactNode; delay?: nu
 
 export function LandingPage() {
   const navigate = useNavigate();
-  const { setSearchFilters } = useStore();
+  const { setSearchFilters, user } = useStore();
   const { lang, setLang, t, dir } = useI18n();
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
   const [date, setDate] = useState('');
   const [passengers, setPassengers] = useState(1);
+
+  // Role detection
+  const isDriver = user?.role === 'driver';
   // scrolled state
 
   useEffect(() => {
@@ -94,40 +97,75 @@ export function LandingPage() {
                 </p>
               </motion.div>
 
-              {/* Search Box */}
-              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.3 }} className="bg-[#1B1F27]/90 backdrop-blur-xl border border-white/10 rounded-2xl p-5 space-y-4">
-                <div className="grid sm:grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <label className="text-xs text-[#A0A0A0] font-medium ml-1">{t('landing.search_from')}</label>
-                    <select value={from} onChange={(e) => setFrom(e.target.value)} className="w-full bg-[#0F1115] border border-white/10 rounded-xl h-12 px-4 text-white text-sm outline-none focus:border-[#FF6B00]/50 appearance-none">
-                      <option value="">{t('common.select_city')}</option>
-                      {MOROCCAN_CITIES.map(c => <option key={c} value={c}>{c}</option>)}
+              {/* Driver: Publish | Passenger: Search */}
+              {isDriver ? (
+                /* DRIVER: Publish a ride */
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.3 }} className="bg-[#1B1F27]/90 backdrop-blur-xl border border-white/10 rounded-2xl p-5 space-y-4">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-12 h-12 bg-[#FF6B00]/20 rounded-xl flex items-center justify-center">
+                      <Car className="w-6 h-6 text-[#FF6B00]" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold text-white">{t('driver.offer_ride')}</h3>
+                      <p className="text-xs text-[#A0A0A0]">{t('driver.publish_subtitle')}</p>
+                    </div>
+                  </div>
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-xs text-[#A0A0A0] font-medium ml-1">{t('driver.from')}</label>
+                      <select value={from} onChange={(e) => setFrom(e.target.value)} className="w-full bg-[#0F1115] border border-white/10 rounded-xl h-12 px-4 text-white text-sm outline-none focus:border-[#FF6B00]/50 appearance-none">
+                        <option value="">{t('common.select_city')}</option>
+                        {MOROCCAN_CITIES.map(c => <option key={c} value={c}>{c}</option>)}
+                      </select>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs text-[#A0A0A0] font-medium ml-1">{t('driver.to')}</label>
+                      <select value={to} onChange={(e) => setTo(e.target.value)} className="w-full bg-[#0F1115] border border-white/10 rounded-xl h-12 px-4 text-white text-sm outline-none focus:border-[#FF6B00]/50 appearance-none">
+                        <option value="">{t('common.select_city')}</option>
+                        {MOROCCAN_CITIES.filter(c => c !== from).map(c => <option key={c} value={c}>{c}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                  <Button onClick={() => { setSearchFilters({ from, to, date, passengers }); navigate('/publish-trip'); }} className="w-full bg-[#FF6B00] hover:bg-[#E56000] text-white h-12 rounded-xl text-base font-semibold shadow-lg shadow-[#FF6B00]/20">
+                    <PlusCircle className="w-5 h-5 mr-2" /> {t('driver.publish')}
+                  </Button>
+                </motion.div>
+              ) : (
+                /* PASSENGER: Search for a ride */
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.3 }} className="bg-[#1B1F27]/90 backdrop-blur-xl border border-white/10 rounded-2xl p-5 space-y-4">
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-xs text-[#A0A0A0] font-medium ml-1">{t('landing.search_from')}</label>
+                      <select value={from} onChange={(e) => setFrom(e.target.value)} className="w-full bg-[#0F1115] border border-white/10 rounded-xl h-12 px-4 text-white text-sm outline-none focus:border-[#FF6B00]/50 appearance-none">
+                        <option value="">{t('common.select_city')}</option>
+                        {MOROCCAN_CITIES.map(c => <option key={c} value={c}>{c}</option>)}
+                      </select>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs text-[#A0A0A0] font-medium ml-1">{t('landing.search_to')}</label>
+                      <select value={to} onChange={(e) => setTo(e.target.value)} className="w-full bg-[#0F1115] border border-white/10 rounded-xl h-12 px-4 text-white text-sm outline-none focus:border-[#FF6B00]/50 appearance-none">
+                        <option value="">{t('common.select_city')}</option>
+                        {MOROCCAN_CITIES.filter(c => c !== from).map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
+                    </div>
                   </div>
-                  <div className="space-y-1">
-                    <label className="text-xs text-[#A0A0A0] font-medium ml-1">{t('landing.search_to')}</label>
-                    <select value={to} onChange={(e) => setTo(e.target.value)} className="w-full bg-[#0F1115] border border-white/10 rounded-xl h-12 px-4 text-white text-sm outline-none focus:border-[#FF6B00]/50 appearance-none">
-                      <option value="">{t('common.select_city')}</option>
-                      {MOROCCAN_CITIES.filter(c => c !== from).map(c => <option key={c} value={c}>{c}</option>)}
-                    </select>
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-xs text-[#A0A0A0] font-medium ml-1">{t('landing.search_date')}</label>
+                      <input type="date" value={date} onChange={(e) => setDate(e.target.value)} min={new Date().toISOString().split('T')[0]} className="w-full bg-[#0F1115] border border-white/10 rounded-xl h-12 px-4 text-white text-sm outline-none focus:border-[#FF6B00]/50" />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs text-[#A0A0A0] font-medium ml-1">{t('landing.search_passengers')}</label>
+                      <select value={passengers} onChange={(e) => setPassengers(Number(e.target.value))} className="w-full bg-[#0F1115] border border-white/10 rounded-xl h-12 px-4 text-white text-sm outline-none focus:border-[#FF6B00]/50 appearance-none">
+                        {[1,2,3,4,5,6].map(n => <option key={n} value={n}>{n}</option>)}
+                      </select>
+                    </div>
                   </div>
-                </div>
-                <div className="grid sm:grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <label className="text-xs text-[#A0A0A0] font-medium ml-1">{t('landing.search_date')}</label>
-                    <input type="date" value={date} onChange={(e) => setDate(e.target.value)} min={new Date().toISOString().split('T')[0]} className="w-full bg-[#0F1115] border border-white/10 rounded-xl h-12 px-4 text-white text-sm outline-none focus:border-[#FF6B00]/50" />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-xs text-[#A0A0A0] font-medium ml-1">{t('landing.search_passengers')}</label>
-                    <select value={passengers} onChange={(e) => setPassengers(Number(e.target.value))} className="w-full bg-[#0F1115] border border-white/10 rounded-xl h-12 px-4 text-white text-sm outline-none focus:border-[#FF6B00]/50 appearance-none">
-                      {[1,2,3,4,5,6].map(n => <option key={n} value={n}>{n}</option>)}
-                    </select>
-                  </div>
-                </div>
-                <Button onClick={handleSearch} className="w-full bg-[#FF6B00] hover:bg-[#E56000] text-white h-12 rounded-xl text-base font-semibold shadow-lg shadow-[#FF6B00]/20">
-                  <Search className="w-5 h-5 mr-2" /> {t('landing.search_btn')}
-                </Button>
-              </motion.div>
+                  <Button onClick={handleSearch} className="w-full bg-[#FF6B00] hover:bg-[#E56000] text-white h-12 rounded-xl text-base font-semibold shadow-lg shadow-[#FF6B00]/20">
+                    <Search className="w-5 h-5 mr-2" /> {t('landing.search_btn')}
+                  </Button>
+                </motion.div>
+              )}
             </div>
 
             <motion.div initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.8, delay: 0.2 }} className="hidden lg:block">

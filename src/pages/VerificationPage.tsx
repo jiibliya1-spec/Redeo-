@@ -246,12 +246,15 @@ export function VerificationPage() {
     setTimeout(() => cameraInputRef.current?.click(), 50);
   };
 
-  const completed = steps.filter(s => s.status !== 'pending').length;
+  // Count docs that are NOT 'pending' in the UI sense
+  // Both 'uploaded' and 'verified' count as "done"
+  // Also 'pending' (submitted for review) counts as done
+  const completed = steps.filter(s => s.status === 'uploaded' || s.status === 'verified' || s.status === 'pending').length;
   const allUploaded = completed === steps.length && completed > 0;
   const progress = (completed / steps.length) * 100;
 
   // Debug logging
-  console.log('[Verification] completed:', completed, 'allUploaded:', allUploaded, 'is_verified:', user?.is_verified);
+  console.log('[Verification] completed:', completed, 'allUploaded:', allUploaded, 'is_verified:', user?.is_verified, 'steps:', steps.map(s => s.status));
 
   if (!user) {
     return (

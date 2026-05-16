@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useStore } from '@/store/useStore';
+import { useI18n } from '@/lib/i18n';
 import { supabase } from '@/lib/supabase';
 import { uploadChatImage } from '@/services/storageService';
 import { Input } from '@/components/ui/input';
@@ -30,6 +31,7 @@ interface Conversation {
 
 export function MessagesPage() {
   const { user } = useStore();
+  const { t } = useI18n();
   const [activeConv, setActiveConv] = useState<string | null>(null);
   const [messageText, setMessageText] = useState('');
   const [isSending, setIsSending] = useState(false);
@@ -61,9 +63,9 @@ export function MessagesPage() {
           setConversations([{
             id: 'demo',
             user_id: 'demo',
-            name: 'Support Team',
+            name: t('chat.support_name'),
             avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=support`,
-            last_message: 'How can we help you today?',
+            last_message: t('chat.support_msg'),
             timestamp: 'Now',
             unread: 1,
             online: true,
@@ -93,7 +95,7 @@ export function MessagesPage() {
               .limit(1);
 
             if (msgData && msgData.length > 0) {
-              conv.last_message = msgData[0].content.startsWith('[Image]') ? '📷 Photo' : msgData[0].content;
+              conv.last_message = msgData[0].content.startsWith('[Image]') ? '📷 ' + t('chat.type') : msgData[0].content;
               conv.timestamp = new Date(msgData[0].created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             }
           } catch { /* silent */ }
@@ -417,7 +419,7 @@ export function MessagesPage() {
                       value={messageText}
                       onChange={e => setMessageText(e.target.value)}
                       onKeyPress={handleKeyPress}
-                      placeholder="Type a message..."
+                      placeholder={t('chat.type')}
                       className="bg-[#0F1115] border-white/10 text-white rounded-xl"
                     />
                     <Button onClick={handleSend} disabled={isSending || !messageText.trim()} size="sm" className="bg-[#FF6B00] text-white hover:bg-[#E56000] rounded-xl w-10 h-10 p-0 shrink-0 disabled:opacity-50">

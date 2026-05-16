@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useStore } from '@/store/useStore';
+import { useI18n } from '@/lib/i18n';
 import { apiGet } from '@/lib/supabase';
 import { MOROCCAN_CITIES } from '@/lib/data';
 import type { Trip } from '@/types';
@@ -21,6 +22,7 @@ function getLocalTrips(): Trip[] {
 
 function TripCard({ trip, index }: { trip: Trip; index: number }) {
   const navigate = useNavigate();
+  const { t } = useI18n();
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -40,13 +42,13 @@ function TripCard({ trip, index }: { trip: Trip; index: number }) {
             <p className="text-sm font-medium text-white">{trip.driver?.name || 'Driver'}</p>
             <div className="flex items-center gap-1">
               <Star className="w-3.5 h-3.5 text-[#FF6B00] fill-[#FF6B00]" />
-              <span className="text-xs text-[#A0A0A0]">{trip.driver?.rating || 5} &middot; {trip.driver?.trips_count || 0} trips</span>
+              <span className="text-xs text-[#A0A0A0]">{trip.driver?.rating || 5} &middot; {trip.driver?.trips_count || 0} {t('trip.trips_done')}</span>
             </div>
           </div>
         </div>
         <div className="text-right">
           <p className="text-2xl font-bold text-[#FF6B00]">{trip.price} <span className="text-sm font-normal text-[#A0A0A0]">MAD</span></p>
-          <p className="text-xs text-[#A0A0A0]">per seat</p>
+          <p className="text-xs text-[#A0A0A0]">{t('trip.price')}</p>
         </div>
       </div>
       <div className="flex items-center gap-4 mb-4">
@@ -73,7 +75,7 @@ function TripCard({ trip, index }: { trip: Trip; index: number }) {
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-1.5">
             <Users className="w-4 h-4 text-[#A0A0A0]" />
-            <span className="text-xs text-[#A0A0A0]">{trip.available_seats} left</span>
+            <span className="text-xs text-[#A0A0A0]">{trip.available_seats} {t('trip.seats_left')}</span>
           </div>
           <div className="flex items-center gap-1.5">
             <MapPin className="w-4 h-4 text-[#A0A0A0]" />
@@ -89,6 +91,7 @@ function TripCard({ trip, index }: { trip: Trip; index: number }) {
 export function SearchResultsPage() {
   const navigate = useNavigate();
   const { searchFilters, setSearchFilters } = useStore();
+  const { t, dir } = useI18n();
   const [results, setResults] = useState<Trip[]>([]);
   const [sortBy, setSortBy] = useState('price');
   const [isLoading, setIsLoading] = useState(true);
@@ -163,8 +166,8 @@ export function SearchResultsPage() {
         <div className="flex items-center gap-4 mb-6">
           <button onClick={() => navigate('/')} className="p-2 rounded-xl hover:bg-white/5 transition-colors"><ArrowLeft className="w-5 h-5 text-[#A0A0A0]" /></button>
           <div>
-            <h1 className="text-xl font-bold text-white">{searchFilters.from || 'All cities'} <span className="text-[#A0A0A0] font-normal">to</span> {searchFilters.to || 'All cities'}</h1>
-            <p className="text-sm text-[#A0A0A0]">{sorted.length} rides available</p>
+            <h1 className="text-xl font-bold text-white" dir={dir}>{searchFilters.from || t('search.all_cities')} <span className="text-[#A0A0A0] font-normal">{t('search.to')}</span> {searchFilters.to || t('search.all_cities')}</h1>
+            <p className="text-sm text-[#A0A0A0]" dir={dir}>{sorted.length} {t('search.rides_available')}</p>
           </div>
         </div>
 
@@ -172,26 +175,26 @@ export function SearchResultsPage() {
         <div className="bg-[#1B1F27] rounded-2xl border border-white/5 p-4 mb-6">
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
             <select value={searchFilters.from} onChange={e => setSearchFilters({ ...searchFilters, from: e.target.value })} className="bg-[#0F1115] border border-white/10 text-white rounded-xl h-10 px-3 text-sm outline-none focus:border-[#FF6B00]/50 appearance-none">
-              <option value="">From</option>
+              <option value="">{t('search.from_label')}</option>
               {MOROCCAN_CITIES.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
             <select value={searchFilters.to} onChange={e => setSearchFilters({ ...searchFilters, to: e.target.value })} className="bg-[#0F1115] border border-white/10 text-white rounded-xl h-10 px-3 text-sm outline-none focus:border-[#FF6B00]/50 appearance-none">
-              <option value="">To</option>
+              <option value="">{t('search.to_label')}</option>
               {MOROCCAN_CITIES.filter(c => c !== searchFilters.from).map(c => <option key={c} value={c}>{c}</option>)}
             </select>
             <input type="date" value={searchFilters.date} onChange={e => setSearchFilters({ ...searchFilters, date: e.target.value })} min={new Date().toISOString().split('T')[0]} className="bg-[#0F1115] border border-white/10 text-white rounded-xl h-10 px-3 text-sm outline-none focus:border-[#FF6B00]/50" />
             <select value={String(searchFilters.passengers)} onChange={e => setSearchFilters({ ...searchFilters, passengers: Number(e.target.value) })} className="bg-[#0F1115] border border-white/10 text-white rounded-xl h-10 px-3 text-sm outline-none focus:border-[#FF6B00]/50 appearance-none">
-              {[1,2,3,4,5,6].map(n => <option key={n} value={n}>{n} pax</option>)}
+              {[1,2,3,4,5,6].map(n => <option key={n} value={n}>{n} {t('search.pax')}</option>)}
             </select>
           </div>
         </div>
 
         <div className="flex items-center justify-between mb-5">
-          <div className="flex items-center gap-2"><Filter className="w-4 h-4 text-[#A0A0A0]" /><span className="text-sm text-[#A0A0A0]">Sort:</span></div>
+          <div className="flex items-center gap-2"><Filter className="w-4 h-4 text-[#A0A0A0]" /><span className="text-sm text-[#A0A0A0]" dir={dir}>{t('search.sort')}</span></div>
           <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="bg-[#1B1F27] border border-white/10 text-white rounded-xl h-9 px-3 text-sm outline-none appearance-none">
-            <option value="price">Lowest price</option>
-            <option value="time">Earliest</option>
-            <option value="rating">Highest rated</option>
+            <option value="price">{t('search.lowest_price')}</option>
+            <option value="time">{t('search.earliest')}</option>
+            <option value="rating">{t('search.highest_rated')}</option>
           </select>
         </div>
 
@@ -204,9 +207,9 @@ export function SearchResultsPage() {
                 <div className="w-16 h-16 bg-[#FF6B00]/10 rounded-full flex items-center justify-center mx-auto mb-4">
                   <MapPin className="w-8 h-8 text-[#FF6B00]" />
                 </div>
-                <h3 className="text-lg font-medium text-white mb-2">No rides found</h3>
-                <p className="text-sm text-[#A0A0A0] mb-4">Try adjusting your search</p>
-                <Button onClick={() => setSearchFilters({ from: '', to: '', date: '', passengers: 1 })} variant="outline" className="border-[#FF6B00]/30 text-[#FF6B00] hover:bg-[#FF6B00]/10 rounded-xl">Clear filters</Button>
+                <h3 className="text-lg font-medium text-white mb-2" dir={dir}>{t('search.no_rides')}</h3>
+                <p className="text-sm text-[#A0A0A0] mb-4" dir={dir}>{t('search.try_adjust')}</p>
+                <Button onClick={() => setSearchFilters({ from: '', to: '', date: '', passengers: 1 })} variant="outline" className="border-[#FF6B00]/30 text-[#FF6B00] hover:bg-[#FF6B00]/10 rounded-xl">{t('search.clear_filters')}</Button>
               </div>
             )}
           </div>

@@ -11,12 +11,12 @@ import {
 } from 'lucide-react';
 
 const FEATURES = [
-  { icon: Shield, title: 'Verified Drivers', desc: 'Every driver is identity-verified with CIN, license, and vehicle documents checked by our team.' },
-  { icon: MessageCircle, title: 'Instant Messaging', desc: 'Chat with your driver or passengers before the trip to coordinate pickup details.' },
-  { icon: CreditCard, title: 'Secure Payments', desc: 'Pay securely online or with cash. Your money is protected until the trip is completed.' },
-  { icon: MapPin, title: 'Live Tracking', desc: 'Share your live location with family and track your ride in real-time.' },
-  { icon: Leaf, title: 'Eco-Friendly', desc: 'Share rides and reduce your carbon footprint. Join 1M+ eco-conscious travelers.' },
-  { icon: Headphones, title: '24/7 Support', desc: 'Our dedicated support team is always here to help, anytime you need.' },
+  { icon: Shield, titleKey: 'landing.feature_drivers', descKey: 'landing.feature_drivers_desc' },
+  { icon: MessageCircle, titleKey: 'landing.feature_chat', descKey: 'landing.feature_chat_desc' },
+  { icon: CreditCard, titleKey: 'landing.feature_payments', descKey: 'landing.feature_payments_desc' },
+  { icon: MapPin, titleKey: 'landing.feature_tracking', descKey: 'landing.feature_tracking_desc' },
+  { icon: Leaf, titleKey: 'landing.feature_eco', descKey: 'landing.feature_eco_desc' },
+  { icon: Headphones, titleKey: 'landing.feature_chat', descKey: 'landing.feature_chat_desc' },
 ];
 
 const POPULAR_ROUTES = [
@@ -188,19 +188,19 @@ export function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <FadeUp>
             <div className="text-center mb-14">
-              <h2 className="text-3xl md:text-4xl font-bold text-white mb-3">Why WansniAuto?</h2>
-              <p className="text-[#A0A0A0] max-w-xl mx-auto" dir={dir}>{t('landing.feature_share')}</p>
+              <h2 className="text-3xl md:text-4xl font-bold text-white mb-3" dir={dir}>{t('landing.why_title')}</h2>
+              <p className="text-[#A0A0A0] max-w-xl mx-auto" dir={dir}>{t('landing.why_subtitle')}</p>
             </div>
           </FadeUp>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
             {FEATURES.map((f, i) => (
-              <FadeUp key={f.title} delay={i * 0.08}>
+              <FadeUp key={f.titleKey} delay={i * 0.08}>
                 <div className="bg-[#0F1115] border border-white/5 rounded-2xl p-6 card-hover h-full">
                   <div className="w-11 h-11 bg-[#FF6B00]/10 rounded-xl flex items-center justify-center mb-4">
                     <f.icon className="w-5 h-5 text-[#FF6B00]" />
                   </div>
-                  <h3 className="text-base font-semibold text-white mb-1.5">{f.title}</h3>
-                  <p className="text-sm text-[#A0A0A0] leading-relaxed">{f.desc}</p>
+                  <h3 className="text-base font-semibold text-white mb-1.5" dir={dir}>{t(f.titleKey)}</h3>
+                  <p className="text-sm text-[#A0A0A0] leading-relaxed" dir={dir}>{t(f.descKey)}</p>
                 </div>
               </FadeUp>
             ))}
@@ -247,8 +247,8 @@ export function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <FadeUp>
             <div className="text-center mb-14">
-              <h2 className="text-3xl md:text-4xl font-bold text-white mb-3">{t('landing.popular_title')}</h2>
-              <p className="text-[#A0A0A0]">{t('landing.cta_subtitle')}</p>
+              <h2 className="text-3xl md:text-4xl font-bold text-white mb-3" dir={dir}>{t('landing.testimonials_title')}</h2>
+              <p className="text-[#A0A0A0]" dir={dir}>{t('landing.testimonials_subtitle')}</p>
             </div>
           </FadeUp>
           <div className="grid md:grid-cols-3 gap-6">

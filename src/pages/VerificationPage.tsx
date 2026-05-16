@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useStore } from '@/store/useStore';
+import { useI18n } from '@/lib/i18n';
 import { supabase } from '@/lib/supabase';
 import { uploadVerificationDoc } from '@/services/storageService';
 import { Button } from '@/components/ui/button';
@@ -20,6 +21,7 @@ interface VStep {
 
 export function VerificationPage() {
   const { user } = useStore();
+  const { t, dir } = useI18n();
 
   // Separate refs for gallery vs camera
   const galleryInputRef = useRef<HTMLInputElement>(null);
@@ -30,11 +32,11 @@ export function VerificationPage() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   const [steps, setSteps] = useState<VStep[]>([
-    { id: 'cin', title: 'National ID (CIN)', desc: 'Upload front and back of your CIN', icon: CreditCard, status: 'pending' },
-    { id: 'selfie', title: 'Selfie Verification', desc: 'Take a selfie for identity match', icon: Camera, status: 'pending' },
-    { id: 'license', title: 'Driver License', desc: 'Upload your valid driver license', icon: FileText, status: 'pending' },
-    { id: 'registration', title: 'Vehicle Registration', desc: 'Upload car registration documents', icon: FileText, status: 'pending' },
-    { id: 'insurance', title: 'Insurance', desc: 'Upload valid insurance certificate', icon: Shield, status: 'pending' },
+    { id: 'cin', title: t('verify.cin'), desc: t('verify.cin_desc'), icon: CreditCard, status: 'pending' },
+    { id: 'selfie', title: t('verify.selfie'), desc: t('verify.selfie_desc'), icon: Camera, status: 'pending' },
+    { id: 'license', title: t('verify.license'), desc: t('verify.license_desc'), icon: FileText, status: 'pending' },
+    { id: 'registration', title: t('verify.registration'), desc: t('verify.registration_desc'), icon: FileText, status: 'pending' },
+    { id: 'insurance', title: t('verify.insurance'), desc: t('verify.insurance_desc'), icon: Shield, status: 'pending' },
   ]);
 
   // Load existing verification docs
@@ -145,7 +147,7 @@ export function VerificationPage() {
   if (!user) {
     return (
       <div className="min-h-screen bg-[#0F1115] pt-20 flex items-center justify-center">
-        <p className="text-[#A0A0A0]">Please sign in to view verification.</p>
+        <p className="text-[#A0A0A0]">{t('verify.title')}</p>
       </div>
     );
   }
@@ -188,7 +190,7 @@ export function VerificationPage() {
             <img src={previewUrl} alt="Preview" className="w-full rounded-xl" />
             <div className="mt-3 flex items-center gap-2 text-[#A0A0A0]">
               <Loader2 className="w-4 h-4 animate-spin text-[#FF6B00]" />
-              <span className="text-xs">Uploading to secure storage...</span>
+              <span className="text-xs">{t('common.loading')}</span>
             </div>
           </motion.div>
         </div>
@@ -199,14 +201,14 @@ export function VerificationPage() {
           <div className="w-16 h-16 bg-[#FF6B00]/10 rounded-full flex items-center justify-center mx-auto mb-4">
             <Shield className="w-8 h-8 text-[#FF6B00]" />
           </div>
-          <h1 className="text-2xl font-bold text-white">Verification Center</h1>
-          <p className="text-sm text-[#A0A0A0] mt-1">Complete verification to unlock all features</p>
+          <h1 className="text-2xl font-bold text-white" dir={dir}>{t('verify.title')}</h1>
+          <p className="text-sm text-[#A0A0A0] mt-1">{t('verify.subtitle')}</p>
         </motion.div>
 
         {/* Progress */}
         <div className="bg-[#1B1F27] rounded-2xl border border-white/5 p-5 mb-6">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-sm text-[#A0A0A0]">Progress</span>
+            <span className="text-sm text-[#A0A0A0]">{t('verify.progress')}</span>
             <span className="text-sm text-[#FF6B00] font-bold">{completed}/{steps.length}</span>
           </div>
           <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
@@ -219,24 +221,24 @@ export function VerificationPage() {
           <div className="bg-green-500/10 border border-green-500/20 rounded-2xl p-4 mb-6 flex items-center gap-3">
             <Check className="w-5 h-5 text-green-400" />
             <div>
-              <p className="text-sm text-green-400 font-semibold">Fully Verified</p>
-              <p className="text-xs text-[#A0A0A0]">Your account is fully verified. All features unlocked.</p>
+              <p className="text-sm text-green-400 font-semibold">{t('verify.verified')}</p>
+              <p className="text-xs text-[#A0A0A0]">{t('verify.verified_desc')}</p>
             </div>
           </div>
         ) : completed > 0 ? (
           <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-2xl p-4 mb-6 flex items-center gap-3">
             <AlertCircle className="w-5 h-5 text-yellow-400" />
             <div>
-              <p className="text-sm text-yellow-400 font-semibold">Partially Verified</p>
-              <p className="text-xs text-[#A0A0A0]">{steps.length - completed} document(s) remaining.</p>
+              <p className="text-sm text-yellow-400 font-semibold">{t('verify.partial')}</p>
+              <p className="text-xs text-[#A0A0A0]">{steps.length - completed} {t('verify.remaining_docs')}</p>
             </div>
           </div>
         ) : (
           <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-2xl p-4 mb-6 flex items-center gap-3">
             <AlertCircle className="w-5 h-5 text-yellow-400" />
             <div>
-              <p className="text-sm text-yellow-400 font-semibold">Verification Required</p>
-              <p className="text-xs text-[#A0A0A0]">Upload documents below to verify your account.</p>
+              <p className="text-sm text-yellow-400 font-semibold">{t('verify.required')}</p>
+              <p className="text-xs text-[#A0A0A0]">{t('verify.upload_docs')}</p>
             </div>
           </div>
         )}
@@ -300,7 +302,7 @@ export function VerificationPage() {
                         ) : (
                           <Upload className="w-3.5 h-3.5 mr-1" />
                         )}
-                        Upload File
+                        {t('verify.upload_file')}
                       </Button>
                       <Button
                         size="sm"
@@ -310,26 +312,26 @@ export function VerificationPage() {
                         className="border-white/10 text-[#A0A0A0] hover:bg-white/5 rounded-xl h-8 text-xs"
                       >
                         <Camera className="w-3.5 h-3.5 mr-1" />
-                        Camera
+                        {t('verify.camera')}
                       </Button>
                     </div>
                   )}
 
                   {step.status === 'uploaded' && (
                     <div className="flex items-center gap-3">
-                      <p className="text-xs text-yellow-400">Under review by our team</p>
+                      <p className="text-xs text-yellow-400">{t('verify.under_review')}</p>
                       <button
                         onClick={() => openGallery(step.id)}
                         className="text-xs text-[#FF6B00] hover:underline"
                       >
-                        Re-upload
+                        {t('verify.reupload')}
                       </button>
                     </div>
                   )}
 
                   {step.status === 'verified' && step.url && (
                     <a href={step.url} target="_blank" rel="noopener noreferrer" className="text-xs text-green-400 hover:underline">
-                      View document
+                      {t('common.view')}
                     </a>
                   )}
                 </div>

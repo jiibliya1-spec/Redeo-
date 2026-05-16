@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useStore } from '@/store/useStore';
@@ -10,12 +10,16 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { Camera, Edit, Check, Shield, Star, Car, Calendar, ChevronRight, Loader2, LogOut, Upload, Globe, Users } from 'lucide-react';
+import { Camera, Edit, Check, Shield, Star, Car, Calendar, ChevronRight, Loader2, LogOut, Upload, Globe, Users, RefreshCw } from 'lucide-react';
+
+const SUPABASE_URL = 'https://qhbiafoyhvmvyyzwdzhd.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoYmlhZm95aHZtdnl5endkemhkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3OTIwNDcsImV4cCI6MjA5NDM2ODA0N30.04MftiDjQUrnGegTeaL88WyES9ydDKxRrrmVua0rVbM';
 
 export function ProfilePage() {
   const navigate = useNavigate();
-  const { user, signOut, setUser, refreshProfile } = useStore();
+  const { user, signOut, setUser } = useStore();
   const { lang, setLang, t } = useI18n();
+
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState('');
   const [bio, setBio] = useState('');
@@ -24,42 +28,114 @@ export function ProfilePage() {
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [showUploadMenu, setShowUploadMenu] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Real-time profile state (separate from cached user)
+  const [profileStatus, setProfileStatus] = useState<string>('unverified');
+  const [profileVerified, setProfileVerified] = useState(false);
+  const [profileRole, setProfileRole] = useState('passenger');
 
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
+  // ─── Direct fetch from Supabase (always fresh) ───
+  const fetchFreshProfile = useCallback(async () => {
+    if (!user?.id) return;
+    setIsRefreshing(true);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const jwt = sessionData.session?.access_token || '';
+
+      const res = await fetch(
+        `${SUPABASE_URL}/rest/v1/profiles?select=is_verified,verification_status,role&id=eq.${user.id}&limit=1`,
+        {
+          headers: {
+            'apikey': SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${jwt}`,
+          },
+        }
+      );
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.length > 0) {
+          const p = data[0];
+          console.log('[ProfilePage] Fresh fetch:', p);
+          setProfileVerified(p.is_verified === true);
+          setProfileStatus(p.verification_status || 'unverified');
+          setProfileRole(p.role || 'passenger');
+
+          // Also update the global user state
+          if (user) {
+            setUser({
+              ...user,
+              is_verified: p.is_verified === true,
+              verification_status: p.verification_status || 'unverified',
+              role: (p.role || 'passenger') as 'passenger' | 'driver' | 'admin',
+            });
+          }
+        }
+      } else {
+        console.error('[ProfilePage] Fetch failed:', res.status);
+      }
+    } catch (err: any) {
+      console.error('[ProfilePage] Error:', err.message);
+    }
+    setIsRefreshing(false);
+  }, [user?.id, setUser]);
+
+  // Load user data into form
   useEffect(() => {
     if (user) {
       setName(user.name || '');
       setBio(user.bio || '');
       setPhone(user.phone || '');
       setAvatarUrl(user.avatar || '');
+      // Also sync local state from user
+      setProfileVerified(user.is_verified === true);
+      setProfileStatus(user.verification_status || 'unverified');
+      setProfileRole(user.role || 'passenger');
     }
   }, [user]);
 
-  // Refresh profile on mount to get latest verification status
+  // ─── ALWAYS fetch fresh profile on mount ───
   useEffect(() => {
-    refreshProfile();
-  }, []);
+    fetchFreshProfile();
+  }, [fetchFreshProfile]);
 
-  // Realtime subscription for profile verification updates
+  // ─── Realtime subscription for profile changes ───
   useEffect(() => {
     if (!user?.id) return;
 
     const channel = supabase
-      .channel(`profile-page:${user.id}`)
+      .channel(`profile-${user.id}`)
       .on(
         'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${user.id}` },
-        async (payload) => {
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'profiles',
+          filter: `id=eq.${user.id}`,
+        },
+        (payload) => {
           const p = payload.new as any;
-          if (p && user) {
-            setUser({
-              ...user,
-              is_verified: p.is_verified,
-              verification_status: p.verification_status,
-            });
-            if (p.is_verified && !user.is_verified) {
+          console.log('[ProfilePage] Realtime update:', p);
+          if (p) {
+            setProfileVerified(p.is_verified === true);
+            setProfileStatus(p.verification_status || 'unverified');
+            if (p.role) setProfileRole(p.role);
+
+            // Update global user
+            if (user) {
+              setUser({
+                ...user,
+                is_verified: p.is_verified === true,
+                verification_status: p.verification_status || 'unverified',
+                role: (p.role || user.role) as 'passenger' | 'driver' | 'admin',
+              });
+            }
+
+            if (p.is_verified && !profileVerified) {
               toast.success('Your account has been verified!');
             }
           }
@@ -67,12 +143,13 @@ export function ProfilePage() {
       )
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
-  }, [user?.id]);
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, profileVerified, setUser]);
 
   const processAvatarFile = async (file: File) => {
     if (!user?.id) return;
-
     setIsUploading(true);
     setShowUploadMenu(false);
     try {
@@ -80,7 +157,7 @@ export function ProfilePage() {
       setAvatarUrl(url);
       try {
         await apiPatch('profiles', 'id', user.id, { avatar: url });
-      } catch { /* fallback handled below */ }
+      } catch { /* silent */ }
       setUser({ ...user, avatar: url });
       toast.success('Avatar uploaded!');
     } catch {
@@ -114,14 +191,11 @@ export function ProfilePage() {
   const handleSave = async () => {
     if (!user?.id) return;
     setIsSaving(true);
-
     const updates = { name, bio, phone, avatar: avatarUrl };
-
     try {
       await apiPatch('profiles', 'id', user.id, updates);
       toast.success('Profile saved!');
-    } catch (err: any) {
-      console.warn('Supabase save failed:', err.message);
+    } catch {
       try {
         const stored = localStorage.getItem('wansniauto_profile_data');
         const existing = stored ? JSON.parse(stored) : {};
@@ -129,7 +203,6 @@ export function ProfilePage() {
       } catch { /* silent */ }
       toast.success('Profile saved locally');
     }
-
     setUser({ ...user, ...updates });
     setIsEditing(false);
     setIsSaving(false);
@@ -143,26 +216,62 @@ export function ProfilePage() {
     );
   }
 
-  const verificationBadge = () => {
-    if (user.role === 'admin') {
-      return <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-400 font-medium"><Shield className="w-3 h-3" /> Admin</span>;
+  // ─── Badge based on REAL verification_status ───
+  const renderBadge = () => {
+    if (profileRole === 'admin') {
+      return (
+        <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-400 font-medium">
+          <Shield className="w-3 h-3" /> Admin
+        </span>
+      );
     }
-    if (user.is_verified) {
-      return <span className="flex items-center gap-1 text-xs text-green-400"><Shield className="w-3 h-3" /> {t('profile.verified') || 'Verified'}</span>;
+
+    // Check verification_status FIRST (most reliable)
+    const status = profileStatus;
+
+    if (status === 'verified' || status === 'approved' || profileVerified) {
+      return (
+        <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-400 font-medium">
+          <Shield className="w-3 h-3" /> Verified
+        </span>
+      );
     }
-    if (user.verification_status === 'submitted' || user.verification_status === 'pending') {
-      return <span className="flex items-center gap-1 text-xs text-blue-400"><Shield className="w-3 h-3" /> Pending Review</span>;
+
+    if (status === 'pending' || status === 'submitted') {
+      return (
+        <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 font-medium">
+          <Loader2 className="w-3 h-3 animate-spin" /> Pending
+        </span>
+      );
     }
-    if (user.verification_status === 'rejected') {
-      return <span className="flex items-center gap-1 text-xs text-red-400"><Shield className="w-3 h-3" /> Rejected</span>;
+
+    if (status === 'rejected') {
+      return (
+        <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-red-500/10 text-red-400 font-medium">
+          <Shield className="w-3 h-3" /> Rejected
+        </span>
+      );
     }
-    return <span className="flex items-center gap-1 text-xs text-[#A0A0A0]"><Shield className="w-3 h-3" /> {t('profile.unverified') || 'Unverified'}</span>;
+
+    // Default: unverified
+    return (
+      <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-white/5 text-[#A0A0A0]">
+        <Shield className="w-3 h-3" /> Unverified
+      </span>
+    );
   };
 
-  const menuItems = user?.role === 'admin' ? [
+  // Debug info (shows actual values)
+  const debugInfo = () => (
+    <div className="mt-2 text-[10px] text-[#A0A0A0]/50 font-mono">
+      status: {profileStatus} | verified: {String(profileVerified)} | role: {profileRole}
+    </div>
+  );
+
+  const menuItems = profileRole === 'admin' ? [
     { icon: Shield, label: 'Admin Panel', desc: 'Manage platform', action: () => navigate('/admin') },
-    { icon: Users, label: t('profile.my_reviews'), desc: 'View all users', action: () => navigate('/admin/users') },
-    { icon: Shield, label: t('verify.title'), desc: 'Review driver docs', action: () => navigate('/admin/verifications') },
+    { icon: Users, label: 'Users', desc: 'View all users', action: () => navigate('/admin/users') },
+    { icon: Shield, label: 'Verifications', desc: 'Review driver docs', action: () => navigate('/admin/verifications') },
     { icon: Car, label: 'All Trips', desc: 'Manage trips', action: () => navigate('/admin/trips') },
   ] : [
     { icon: Shield, label: t('verify.title'), desc: t('verify.subtitle'), action: () => navigate('/verification') },
@@ -177,9 +286,11 @@ export function ProfilePage() {
       <input ref={cameraInputRef} type="file" accept="image/*" capture="user" className="hidden" onChange={handleCameraFile} />
 
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Profile Card */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-[#1B1F27] rounded-2xl border border-white/5 p-6 mb-6">
           <div className="flex items-start justify-between mb-6">
             <div className="flex items-center gap-4">
+              {/* Avatar */}
               <div className="relative">
                 <div className="cursor-pointer" onClick={() => setShowUploadMenu(!showUploadMenu)}>
                   {isUploading ? (
@@ -217,7 +328,7 @@ export function ProfilePage() {
                 )}
               </div>
 
-              <div>
+              <div className="flex-1">
                 {isEditing ? (
                   <Input value={name} onChange={e => setName(e.target.value)} className="bg-[#0F1115] border-white/10 text-white h-9 rounded-xl mb-2" />
                 ) : (
@@ -225,9 +336,21 @@ export function ProfilePage() {
                 )}
                 <p className="text-sm text-[#A0A0A0]">{user.email}</p>
                 <div className="flex items-center gap-2 mt-1 flex-wrap">
-                  {verificationBadge()}
-                  <span className="flex items-center gap-1 text-xs text-[#A0A0A0]"><Star className="w-3 h-3 text-[#FF6B00] fill-[#FF6B00]" /> {user.rating || 5}</span>
+                  {renderBadge()}
+                  <span className="flex items-center gap-1 text-xs text-[#A0A0A0]">
+                    <Star className="w-3 h-3 text-[#FF6B00] fill-[#FF6B00]" /> {user.rating || 5}
+                  </span>
+                  {/* Refresh button to force fresh fetch */}
+                  <button
+                    onClick={fetchFreshProfile}
+                    disabled={isRefreshing}
+                    className="p-1 rounded-lg hover:bg-white/5 transition-colors"
+                    title="Refresh status"
+                  >
+                    <RefreshCw className={`w-3 h-3 text-[#A0A0A0] ${isRefreshing ? 'animate-spin' : ''}`} />
+                  </button>
                 </div>
+                {debugInfo()}
               </div>
             </div>
             <button

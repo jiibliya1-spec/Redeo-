@@ -69,7 +69,7 @@ async function fetchProfileFromSupabase(userId: string): Promise<Partial<User> |
     const jwt = sessionData.session?.access_token || '';
 
     const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/profiles?select=*&id=eq.${userId}&limit=1`,
+      `${SUPABASE_URL}/rest/v1/profiles?select=id,name,email,phone,role,is_verified,verification_status,rating,trips_count,avatar,bio&id=eq.${userId}&limit=1`,
       {
         headers: {
           'apikey': SUPABASE_ANON_KEY,

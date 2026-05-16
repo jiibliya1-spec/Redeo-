@@ -246,6 +246,7 @@ const translations: Record<Lang, Record<string, string>> = {
     'chat.support_name': 'Support Team',
     'chat.support_msg': 'How can we help you today?',
     'chat.start_convo': 'Start a conversation...',
+    'chat.now': 'Now',
 
     // ─── Common ───
     'common.loading': 'Loading...',
@@ -263,6 +264,7 @@ const translations: Record<Lang, Record<string, string>> = {
     'common.confirmed': 'Confirmed',
     'common.cancelled': 'Cancelled',
     'common.completed': 'Completed',
+    'common.upcoming': 'Upcoming',
     'common.yes': 'Yes',
     'common.no': 'No',
     'common.select_city': 'Select city',
@@ -510,6 +512,7 @@ const translations: Record<Lang, Record<string, string>> = {
     'chat.support_name': 'Equipe Support',
     'chat.support_msg': 'Comment pouvons-nous vous aider?',
     'chat.start_convo': 'Commencer une conversation...',
+    'chat.now': 'Maintenant',
 
     // ─── Common ───
     'common.loading': 'Chargement...',
@@ -527,6 +530,7 @@ const translations: Record<Lang, Record<string, string>> = {
     'common.confirmed': 'Confirme',
     'common.cancelled': 'Annule',
     'common.completed': 'Termine',
+    'common.upcoming': 'A venir',
     'common.yes': 'Oui',
     'common.no': 'Non',
     'common.select_city': 'Choisir une ville',
@@ -774,6 +778,7 @@ const translations: Record<Lang, Record<string, string>> = {
     'chat.support_name': 'فريق الدعم',
     'chat.support_msg': 'كيفاش نقدرو نساعدوك؟',
     'chat.start_convo': 'ابدا محادثة...',
+    'chat.now': 'دابا',
 
     // ─── Common ───
     'common.loading': 'تحميل...',
@@ -791,6 +796,7 @@ const translations: Record<Lang, Record<string, string>> = {
     'common.confirmed': 'مؤكد',
     'common.cancelled': 'ملغى',
     'common.completed': 'تما',
+    'common.upcoming': 'قادمة',
     'common.yes': 'ايه',
     'common.no': 'لا',
     'common.select_city': 'اختار المدينة',

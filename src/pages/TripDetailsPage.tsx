@@ -60,7 +60,13 @@ export function TripDetailsPage() {
   const handleContactDriver = () => {
     if (!trip?.driver_id) return;
     // Navigate to messages with driver info
-    navigate('/messages', { state: { contactId: trip.driver_id, contactName: trip.driver?.name || 'Driver' } });
+    navigate('/messages', {
+      state: {
+        contactId: trip.driver_id,
+        contactName: trip.driver?.name || t('trip.driver'),
+        contactAvatar: trip.driver?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${trip.driver_id}`,
+      }
+    });
   };
 
   const amenityIcons: Record<string, typeof Wifi> = {
@@ -102,7 +108,7 @@ export function TripDetailsPage() {
               <p className="text-3xl font-bold text-[#FF6B00]">{trip.price} <span className="text-base font-normal text-[#A0A0A0]">MAD</span></p>
               <p className="text-sm text-[#A0A0A0]">{t('trip.price')}</p>
             </div>
-            <span className="text-xs px-3 py-1.5 rounded-full bg-[#FF6B00]/10 text-[#FF6B00] font-medium capitalize">{trip.status}</span>
+            <span className="text-xs px-3 py-1.5 rounded-full bg-[#FF6B00]/10 text-[#FF6B00] font-medium capitalize">{t(`common.${trip.status}`) || trip.status}</span>
           </div>
         </motion.div>
 
@@ -155,7 +161,7 @@ export function TripDetailsPage() {
               <span className="text-sm text-[#A0A0A0] mt-1">{trip.duration}</span>
             </div>
             <div className="flex-1 text-right">
-              <div className="flex items-center justify-end gap-3 mb-1"><span className="text-2xl font-bold text-white">{trip.arrival_time || '??'}</span><div className="w-4 h-4 rounded-full border-2 border-[#FF6B00]" /></div>
+              <div className="flex items-center justify-end gap-3 mb-1"><span className="text-2xl font-bold text-white">{trip.arrival_time || '—'}</span><div className="w-4 h-4 rounded-full border-2 border-[#FF6B00]" /></div>
               <p className="text-[#A0A0A0] mr-7">{trip.to_location}</p>
             </div>
           </div>

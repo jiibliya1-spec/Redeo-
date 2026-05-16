@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useStore } from '@/store/useStore';
 import { useI18n } from '@/lib/i18n';
@@ -6,7 +7,6 @@ import { supabase } from '@/lib/supabase';
 import { uploadChatImage } from '@/services/storageService';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { toast } from 'sonner';
 import { ArrowLeft, Send, Phone, Image, Check, CheckCheck, Loader2, Camera, User } from 'lucide-react';
 
 interface ChatMessage {
@@ -29,29 +29,105 @@ interface Conversation {
   online: boolean;
 }
 
+// ─── localStorage Keys ───
+const CONVS_KEY = 'wansniauto_conversations';
+const MESSAGES_KEY = 'wansniauto_messages';
+
+function loadConversationsFromStorage(): Conversation[] {
+  try {
+    const raw = localStorage.getItem(CONVS_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch { /* silent */ }
+  return [];
+}
+
+function saveConversationsToStorage(convs: Conversation[]) {
+  localStorage.setItem(CONVS_KEY, JSON.stringify(convs));
+}
+
+function loadMessagesFromStorage(): Record<string, ChatMessage[]> {
+  try {
+    const raw = localStorage.getItem(MESSAGES_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch { /* silent */ }
+  return {};
+}
+
+function saveMessagesToStorage(msgs: Record<string, ChatMessage[]>) {
+  localStorage.setItem(MESSAGES_KEY, JSON.stringify(msgs));
+}
+
 export function MessagesPage() {
+  const location = useLocation();
+  const navigate = useNavigate();
   const { user } = useStore();
-  const { t } = useI18n();
+  const { t, dir } = useI18n();
+
+  // Read driver contact info from navigation state
+  const navState = location.state as { contactId?: string; contactName?: string; contactAvatar?: string } | null;
+
   const [activeConv, setActiveConv] = useState<string | null>(null);
   const [messageText, setMessageText] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const hasProcessedNavState = useRef(false);
 
   // Separate refs for gallery vs camera
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
-  const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [messages, setMessages] = useState<Record<string, ChatMessage[]>>({});
+  const [conversations, setConversations] = useState<Conversation[]>(loadConversationsFromStorage);
+  const [messages, setMessages] = useState<Record<string, ChatMessage[]>>(loadMessagesFromStorage);
 
-  // Load conversations (other users)
+  // ─── Handle navigation from TripDetailsPage ───
+  useEffect(() => {
+    if (!user?.id) return;
+    if (hasProcessedNavState.current) return;
+
+    const contactId = navState?.contactId;
+    const contactName = navState?.contactName;
+
+    if (contactId && contactName) {
+      hasProcessedNavState.current = true;
+
+      const existingConv = conversations.find(c => c.user_id === contactId);
+      if (!existingConv) {
+        // Create new conversation for this driver
+        const newConv: Conversation = {
+          id: contactId,
+          user_id: contactId,
+          name: contactName,
+          avatar: navState?.contactAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${contactId}`,
+          last_message: t('chat.start_convo_short'),
+          timestamp: t('chat.now') || 'Now',
+          unread: 0,
+          online: true,
+        };
+        const updatedConvs = [newConv, ...conversations];
+        setConversations(updatedConvs);
+        saveConversationsToStorage(updatedConvs);
+      }
+      setActiveConv(contactId);
+
+      // Clear navigation state so refresh doesn't re-trigger
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [navState?.contactId, navState?.contactName, user?.id]);
+
+  // ─── Load conversations from Supabase as fallback ───
   useEffect(() => {
     if (!user?.id) return;
 
-    const loadConversations = async () => {
+    const localConvs = loadConversationsFromStorage();
+    if (localConvs.length > 0) {
+      setConversations(localConvs);
+      return; // Already have local data
+    }
+
+    // Only fetch from Supabase if no local conversations exist
+    const loadFromSupabase = async () => {
       try {
-        // Try Supabase first
         const { data, error } = await supabase
           .from('profiles')
           .select('id, name, avatar')
@@ -59,17 +135,7 @@ export function MessagesPage() {
           .limit(20);
 
         if (error || !data || data.length === 0) {
-          // Fallback: create a demo conversation
-          setConversations([{
-            id: 'demo',
-            user_id: 'demo',
-            name: t('chat.support_name'),
-            avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=support`,
-            last_message: t('chat.support_msg'),
-            timestamp: 'Now',
-            unread: 1,
-            online: true,
-          }]);
+          // No profiles found - keep empty, user can create convs by contacting drivers
           return;
         }
 
@@ -78,71 +144,59 @@ export function MessagesPage() {
           user_id: p.id,
           name: p.name || 'User',
           avatar: p.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${p.name || p.id}`,
-          last_message: 'Start a conversation...',
+          last_message: t('chat.start_convo_short'),
           timestamp: '',
           unread: 0,
           online: Math.random() > 0.5,
         }));
 
-        // Get last messages
-        for (const conv of convs) {
-          try {
-            const { data: msgData } = await supabase
-              .from('messages')
-              .select('*')
-              .or(`and(sender_id.eq.${user.id},receiver_id.eq.${conv.user_id}),and(sender_id.eq.${conv.user_id},receiver_id.eq.${user.id})`)
-              .order('created_at', { ascending: false })
-              .limit(1);
-
-            if (msgData && msgData.length > 0) {
-              conv.last_message = msgData[0].content.startsWith('[Image]') ? '📷 ' + t('chat.type') : msgData[0].content;
-              conv.timestamp = new Date(msgData[0].created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            }
-          } catch { /* silent */ }
-        }
-
         setConversations(convs);
-      } catch {
-        setConversations([{
-          id: 'demo',
-          user_id: 'demo',
-          name: t('chat.support_name'),
-          avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=support`,
-          last_message: t('chat.start_convo_short'),
-          timestamp: 'Now',
-          unread: 1,
-          online: true,
-        }]);
-      }
+        saveConversationsToStorage(convs);
+      } catch { /* silent - keep empty */ }
     };
 
-    loadConversations();
+    loadFromSupabase();
   }, [user?.id]);
 
-  // Load messages when conversation changes
+  // ─── Persist conversations whenever they change ───
+  useEffect(() => {
+    if (conversations.length > 0) {
+      saveConversationsToStorage(conversations);
+    }
+  }, [conversations]);
+
+  // ─── Persist messages whenever they change ───
+  useEffect(() => {
+    saveMessagesToStorage(messages);
+  }, [messages]);
+
+  // ─── Load messages when conversation changes ───
   useEffect(() => {
     if (!user?.id || !activeConv) return;
 
-    const otherId = activeConv;
+    // Load from localStorage first
+    const storedMessages = loadMessagesFromStorage();
+    if (storedMessages[activeConv]) {
+      setMessages(prev => ({ ...prev, [activeConv]: storedMessages[activeConv] }));
+    }
 
-    // Load existing messages
-    const loadMessages = async () => {
+    // Also try Supabase for any new messages
+    const loadFromSupabase = async () => {
       try {
-        const { data } = await Promise.resolve(
-          supabase
-            .from('messages')
-            .select('*')
-            .or(`and(sender_id.eq.${user.id},receiver_id.eq.${otherId}),and(sender_id.eq.${otherId},receiver_id.eq.${user.id})`)
-            .order('created_at', { ascending: true })
-        );
-        if (data) {
+        const { data } = await supabase
+          .from('messages')
+          .select('*')
+          .or(`and(sender_id.eq.${user.id},receiver_id.eq.${activeConv}),and(sender_id.eq.${activeConv},receiver_id.eq.${user.id})`)
+          .order('created_at', { ascending: true });
+
+        if (data && data.length > 0) {
           setMessages(prev => ({ ...prev, [activeConv]: data as ChatMessage[] }));
         }
       } catch { /* silent */ }
     };
-    loadMessages();
+    loadFromSupabase();
 
-    // Subscribe to new messages
+    // Subscribe to new messages via realtime
     const channel = supabase
       .channel('messages')
       .on(
@@ -151,13 +205,33 @@ export function MessagesPage() {
         (payload: any) => {
           const msg = payload.new as ChatMessage;
           if (
-            (msg.sender_id === user.id && msg.receiver_id === otherId) ||
-            (msg.sender_id === otherId && msg.receiver_id === user.id)
+            (msg.sender_id === user.id && msg.receiver_id === activeConv) ||
+            (msg.sender_id === activeConv && msg.receiver_id === user.id)
           ) {
-            setMessages(prev => ({
-              ...prev,
-              [activeConv]: [...(prev[activeConv] || []), msg],
-            }));
+            setMessages(prev => {
+              const updated = {
+                ...prev,
+                [activeConv]: [...(prev[activeConv] || []), msg],
+              };
+              saveMessagesToStorage(updated);
+              return updated;
+            });
+
+            // Update conversation last_message
+            setConversations(prevConvs => {
+              const updated = prevConvs.map(c => {
+                if (c.user_id === activeConv) {
+                  return {
+                    ...c,
+                    last_message: msg.content.startsWith('[Image]') ? ('\u{1F4F7} ' + t('chat.type')) : msg.content,
+                    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                  };
+                }
+                return c;
+              });
+              saveConversationsToStorage(updated);
+              return updated;
+            });
           }
         }
       )
@@ -180,34 +254,61 @@ export function MessagesPage() {
     if (!messageText.trim() || !activeConv || !user?.id) return;
     setIsSending(true);
 
+    const trimmedText = messageText.trim();
+    const now = new Date().toISOString();
+    const localMsg: ChatMessage = {
+      id: `local-${Date.now()}`,
+      sender_id: user.id,
+      receiver_id: activeConv,
+      content: trimmedText,
+      created_at: now,
+      read: false,
+    };
+
+    // 1. Save locally immediately (instant feedback)
+    setMessages(prev => {
+      const updated = {
+        ...prev,
+        [activeConv]: [...(prev[activeConv] || []), localMsg],
+      };
+      saveMessagesToStorage(updated);
+      return updated;
+    });
+
+    // Update conversation preview
+    setConversations(prevConvs => {
+      const updated = prevConvs.map(c => {
+        if (c.user_id === activeConv) {
+          return {
+            ...c,
+            last_message: trimmedText,
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          };
+        }
+        return c;
+      });
+      saveConversationsToStorage(updated);
+      return updated;
+    });
+
+    setMessageText('');
+
+    // 2. Try Supabase
     try {
       const { error } = await supabase.from('messages').insert({
         sender_id: user.id,
         receiver_id: activeConv,
-        content: messageText.trim(),
+        content: trimmedText,
         read: false,
       });
 
       if (error) {
-        // Fallback: show message locally
-        const localMsg: ChatMessage = {
-          id: `local-${Date.now()}`,
-          sender_id: user.id,
-          receiver_id: activeConv,
-          content: messageText.trim(),
-          created_at: new Date().toISOString(),
-          read: false,
-        };
-        setMessages(prev => ({
-          ...prev,
-          [activeConv]: [...(prev[activeConv] || []), localMsg],
-        }));
-      } else {
-        setMessageText('');
+        console.log('Supabase message save failed (using localStorage fallback):', error.message);
       }
     } catch {
-      toast.error('Failed to send message');
+      console.log('Network error - message saved locally only');
     }
+
     setIsSending(false);
   };
 
@@ -218,26 +319,48 @@ export function MessagesPage() {
     setIsUploading(true);
     try {
       const url = await uploadChatImage(user.id, file);
-      await supabase.from('messages').insert({
-        sender_id: user.id,
-        receiver_id: activeConv,
-        content: `[Image] ${url}`,
-        read: false,
-      });
+      const now = new Date().toISOString();
 
-      // Add locally for instant feedback
       const localMsg: ChatMessage = {
         id: `img-${Date.now()}`,
         sender_id: user.id,
         receiver_id: activeConv,
         content: `[Image] ${url}`,
-        created_at: new Date().toISOString(),
+        created_at: now,
         read: false,
       };
-      setMessages(prev => ({
-        ...prev,
-        [activeConv]: [...(prev[activeConv] || []), localMsg],
-      }));
+
+      setMessages(prev => {
+        const updated = { ...prev, [activeConv]: [...(prev[activeConv] || []), localMsg] };
+        saveMessagesToStorage(updated);
+        return updated;
+      });
+
+      // Update conversation preview
+      setConversations(prevConvs => {
+        const updated = prevConvs.map(c => {
+          if (c.user_id === activeConv) {
+            return {
+              ...c,
+              last_message: '\u{1F4F7} ' + t('chat.type'),
+              timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            };
+          }
+          return c;
+        });
+        saveConversationsToStorage(updated);
+        return updated;
+      });
+
+      // Try Supabase
+      try {
+        await supabase.from('messages').insert({
+          sender_id: user.id,
+          receiver_id: activeConv,
+          content: `[Image] ${url}`,
+          read: false,
+        });
+      } catch { /* silent - already saved locally */ }
     } catch {
       // Fallback: use data URL
       const reader = new FileReader();
@@ -251,10 +374,11 @@ export function MessagesPage() {
           created_at: new Date().toISOString(),
           read: false,
         };
-        setMessages(prev => ({
-          ...prev,
-          [activeConv]: [...(prev[activeConv] || []), localMsg],
-        }));
+        setMessages(prev => {
+          const updated = { ...prev, [activeConv]: [...(prev[activeConv] || []), localMsg] };
+          saveMessagesToStorage(updated);
+          return updated;
+        });
       };
       reader.readAsDataURL(file);
     }
@@ -285,7 +409,7 @@ export function MessagesPage() {
   if (!user) {
     return (
       <div className="min-h-screen bg-[#0F1115] pt-20 flex items-center justify-center">
-        <p className="text-[#A0A0A0]">Please sign in to view messages.</p>
+        <p className="text-[#A0A0A0]">{t('auth.login')}</p>
       </div>
     );
   }
@@ -297,11 +421,11 @@ export function MessagesPage() {
       <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleCameraFile} />
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 h-[calc(100vh-5rem)]">
-        <div className="bg-[#1B1F27] rounded-2xl border border-white/5 h-full overflow-hidden flex">
+        <div className="bg-[#1B1F27] rounded-2xl border border-white/5 h-full overflow-hidden flex" dir={dir}>
           {/* Conversations List */}
           <div className={`w-full md:w-80 border-r border-white/5 flex flex-col ${activeConv ? 'hidden md:flex' : 'flex'}`}>
             <div className="p-4 border-b border-white/5 flex items-center justify-between">
-              <h2 className="text-lg font-bold text-white">Messages</h2>
+              <h2 className="text-lg font-bold text-white" dir={dir}>{t('chat.title')}</h2>
               <span className="text-xs text-[#A0A0A0]">{conversations.length} {t('chat.contacts')}</span>
             </div>
             <div className="flex-1 overflow-y-auto">
@@ -357,7 +481,7 @@ export function MessagesPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-white truncate">{activeConversation.name}</p>
-                    <p className="text-xs text-[#A0A0A0]">{activeConversation.online ? 'Online' : 'Offline'}</p>
+                    <p className="text-xs text-[#A0A0A0]">{activeConversation.online ? t('chat.online') : t('chat.offline')}</p>
                   </div>
                   <button className="p-2 rounded-xl hover:bg-white/5 shrink-0"><Phone className="w-4 h-4 text-[#A0A0A0]" /></button>
                 </div>

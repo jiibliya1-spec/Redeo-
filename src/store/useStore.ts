@@ -26,7 +26,7 @@ interface AppState {
 
   // Auth
   initAuth: () => Promise<void>;
-  signUp: (email: string, password: string, name: string, phone: string, role: 'passenger' | 'driver') => Promise<{ success: boolean; error?: string }>;
+  signUp: (email: string, password: string, name: string, phone: string, role: string) => Promise<{ success: boolean; error?: string }>;
   signIn: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   signOut: () => Promise<void>;
 }
@@ -123,6 +123,12 @@ export const useStore = create<AppState>()(
 
       // Sign up with Supabase
       signUp: async (email, password, name, phone, role) => {
+        // SECURITY: Prevent anyone from registering as admin
+        if (role === 'admin') {
+          console.warn('[signUp] Blocked: admin registration not allowed');
+          return { success: false, error: 'Admin registration is not allowed. Contact the platform owner.' };
+        }
+
         try {
           // 1. Create auth user
           const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -160,7 +166,7 @@ export const useStore = create<AppState>()(
           }
 
           // 3. Always save to localStorage as fallback/primary
-          setLocalProfile(profileData);
+          setLocalProfile({ ...profileData, role: profileData.role as any });
 
           // 4. Auto sign in
           const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
@@ -178,7 +184,7 @@ export const useStore = create<AppState>()(
             name,
             email,
             phone,
-            role,
+            role: role as 'passenger' | 'driver' | 'admin',
             is_verified: false,
             rating: 5.0,
             trips_count: 0,

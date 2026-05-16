@@ -90,14 +90,8 @@ function AppContent() {
 
   useEffect(() => {
     const boot = async () => {
-      // Clear old localStorage profile cache to force fresh fetch from Supabase
-      // This ensures the latest role is always loaded
-      try {
-        localStorage.removeItem('wansniauto_profile_data');
-        console.log('[App] Cleared profile cache, fetching fresh from Supabase');
-      } catch { /* silent */ }
       await initAuth();
-      // Always refresh profile from Supabase after init
+      // Refresh profile to ensure latest data from Supabase
       await refreshProfile();
     };
     boot();

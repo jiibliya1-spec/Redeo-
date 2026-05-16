@@ -10,10 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { Camera, Edit, Check, Shield, Star, Car, Calendar, ChevronRight, Loader2, LogOut, Upload, Globe } from 'lucide-react';
-
-const SUPABASE_URL = 'https://qhbiafoyhvmvyyzwdzhd.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoYmlhZm95aHZtdnl5endkemhkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3OTIwNDcsImV4cCI6MjA5NDM2ODA0N30.04MftiDjQUrnGegTeaL88WyES9ydDKxRrrmVua0rVbM';
+import { Camera, Edit, Check, Shield, Star, Car, Calendar, ChevronRight, Loader2, LogOut, Upload, Globe, Users } from 'lucide-react';
 
 export function ProfilePage() {
   const navigate = useNavigate();
@@ -147,6 +144,9 @@ export function ProfilePage() {
   }
 
   const verificationBadge = () => {
+    if (user.role === 'admin') {
+      return <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-400 font-medium"><Shield className="w-3 h-3" /> Admin</span>;
+    }
     if (user.is_verified) {
       return <span className="flex items-center gap-1 text-xs text-green-400"><Shield className="w-3 h-3" /> {t('profile.verified') || 'Verified'}</span>;
     }
@@ -159,7 +159,12 @@ export function ProfilePage() {
     return <span className="flex items-center gap-1 text-xs text-[#A0A0A0]"><Shield className="w-3 h-3" /> {t('profile.unverified') || 'Unverified'}</span>;
   };
 
-  const menuItems = [
+  const menuItems = user?.role === 'admin' ? [
+    { icon: Shield, label: 'Admin Panel', desc: 'Manage platform', action: () => navigate('/admin') },
+    { icon: Users, label: t('profile.my_reviews'), desc: 'View all users', action: () => navigate('/admin/users') },
+    { icon: Shield, label: t('verify.title'), desc: 'Review driver docs', action: () => navigate('/admin/verifications') },
+    { icon: Car, label: 'All Trips', desc: 'Manage trips', action: () => navigate('/admin/trips') },
+  ] : [
     { icon: Shield, label: t('verify.title'), desc: t('verify.subtitle'), action: () => navigate('/verification') },
     { icon: Car, label: t('passenger.title'), desc: t('passenger.title'), action: () => navigate('/dashboard') },
     { icon: Star, label: t('profile.my_reviews'), desc: t('profile.my_reviews'), action: () => toast.info(t('common.favorite_routes')) },
@@ -219,7 +224,7 @@ export function ProfilePage() {
                   <h1 className="text-xl font-bold text-white">{user.name || 'User'}</h1>
                 )}
                 <p className="text-sm text-[#A0A0A0]">{user.email}</p>
-                <div className="flex items-center gap-2 mt-1">
+                <div className="flex items-center gap-2 mt-1 flex-wrap">
                   {verificationBadge()}
                   <span className="flex items-center gap-1 text-xs text-[#A0A0A0]"><Star className="w-3 h-3 text-[#FF6B00] fill-[#FF6B00]" /> {user.rating || 5}</span>
                 </div>

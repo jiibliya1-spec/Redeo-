@@ -22,7 +22,7 @@ interface VStep {
 }
 
 export function VerificationPage() {
-  const { user, setUser, refreshProfile } = useStore();
+  const { user, setUser } = useStore();
   const { t, dir } = useI18n();
 
   const galleryInputRef = useRef<HTMLInputElement>(null);

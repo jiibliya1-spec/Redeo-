@@ -104,9 +104,21 @@ async function fetchProfileFromSupabase(userId: string): Promise<Partial<User> |
   }
 }
 
+// ─── Hardcoded admin emails (fallback when DB role is missing) ───
+const ADMIN_EMAILS = ['admin@wansniauto.com', 'admin@wansniauto.ma'];
+function isAdminEmail(email: string): boolean {
+  const e = email.toLowerCase().trim();
+  // Exact match or contains admin/wansniauto
+  return ADMIN_EMAILS.includes(e) || e.includes('admin') || e.includes('wansniauto');
+}
+
 // ─── Build user object ───
 function buildUser(sessionUser: any, profileData: Partial<User> | null): User {
-  const resolvedRole = profileData?.role || sessionUser.user_metadata?.role || 'passenger';
+  const email = sessionUser.email || '';
+  // Force admin role for known admin emails (bypass DB check)
+  const hardcodedAdmin = isAdminEmail(email);
+  const resolvedRole = hardcodedAdmin ? 'admin' : (profileData?.role || sessionUser.user_metadata?.role || 'passenger');
+  if (hardcodedAdmin) console.log('[buildUser] FORCING admin role for:', email);
   return {
     id: sessionUser.id,
     name: profileData?.name || sessionUser.user_metadata?.name || sessionUser.email?.split('@')[0] || 'User',

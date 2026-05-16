@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useStore } from '@/store/useStore';
 import { useI18n } from '@/lib/i18n';
-import { apiPost } from '@/lib/supabase';
+import { apiPost, supabase } from '@/lib/supabase';
 import { MOROCCAN_CITIES } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,8 +12,12 @@ import { toast } from 'sonner';
 import type { Trip } from '@/types';
 import {
   ArrowLeft, Plus, Loader2, MapPin, Calendar, Clock,
-  AlertCircle, DollarSign, Users, CarFront, ChevronRight,
+  DollarSign, Users, CarFront, ChevronRight,
+  Shield, ShieldCheck, ShieldAlert,
 } from 'lucide-react';
+
+const SUPABASE_URL = 'https://qhbiafoyhvmvyyzwdzhd.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoYmlhZm95aHZtdnl5endkemhkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3OTIwNDcsImV4cCI6MjA5NDM2ODA0N30.04MftiDjQUrnGegTeaL88WyES9ydDKxRrrmVua0rVbM';
 
 const LOCAL_TRIPS_KEY = 'wansniauto_trips';
 
@@ -46,6 +50,94 @@ export function PublishTripPage() {
   const [isPublishing, setIsPublishing] = useState(false);
   const [recentTrips, setRecentTrips] = useState<Trip[]>([]);
 
+  // ─── Verification check (fresh from Supabase) ───
+  const [isChecking, setIsChecking] = useState(true);
+  const [canPublish, setCanPublish] = useState(false);
+  const [verifStatus, setVerifStatus] = useState<string>('unverified');
+  const [verifMessage, setVerifMessage] = useState('');
+
+  // ─── Fetch verification status DIRECTLY from Supabase ───
+  const checkVerification = useCallback(async () => {
+    if (!user?.id) {
+      setIsChecking(false);
+      return;
+    }
+
+    setIsChecking(true);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const jwt = sessionData.session?.access_token || '';
+
+      const res = await fetch(
+        `${SUPABASE_URL}/rest/v1/profiles?select=is_verified,verification_status,role&id=eq.${user.id}&limit=1`,
+        {
+          headers: {
+            'apikey': SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${jwt}`,
+          },
+        }
+      );
+
+      if (!res.ok) {
+        console.error('[PublishTripPage] Check failed:', res.status);
+        // Fallback: use cached user state
+        const cachedOk = user.is_verified === true ||
+          user.verification_status === 'verified' ||
+          user.verification_status === 'approved';
+        setCanPublish(cachedOk);
+        setVerifStatus(user.verification_status || 'unverified');
+        setIsChecking(false);
+        return;
+      }
+
+      const data = await res.json();
+      if (!data || data.length === 0) {
+        setCanPublish(false);
+        setVerifStatus('unverified');
+        setVerifMessage('Profile not found. Please complete your profile.');
+        setIsChecking(false);
+        return;
+      }
+
+      const profile = data[0];
+      const status = profile.verification_status || 'unverified';
+      const isVerified = profile.is_verified === true;
+
+      console.log('[PublishTripPage] Fresh check:', { status, isVerified, role: profile.role });
+
+      setVerifStatus(status);
+
+      // ─── AUTHORIZATION LOGIC ───
+      if (status === 'verified' || status === 'approved' || isVerified) {
+        setCanPublish(true);
+        setVerifMessage('');
+      } else if (status === 'pending' || status === 'submitted') {
+        setCanPublish(false);
+        setVerifMessage('Your documents are under review. Please wait for admin approval before publishing rides.');
+      } else if (status === 'rejected') {
+        setCanPublish(false);
+        setVerifMessage('Your verification was rejected. Please update your documents and try again.');
+      } else {
+        setCanPublish(false);
+        setVerifMessage('Verification required. Please upload your documents to start publishing rides.');
+      }
+    } catch (err: any) {
+      console.error('[PublishTripPage] Error:', err.message);
+      // Fallback to cached state
+      const cachedOk = user.is_verified === true ||
+        user.verification_status === 'verified' ||
+        user.verification_status === 'approved';
+      setCanPublish(cachedOk);
+      setVerifStatus(user.verification_status || 'unverified');
+    }
+    setIsChecking(false);
+  }, [user?.id, user?.is_verified, user?.verification_status]);
+
+  // Check on mount
+  useEffect(() => {
+    checkVerification();
+  }, [checkVerification]);
+
   // Load recent trips
   useEffect(() => {
     if (!user?.id) return;
@@ -56,6 +148,13 @@ export function PublishTripPage() {
   const handlePublish = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user?.id) return;
+
+    // Double-check before publishing
+    if (!canPublish) {
+      toast.error('Please complete verification before publishing rides.');
+      navigate('/verification');
+      return;
+    }
 
     if (from === to) {
       toast.error('Departure and arrival must be different');
@@ -112,6 +211,107 @@ export function PublishTripPage() {
     setIsPublishing(false);
   };
 
+  // ─── LOADING STATE ───
+  if (isChecking) {
+    return (
+      <div className="min-h-screen bg-[#0F1115] pt-20 pb-24 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 text-[#FF6B00] animate-spin mx-auto mb-4" />
+          <p className="text-[#A0A0A0]">Checking verification status...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // ─── NOT VERIFIED → SHOW BLOCKING MESSAGE ───
+  if (!canPublish) {
+    return (
+      <div className="min-h-screen bg-[#0F1115] pt-20 pb-24">
+        <div className="max-w-lg mx-auto px-4 sm:px-6 py-8">
+          <div className="flex items-center gap-4 mb-8">
+            <button onClick={() => navigate('/')} className="p-2 rounded-xl hover:bg-white/5">
+              <ArrowLeft className="w-5 h-5 text-[#A0A0A0]" />
+            </button>
+            <div>
+              <h1 className="text-2xl font-bold text-white" dir={dir}>Offer a ride</h1>
+              <p className="text-sm text-[#A0A0A0]">Share your journey and save money</p>
+            </div>
+          </div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-[#1B1F27] rounded-2xl border border-white/5 p-8 text-center"
+          >
+            {/* Status Icon */}
+            <div className="w-16 h-16 rounded-2xl bg-[#FF6B00]/10 flex items-center justify-center mx-auto mb-4">
+              {verifStatus === 'pending' || verifStatus === 'submitted' ? (
+                <ShieldCheck className="w-8 h-8 text-blue-400" />
+              ) : verifStatus === 'rejected' ? (
+                <ShieldAlert className="w-8 h-8 text-red-400" />
+              ) : (
+                <Shield className="w-8 h-8 text-[#FF6B00]" />
+              )}
+            </div>
+
+            {/* Title */}
+            <h2 className="text-xl font-bold text-white mb-2">
+              {verifStatus === 'pending' || verifStatus === 'submitted'
+                ? 'Under Review'
+                : verifStatus === 'rejected'
+                ? 'Verification Rejected'
+                : 'Verification Required'}
+            </h2>
+
+            {/* Message */}
+            <p className="text-sm text-[#A0A0A0] mb-6 leading-relaxed">
+              {verifMessage}
+            </p>
+
+            {/* Status Badge */}
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 mb-6">
+              <span className="text-xs text-[#A0A0A0]">Current status:</span>
+              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                verifStatus === 'verified' || verifStatus === 'approved'
+                  ? 'bg-green-500/10 text-green-400'
+                  : verifStatus === 'pending' || verifStatus === 'submitted'
+                  ? 'bg-blue-500/10 text-blue-400'
+                  : verifStatus === 'rejected'
+                  ? 'bg-red-500/10 text-red-400'
+                  : 'bg-white/5 text-[#A0A0A0]'
+              }`}>
+                {verifStatus}
+              </span>
+            </div>
+
+            {/* Action Button */}
+            <div className="space-y-3">
+              <Button
+                onClick={() => navigate('/verification')}
+                className="w-full bg-[#FF6B00] text-white hover:bg-[#E56000] rounded-xl h-12 font-semibold"
+              >
+                {verifStatus === 'rejected'
+                  ? 'Update Documents'
+                  : verifStatus === 'pending' || verifStatus === 'submitted'
+                  ? 'View Status'
+                  : 'Start Verification'}
+              </Button>
+
+              <Button
+                onClick={checkVerification}
+                variant="outline"
+                className="w-full border-white/10 text-[#A0A0A0] hover:bg-white/5 rounded-xl"
+              >
+                Refresh Status
+              </Button>
+            </div>
+          </motion.div>
+        </div>
+      </div>
+    );
+  }
+
+  // ─── VERIFIED → SHOW PUBLISH FORM ───
   return (
     <div className="min-h-screen bg-[#0F1115] pt-20 pb-24">
       <div className="max-w-lg mx-auto px-4 sm:px-6 py-8">
@@ -123,6 +323,12 @@ export function PublishTripPage() {
           <div>
             <h1 className="text-2xl font-bold text-white" dir={dir}>Offer a ride</h1>
             <p className="text-sm text-[#A0A0A0]">Share your journey and save money</p>
+          </div>
+          {/* Verified Badge */}
+          <div className="ml-auto">
+            <span className="flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-green-500/10 text-green-400 font-medium">
+              <ShieldCheck className="w-3 h-3" /> Verified
+            </span>
           </div>
         </div>
 
@@ -237,22 +443,6 @@ export function PublishTripPage() {
             </div>
             <Button onClick={() => navigate('/driver')} variant="outline" className="w-full mt-4 border-[#FF6B00]/30 text-[#FF6B00] hover:bg-[#FF6B00]/10 rounded-xl">
               View All My Rides <ChevronRight className="w-4 h-4 ml-1" />
-            </Button>
-          </motion.div>
-        )}
-
-        {/* Become Driver CTA */}
-        {(!user?.role || user.role === 'passenger') && (
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="mt-8 bg-[#1B1F27] rounded-2xl border border-[#FF6B00]/20 p-6">
-            <div className="flex items-center gap-3 mb-3">
-              <AlertCircle className="w-6 h-6 text-[#FF6B00]" />
-              <h2 className="text-lg font-bold text-white">Become a Driver</h2>
-            </div>
-            <p className="text-sm text-[#A0A0A0] mb-4">
-              Want to earn money by sharing your car? Complete your driver profile to unlock all driver features.
-            </p>
-            <Button onClick={() => navigate('/verification')} className="w-full bg-[#FF6B00] text-white hover:bg-[#E56000] rounded-xl">
-              Start Verification
             </Button>
           </motion.div>
         )}

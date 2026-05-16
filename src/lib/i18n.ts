@@ -231,6 +231,7 @@ const translations: Record<Lang, Record<string, string>> = {
     'verify.camera': 'Camera',
     'verify.reupload': 'Re-upload',
     'verify.under_review': 'Under review by our team',
+    'verify.upload_success': 'Document uploaded successfully!',
 
     // ─── Chat ───
     'chat.title': 'Messages',
@@ -506,6 +507,7 @@ const translations: Record<Lang, Record<string, string>> = {
     'verify.camera': 'Camera',
     'verify.reupload': 'Re-telecharger',
     'verify.under_review': 'En cours de verification',
+    'verify.upload_success': 'Document telecharge avec succes!',
 
     // ─── Chat ───
     'chat.title': 'Messages',
@@ -781,6 +783,7 @@ const translations: Record<Lang, Record<string, string>> = {
     'verify.camera': 'كاميرا',
     'verify.reupload': 'إعادة التحميل',
     'verify.under_review': 'فالمراجعة',
+    'verify.upload_success': 'تم تحميل الوثيقة بنجاح!',
 
     // ─── Chat ───
     'chat.title': 'المحادثات',

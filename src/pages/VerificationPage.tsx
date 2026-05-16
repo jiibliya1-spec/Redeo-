@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useStore } from '@/store/useStore';
 import { useI18n } from '@/lib/i18n';
-import { supabase } from '@/lib/supabase';
+import { apiGet } from '@/lib/supabase';
 import { uploadVerificationDoc } from '@/services/storageService';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -39,68 +39,106 @@ export function VerificationPage() {
     { id: 'insurance', title: t('verify.insurance'), desc: t('verify.insurance_desc'), icon: Shield, status: 'pending' },
   ]);
 
-  // Load existing verification docs
-  useEffect(() => {
+  // Load verifications from Supabase ONLY
+  const loadVerifications = async () => {
     if (!user?.id) return;
-
-    const load = async () => {
-      try {
-        const { data } = await Promise.resolve(
-          supabase.from('verifications').select('*').eq('user_id', user.id)
-        );
-        if (!data) return;
+    try {
+      const data = await apiGet('verifications', { eq: { user_id: user.id } });
+      if (data && data.length > 0) {
         setSteps(prev =>
           prev.map(s => {
             const found = data.find((d: any) => d.doc_type === s.id);
             return found ? { ...s, status: found.status, url: found.url } : s;
           })
         );
-      } catch { /* silent - table may not exist */ }
-    };
-    load();
+      }
+    } catch { /* silent - table may not exist */ }
+  };
+
+  useEffect(() => {
+    if (!user?.id) return;
+    loadVerifications();
   }, [user?.id]);
 
-  // Process uploaded file (shared by both gallery and camera)
+  // Convert file to base64 data URL
+  const fileToDataUrl = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => resolve(e.target?.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
+  // ─── SAVE TO SUPABASE ONLY (no localStorage) ───
+  const saveDocToSupabase = async (userId: string, docType: DocType, url: string) => {
+    // Try insert first (upsert)
+    try {
+      // Use REST API for reliability
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL || 'https://qhbiafoyhvmvyyzwdzhd.supabase.co'}/rest/v1/verifications`, {
+        method: 'POST',
+        headers: {
+          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoYmlhZm95aHZtdnl5endkemhkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3OTIwNDcsImV4cCI6MjA5NDM2ODA0N30.04MftiDjQUrnGegTeaL88WyES9ydDKxRrrmVua0rVbM',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoYmlhZm95aHZtdnl5endkemhkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc5MjA0NywiZXhwIjoyMDk0MzY4MDQ3fQ.04MftiDjQUrnGegTeaL88WyES9ydDKxRrrmVua0rVbM'}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'resolution=merge-duplicates,return=representation',
+        },
+        body: JSON.stringify({
+          user_id: userId,
+          doc_type: docType,
+          status: 'uploaded',
+          url,
+          updated_at: new Date().toISOString(),
+        }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+    } catch (err: any) {
+      console.log('DB save warning:', err.message);
+      throw err;
+    }
+  };
+
+  // Process uploaded file - saves to SUPABASE only
   const processFile = async (file: File) => {
     if (!user?.id || !activeDoc) return;
 
-    // Show preview
-    const reader = new FileReader();
-    reader.onload = (e) => setPreviewUrl(e.target?.result as string);
-    reader.readAsDataURL(file);
-
     setIsUploading(true);
+
     try {
-      const url = await uploadVerificationDoc(user.id, activeDoc, file);
+      // 1. Convert to base64
+      const dataUrl = await fileToDataUrl(file);
+      setPreviewUrl(dataUrl);
 
-      // Save to verifications table (best effort)
-      await supabase
-        .from('verifications')
-        .upsert(
-          { user_id: user.id, doc_type: activeDoc, status: 'pending', url },
-          { onConflict: 'user_id,doc_type' }
-        );
+      let savedUrl = dataUrl;
 
-      setSteps(prev =>
-        prev.map(s => s.id === activeDoc ? { ...s, status: 'uploaded' as const, url } : s)
-      );
-      toast.success(`${activeDoc.toUpperCase()} uploaded successfully!`);
-    } catch (err: any) {
-      // Try to save locally as fallback
+      // 2. Try Supabase Storage first (works if RLS configured)
       try {
-        const localKey = `verification_${user.id}_${activeDoc}`;
-        const reader2 = new FileReader();
-        reader2.onload = (e) => {
-          localStorage.setItem(localKey, JSON.stringify({
-            url: e.target?.result,
-            status: 'pending',
-            type: activeDoc,
-          }));
-        };
-        reader2.readAsDataURL(file);
-      } catch { /* silent */ }
+        const storageUrl = await uploadVerificationDoc(user.id, activeDoc, file);
+        savedUrl = storageUrl;
+        console.log('Storage upload OK:', storageUrl);
+      } catch (storageErr: any) {
+        console.log('Storage blocked (RLS), using database base64:', storageErr.message);
+      }
 
-      toast.error(err.message || 'Upload failed - saved locally');
+      // 3. Always save to Supabase Database (works 100% if table exists)
+      try {
+        await saveDocToSupabase(user.id, activeDoc, savedUrl);
+        toast.success(t('verify.upload_success') || 'Document uploaded!');
+      } catch (dbErr: any) {
+        toast.error('Database error: ' + dbErr.message);
+        return;
+      }
+
+      // 4. Update UI
+      setSteps(prev =>
+        prev.map(s => s.id === activeDoc ? { ...s, status: 'uploaded' as const, url: savedUrl } : s)
+      );
+
+      // 5. Refresh from Supabase to confirm
+      setTimeout(() => loadVerifications(), 500);
+
+    } catch (err: any) {
+      toast.error(err.message || 'Upload failed');
     } finally {
       setIsUploading(false);
       setPreviewUrl(null);

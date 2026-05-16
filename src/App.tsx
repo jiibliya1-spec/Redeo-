@@ -15,6 +15,7 @@ import { AdminDashboard } from '@/pages/AdminDashboard';
 import { ProfilePage } from '@/pages/ProfilePage';
 import { VerificationPage } from '@/pages/VerificationPage';
 import { MessagesPage } from '@/pages/MessagesPage';
+import { PublishTripPage } from '@/pages/PublishTripPage';
 import { Toaster } from '@/components/ui/sonner';
 import { Spinner } from '@/components/ui/spinner';
 
@@ -47,8 +48,15 @@ function AppContent() {
           <Route path="/booking/:id" element={<BookingPage />} />
           <Route path="/login" element={!isAuthenticated ? <LoginPage /> : <Navigate to="/dashboard" />} />
           <Route path="/register" element={!isAuthenticated ? <RegisterPage /> : <Navigate to="/dashboard" />} />
-          <Route path="/dashboard" element={isAuthenticated ? <PassengerDashboard /> : <Navigate to="/login" />} />
+          {/* Smart redirect: driver -> driver dashboard, passenger -> passenger dashboard */}
+          <Route path="/dashboard" element={
+            isAuthenticated ? (
+              user?.role === 'driver' ? <DriverDashboard /> : <PassengerDashboard />
+            ) : <Navigate to="/login" />
+          } />
           <Route path="/driver" element={isAuthenticated && (user?.role === 'driver' || user?.role === 'admin') ? <DriverDashboard /> : <Navigate to="/login" />} />
+          {/* Offer a ride page - for anyone who wants to publish a trip */}
+          <Route path="/publish-trip" element={isAuthenticated ? <PublishTripPage /> : <Navigate to="/login" />} />
           <Route path="/admin" element={isAuthenticated && user?.role === 'admin' ? <AdminDashboard /> : <Navigate to="/login" />} />
           <Route path="/profile" element={isAuthenticated ? <ProfilePage /> : <Navigate to="/login" />} />
           <Route path="/verification" element={isAuthenticated ? <VerificationPage /> : <Navigate to="/login" />} />

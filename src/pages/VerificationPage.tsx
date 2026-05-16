@@ -247,8 +247,11 @@ export function VerificationPage() {
   };
 
   const completed = steps.filter(s => s.status !== 'pending').length;
-  const allUploaded = completed === steps.length;
+  const allUploaded = completed === steps.length && completed > 0;
   const progress = (completed / steps.length) * 100;
+
+  // Debug logging
+  console.log('[Verification] completed:', completed, 'allUploaded:', allUploaded, 'is_verified:', user?.is_verified);
 
   if (!user) {
     return (
@@ -389,7 +392,7 @@ export function VerificationPage() {
         </div>
 
         {/* Submit for Review Button */}
-        {allUploaded && !user.is_verified && (
+        {allUploaded === true && user?.is_verified !== true && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-6">
             <Button
               onClick={handleSubmitForReview}

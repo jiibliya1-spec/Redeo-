@@ -54,8 +54,8 @@ export function AdminTrips() {
       const headers = await getHeaders();
 
       const [tripsRes, usersRes] = await Promise.all([
-        fetch(`${SUPABASE_URL}/rest/v1/trips?select=*&order=created_at.desc`, { headers }),
-        fetch(`${SUPABASE_URL}/rest/v1/profiles?select=id,name,avatar`, { headers }),
+        fetch(`${SUPABASE_URL}/rest/v1/trips?select=*&order=created_at.desc&limit=500`, { headers }),
+        fetch(`${SUPABASE_URL}/rest/v1/profiles?select=id,name,avatar&limit=500`, { headers }),
       ]);
 
       if (!tripsRes.ok) throw new Error('Status ' + tripsRes.status + ': ' + await tripsRes.text());

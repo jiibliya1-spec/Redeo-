@@ -68,8 +68,8 @@ export function AdminVerifications() {
       const headers = await getHeaders();
 
       const [verifRes, usersRes] = await Promise.all([
-        fetch(`${SUPABASE_URL}/rest/v1/verifications?select=*&order=created_at.desc`, { headers }),
-        fetch(`${SUPABASE_URL}/rest/v1/profiles?select=id,name,email,avatar,role`, { headers }),
+        fetch(`${SUPABASE_URL}/rest/v1/verifications?select=*&order=created_at.desc&limit=200`, { headers }),
+        fetch(`${SUPABASE_URL}/rest/v1/profiles?select=id,name,email,avatar,role&limit=500`, { headers }),
       ]);
 
       if (!verifRes.ok) throw new Error('Status ' + verifRes.status + ': ' + await verifRes.text());

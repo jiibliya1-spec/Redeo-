@@ -70,7 +70,7 @@ export function AdminUsers() {
 
       // Fetch ALL profiles
       const usersRes = await fetch(
-        `${SUPABASE_URL}/rest/v1/profiles?select=*&order=created_at.desc`,
+        `${SUPABASE_URL}/rest/v1/profiles?select=*&order=created_at.desc&limit=500`,
         { headers }
       );
       

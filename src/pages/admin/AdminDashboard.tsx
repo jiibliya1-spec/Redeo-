@@ -68,10 +68,10 @@ export function AdminDashboard() {
       const headers = await getHeaders();
 
       const [usersRes, verifRes, tripsRes, msgsRes] = await Promise.all([
-        fetch(`${SUPABASE_URL}/rest/v1/profiles?select=*&order=created_at.desc`, { headers }),
-        fetch(`${SUPABASE_URL}/rest/v1/verifications?select=*&order=created_at.desc`, { headers }),
-        fetch(`${SUPABASE_URL}/rest/v1/trips?select=id,status`, { headers }),
-        fetch(`${SUPABASE_URL}/rest/v1/messages?select=id`, { headers }),
+        fetch(`${SUPABASE_URL}/rest/v1/profiles?select=*&order=created_at.desc&limit=500`, { headers }),
+        fetch(`${SUPABASE_URL}/rest/v1/verifications?select=*&order=created_at.desc&limit=200`, { headers }),
+        fetch(`${SUPABASE_URL}/rest/v1/trips?select=id,status&limit=500`, { headers }),
+        fetch(`${SUPABASE_URL}/rest/v1/messages?select=id&limit=500`, { headers }),
       ]);
 
       const users = usersRes.ok ? await usersRes.json() : [];

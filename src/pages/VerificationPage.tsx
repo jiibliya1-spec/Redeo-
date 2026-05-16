@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useStore } from '@/store/useStore';
 import { useI18n } from '@/lib/i18n';
-import { apiGet } from '@/lib/supabase';
+import { apiGet, supabase } from '@/lib/supabase';
 import { uploadVerificationDoc } from '@/services/storageService';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -70,16 +70,21 @@ export function VerificationPage() {
     });
   };
 
-  // ─── SAVE TO SUPABASE ONLY (no localStorage) ───
+  // ─── SAVE TO SUPABASE ONLY (with authenticated JWT) ───
   const saveDocToSupabase = async (userId: string, docType: DocType, url: string) => {
-    // Try insert first (upsert)
+    // 1. Get the user's JWT token (authenticated)
+    const { data: sessionData } = await supabase.auth.getSession();
+    const jwt = sessionData.session?.access_token;
+    if (!jwt) throw new Error('Not authenticated - please login');
+
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://qhbiafoyhvmvyyzwdzhd.supabase.co';
+
     try {
-      // Use REST API for reliability
-      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL || 'https://qhbiafoyhvmvyyzwdzhd.supabase.co'}/rest/v1/verifications`, {
+      const res = await fetch(`${supabaseUrl}/rest/v1/verifications`, {
         method: 'POST',
         headers: {
           'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoYmlhZm95aHZtdnl5endkemhkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3OTIwNDcsImV4cCI6MjA5NDM2ODA0N30.04MftiDjQUrnGegTeaL88WyES9ydDKxRrrmVua0rVbM',
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoYmlhZm95aHZtdnl5endkemhkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc5MjA0NywiZXhwIjoyMDk0MzY4MDQ3fQ.04MftiDjQUrnGegTeaL88WyES9ydDKxRrrmVua0rVbM'}`,
+          'Authorization': `Bearer ${jwt}`,
           'Content-Type': 'application/json',
           'Prefer': 'resolution=merge-duplicates,return=representation',
         },
@@ -91,7 +96,10 @@ export function VerificationPage() {
           updated_at: new Date().toISOString(),
         }),
       });
-      if (!res.ok) throw new Error(await res.text());
+      if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(errText);
+      }
     } catch (err: any) {
       console.log('DB save warning:', err.message);
       throw err;

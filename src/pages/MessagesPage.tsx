@@ -106,9 +106,9 @@ export function MessagesPage() {
         setConversations([{
           id: 'demo',
           user_id: 'demo',
-          name: 'Support Team',
+          name: t('chat.support_name'),
           avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=support`,
-          last_message: 'How can we help you today?',
+          last_message: t('chat.start_convo_short'),
           timestamp: 'Now',
           unread: 1,
           online: true,
@@ -302,13 +302,13 @@ export function MessagesPage() {
           <div className={`w-full md:w-80 border-r border-white/5 flex flex-col ${activeConv ? 'hidden md:flex' : 'flex'}`}>
             <div className="p-4 border-b border-white/5 flex items-center justify-between">
               <h2 className="text-lg font-bold text-white">Messages</h2>
-              <span className="text-xs text-[#A0A0A0]">{conversations.length} contacts</span>
+              <span className="text-xs text-[#A0A0A0]">{conversations.length} {t('chat.contacts')}</span>
             </div>
             <div className="flex-1 overflow-y-auto">
               {conversations.length === 0 ? (
                 <div className="p-8 text-center">
                   <User className="w-8 h-8 text-[#A0A0A0] mx-auto mb-2" />
-                  <p className="text-sm text-[#A0A0A0]">No contacts yet</p>
+                  <p className="text-sm text-[#A0A0A0]">{t('chat.no_contacts')}</p>
                 </div>
               ) : (
                 conversations.map((conv, i) => (
@@ -370,8 +370,8 @@ export function MessagesPage() {
                         <div className="w-16 h-16 bg-[#FF6B00]/10 rounded-full flex items-center justify-center mb-4">
                           <Send className="w-8 h-8 text-[#FF6B00]" />
                         </div>
-                        <h3 className="text-lg font-bold text-white mb-2">Start Chatting</h3>
-                        <p className="text-sm text-[#A0A0A0] max-w-xs">Send a message to start the conversation.</p>
+                        <h3 className="text-lg font-bold text-white mb-2">{t('chat.start_chat')}</h3>
+                        <p className="text-sm text-[#A0A0A0] max-w-xs">{t('chat.send_msg')}</p>
                       </div>
                     ) : (
                       currentMessages.map(msg => {
@@ -431,8 +431,8 @@ export function MessagesPage() {
             ) : (
               <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
                 <div className="w-16 h-16 bg-[#FF6B00]/10 rounded-full flex items-center justify-center mb-4"><Send className="w-8 h-8 text-[#FF6B00]" /></div>
-                <h3 className="text-lg font-bold text-white mb-2">Your Messages</h3>
-                <p className="text-sm text-[#A0A0A0] max-w-xs">Select a conversation to start chatting.</p>
+                <h3 className="text-lg font-bold text-white mb-2">{t('chat.empty_title')}</h3>
+                <p className="text-sm text-[#A0A0A0] max-w-xs">{t('chat.empty_desc')}</p>
               </div>
             )}
           </div>

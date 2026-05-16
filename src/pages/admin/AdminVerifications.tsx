@@ -22,6 +22,10 @@ import {
   Loader2,
 } from 'lucide-react';
 
+// Supabase config (from supabase.ts)
+const SUPABASE_URL = 'https://qhbiafoyhvmvyyzwdzhd.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoYmlhZm95aHZtdnl5endkemhkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3OTIwNDcsImV4cCI6MjA5NDM2ODA0N30.04MftiDjQUrnGegTeaL88WyES9ydDKxRrrmVua0rVbM';
+
 interface VerificationRecord {
   id: string;
   user_id: string;
@@ -95,19 +99,17 @@ export function AdminVerifications() {
   const loadVerifications = async () => {
     setLoading(true);
     try {
-      // Get JWT token for admin
+      // Get JWT token for admin (for RLS)
       const { data: sessionData } = await supabase.auth.getSession();
       const jwt = sessionData.session?.access_token || '';
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-      const apiKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
       const headers = {
-        'apikey': apiKey,
+        'apikey': SUPABASE_ANON_KEY,
         'Authorization': `Bearer ${jwt}`,
       };
 
-      // Fetch ALL verifications using REST API (bypasses RLS issues)
+      // Fetch ALL verifications
       const verifRes = await fetch(
-        `${supabaseUrl}/rest/v1/verifications?select=*&order=created_at.desc`,
+        `${SUPABASE_URL}/rest/v1/verifications?select=*&order=created_at.desc`,
         { headers }
       );
       if (!verifRes.ok) throw new Error(await verifRes.text());
@@ -115,7 +117,7 @@ export function AdminVerifications() {
 
       // Get all users
       const usersRes = await fetch(
-        `${supabaseUrl}/rest/v1/profiles?select=id,name,email,avatar,role`,
+        `${SUPABASE_URL}/rest/v1/profiles?select=id,name,email,avatar,role`,
         { headers }
       );
       const usersData = usersRes.ok ? await usersRes.json() : [];
@@ -138,26 +140,23 @@ export function AdminVerifications() {
     setLoading(false);
   };
 
-  // Helper to get auth headers
-  const getHeaders = async () => {
-    const { data: sessionData } = await supabase.auth.getSession();
-    const jwt = sessionData.session?.access_token || '';
-    return {
-      'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY || '',
-      'Authorization': `Bearer ${jwt}`,
-      'Content-Type': 'application/json',
-    };
-  };
+
 
   const handleApprove = async (id: string, userId: string) => {
     setProcessingId(id);
     try {
-      const headers = await getHeaders();
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
+      // Get JWT token
+      const { data: sessionData } = await supabase.auth.getSession();
+      const jwt = sessionData.session?.access_token || '';
+      const headers = {
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${jwt}`,
+        'Content-Type': 'application/json',
+      };
 
       // Update verification to 'verified'
       const res = await fetch(
-        `${supabaseUrl}/rest/v1/verifications?id=eq.${id}`,
+        `${SUPABASE_URL}/rest/v1/verifications?id=eq.${id}`,
         {
           method: 'PATCH',
           headers,
@@ -172,8 +171,8 @@ export function AdminVerifications() {
 
       // Check if all docs are verified for this user
       const verifRes = await fetch(
-        `${supabaseUrl}/rest/v1/verifications?select=status&user_id=eq.${userId}`,
-        { headers: { 'apikey': headers['apikey'], 'Authorization': headers['Authorization'] } }
+        `${SUPABASE_URL}/rest/v1/verifications?select=status&user_id=eq.${userId}`,
+        { headers }
       );
       const userVerifs = verifRes.ok ? await verifRes.json() : [];
       const allVerified = userVerifs.length > 0 && userVerifs.every((v: any) => v.status === 'verified');
@@ -181,7 +180,7 @@ export function AdminVerifications() {
       if (allVerified) {
         // Mark user as verified
         await fetch(
-          `${supabaseUrl}/rest/v1/profiles?id=eq.${userId}`,
+          `${SUPABASE_URL}/rest/v1/profiles?id=eq.${userId}`,
           {
             method: 'PATCH',
             headers,
@@ -208,11 +207,17 @@ export function AdminVerifications() {
     }
     setProcessingId(id);
     try {
-      const headers = await getHeaders();
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
+      // Get JWT token
+      const { data: sessionData } = await supabase.auth.getSession();
+      const jwt = sessionData.session?.access_token || '';
+      const headers = {
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${jwt}`,
+        'Content-Type': 'application/json',
+      };
 
       const res = await fetch(
-        `${supabaseUrl}/rest/v1/verifications?id=eq.${id}`,
+        `${SUPABASE_URL}/rest/v1/verifications?id=eq.${id}`,
         {
           method: 'PATCH',
           headers,

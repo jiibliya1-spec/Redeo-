@@ -1,5 +1,4 @@
-import { useState, useEffect } from 'react';
-// motion
+import { useState, useEffect, useCallback } from 'react';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { supabase } from '@/lib/supabase';
 import { Input } from '@/components/ui/input';
@@ -18,6 +17,9 @@ import {
   Mail,
   Phone,
 } from 'lucide-react';
+
+const SUPABASE_URL = 'https://qhbiafoyhvmvyyzwdzhd.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoYmlhZm95aHZtdnl5endkemhkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3OTIwNDcsImV4cCI6MjA5NDM2ODA0N30.04MftiDjQUrnGegTeaL88WyES9ydDKxRrrmVua0rVbM';
 
 interface AdminUser {
   id: string;
@@ -47,15 +49,62 @@ export function AdminUsers() {
   const [verifyFilter, setVerifyFilter] = useState<VerifyFilter>('all');
   const [processingId, setProcessingId] = useState<string | null>(null);
 
-  // Pagination
   const [page, setPage] = useState(1);
   const perPage = 10;
   const totalPages = Math.ceil(filtered.length / perPage);
   const paginated = filtered.slice((page - 1) * perPage, page * perPage);
 
+  const getHeaders = useCallback(async () => {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const jwt = sessionData.session?.access_token || '';
+    return {
+      'apikey': SUPABASE_ANON_KEY,
+      'Authorization': `Bearer ${jwt}`,
+    };
+  }, []);
+
+  const loadUsers = useCallback(async () => {
+    setLoading(true);
+    try {
+      const headers = await getHeaders();
+
+      // Fetch ALL profiles
+      const usersRes = await fetch(
+        `${SUPABASE_URL}/rest/v1/profiles?select=*&order=created_at.desc`,
+        { headers }
+      );
+      if (!usersRes.ok) throw new Error(await usersRes.text());
+      const profiles = await usersRes.json();
+
+      // Get verification counts
+      const verifsRes = await fetch(
+        `${SUPABASE_URL}/rest/v1/verifications?select=user_id`,
+        { headers }
+      );
+      const verifs = verifsRes.ok ? await verifsRes.json() : [];
+
+      const combined = (profiles || []).map((p: any) => {
+        const userVerifs = verifs?.filter((v: any) => v.user_id === p.id) || [];
+        return {
+          ...p,
+          doc_count: userVerifs.length,
+          is_verified: p.is_verified || false,
+          verification_status: p.verification_status || 'unverified',
+          avatar: p.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${p.id}`,
+        };
+      });
+
+      setUsers(combined);
+    } catch (err: any) {
+      toast.error('Failed to load users: ' + err.message);
+      console.error('[AdminUsers]', err);
+    }
+    setLoading(false);
+  }, [getHeaders]);
+
   useEffect(() => {
     loadUsers();
-  }, []);
+  }, [loadUsers]);
 
   useEffect(() => {
     let result = users;
@@ -75,41 +124,22 @@ export function AdminUsers() {
     setPage(1);
   }, [users, roleFilter, verifyFilter, search]);
 
-  const loadUsers = async () => {
-    setLoading(true);
-    try {
-      const { data: profiles, error } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
-
-      if (error) throw error;
-
-      // Get verification counts
-      const { data: verifs } = await supabase.from('verifications').select('user_id');
-
-      const combined = (profiles || []).map((p: any) => {
-        const userVerifs = verifs?.filter((v: any) => v.user_id === p.id) || [];
-        return {
-          ...p,
-          doc_count: userVerifs.length,
-          avatar: p.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${p.id}`,
-        };
-      });
-
-      setUsers(combined);
-    } catch (err: any) {
-      toast.error('Failed to load users: ' + err.message);
-    }
-    setLoading(false);
-  };
-
   const handleToggleVerify = async (userId: string, currentStatus: boolean) => {
     setProcessingId(userId);
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ is_verified: !currentStatus, verification_status: !currentStatus ? 'approved' : 'pending' })
-        .eq('id', userId);
-
-      if (error) throw error;
+      const headers = { ...(await getHeaders()), 'Content-Type': 'application/json' };
+      const res = await fetch(
+        `${SUPABASE_URL}/rest/v1/profiles?id=eq.${userId}`,
+        {
+          method: 'PATCH',
+          headers,
+          body: JSON.stringify({
+            is_verified: !currentStatus,
+            verification_status: !currentStatus ? 'approved' : 'unverified',
+          }),
+        }
+      );
+      if (!res.ok) throw new Error(await res.text());
 
       setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, is_verified: !currentStatus } : u)));
       toast.success(!currentStatus ? 'User verified!' : 'User unverified');
@@ -122,8 +152,16 @@ export function AdminUsers() {
   const handleChangeRole = async (userId: string, newRole: string) => {
     setProcessingId(userId);
     try {
-      const { error } = await supabase.from('profiles').update({ role: newRole }).eq('id', userId);
-      if (error) throw error;
+      const headers = { ...(await getHeaders()), 'Content-Type': 'application/json' };
+      const res = await fetch(
+        `${SUPABASE_URL}/rest/v1/profiles?id=eq.${userId}`,
+        {
+          method: 'PATCH',
+          headers,
+          body: JSON.stringify({ role: newRole }),
+        }
+      );
+      if (!res.ok) throw new Error(await res.text());
 
       setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, role: newRole } : u)));
       toast.success(`Role updated to ${newRole}`);
@@ -145,7 +183,6 @@ export function AdminUsers() {
 
   return (
     <AdminLayout>
-      {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
         <div>
           <h2 className="text-xl font-bold text-white">User Management</h2>
@@ -156,7 +193,6 @@ export function AdminUsers() {
         </Button>
       </div>
 
-      {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         {([
           { key: 'all' as RoleFilter, label: 'All Users', count: roleCounts.all, icon: Users, color: 'text-white' },
@@ -180,7 +216,6 @@ export function AdminUsers() {
         ))}
       </div>
 
-      {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3 mb-6">
         <div className="relative flex-1">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#A0A0A0]" />
@@ -210,7 +245,6 @@ export function AdminUsers() {
         </div>
       </div>
 
-      {/* Users Table */}
       <div className="bg-[#111318] rounded-2xl border border-white/5 overflow-hidden">
         {loading ? (
           <div className="flex items-center justify-center h-48">
@@ -227,13 +261,12 @@ export function AdminUsers() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-white/5 text-left">
-                    <th className="px-5 py-3.5 text-xs font-semibold text-[#A0A0A0] uppercase tracking-wider">User</th>
-                    <th className="px-5 py-3.5 text-xs font-semibold text-[#A0A0A0] uppercase tracking-wider">Contact</th>
-                    <th className="px-5 py-3.5 text-xs font-semibold text-[#A0A0A0] uppercase tracking-wider">Role</th>
-                    <th className="px-5 py-3.5 text-xs font-semibold text-[#A0A0A0] uppercase tracking-wider">Status</th>
-                    <th className="px-5 py-3.5 text-xs font-semibold text-[#A0A0A0] uppercase tracking-wider">Docs</th>
-                    <th className="px-5 py-3.5 text-xs font-semibold text-[#A0A0A0] uppercase tracking-wider">Joined</th>
-                    <th className="px-5 py-3.5 text-xs font-semibold text-[#A0A0A0] uppercase tracking-wider">Actions</th>
+                    <th className="px-5 py-3.5 text-xs font-semibold text-[#A0A0A0] uppercase">User</th>
+                    <th className="px-5 py-3.5 text-xs font-semibold text-[#A0A0A0] uppercase">Contact</th>
+                    <th className="px-5 py-3.5 text-xs font-semibold text-[#A0A0A0] uppercase">Role</th>
+                    <th className="px-5 py-3.5 text-xs font-semibold text-[#A0A0A0] uppercase">Status</th>
+                    <th className="px-5 py-3.5 text-xs font-semibold text-[#A0A0A0] uppercase">Docs</th>
+                    <th className="px-5 py-3.5 text-xs font-semibold text-[#A0A0A0] uppercase">Joined</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
@@ -296,40 +329,23 @@ export function AdminUsers() {
                         <span className="text-sm text-[#A0A0A0]">{user.doc_count}</span>
                       </td>
                       <td className="px-5 py-4 text-xs text-[#A0A0A0]">{formatDate(user.created_at)}</td>
-                      <td className="px-5 py-4">
-                        <div className="flex items-center gap-1">
-                          <span className="text-xs text-[#A0A0A0]">{user.rating?.toFixed(1) || '5.0'}</span>
-                          <span className="text-yellow-400 text-xs">★</span>
-                        </div>
-                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
 
-            {/* Pagination */}
             {totalPages > 1 && (
               <div className="flex items-center justify-between px-5 py-4 border-t border-white/5">
                 <p className="text-xs text-[#A0A0A0]">
                   Showing {(page - 1) * perPage + 1} to {Math.min(page * perPage, filtered.length)} of {filtered.length}
                 </p>
                 <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setPage((p) => Math.max(1, p - 1))}
-                    disabled={page === 1}
-                    className="p-2 rounded-lg bg-white/5 hover:bg-white/10 disabled:opacity-30 transition-colors"
-                  >
+                  <button onClick={() => setPage(Math.max(1, page - 1))} disabled={page === 1} className="p-2 rounded-lg bg-white/5 hover:bg-white/10 disabled:opacity-30">
                     <ChevronLeft className="w-4 h-4" />
                   </button>
-                  <span className="text-sm text-[#A0A0A0] px-2">
-                    {page} / {totalPages}
-                  </span>
-                  <button
-                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                    disabled={page === totalPages}
-                    className="p-2 rounded-lg bg-white/5 hover:bg-white/10 disabled:opacity-30 transition-colors"
-                  >
+                  <span className="text-sm text-[#A0A0A0] px-2">{page} / {totalPages}</span>
+                  <button onClick={() => setPage(Math.min(totalPages, page + 1))} disabled={page === totalPages} className="p-2 rounded-lg bg-white/5 hover:bg-white/10 disabled:opacity-30">
                     <ChevronRight className="w-4 h-4" />
                   </button>
                 </div>

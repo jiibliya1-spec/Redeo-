@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { supabase } from '@/lib/supabase';
@@ -6,23 +6,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import {
-  ShieldCheck,
-  Check,
-  X,
-  Search,
-  CreditCard,
-  Camera,
-  FileText,
-  Shield,
-  Clock,
-  UserCheck,
-  UserX,
-  AlertCircle,
-  Eye,
-  Loader2,
+  ShieldCheck, Check, X, Search, CreditCard, Camera, FileText,
+  Shield, Clock, UserCheck, UserX, AlertCircle, Eye, Loader2,
 } from 'lucide-react';
 
-// Supabase config (from supabase.ts)
 const SUPABASE_URL = 'https://qhbiafoyhvmvyyzwdzhd.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoYmlhZm95aHZtdnl5endkemhkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3OTIwNDcsImV4cCI6MjA5NDM2ODA0N30.04MftiDjQUrnGegTeaL88WyES9ydDKxRrrmVua0rVbM';
 
@@ -44,18 +31,13 @@ interface VerificationRecord {
 type StatusFilter = 'all' | 'uploaded' | 'pending' | 'verified' | 'rejected';
 
 const docIcons: Record<string, typeof Shield> = {
-  cin: CreditCard,
-  selfie: Camera,
-  license: FileText,
-  registration: FileText,
-  insurance: Shield,
+  cin: CreditCard, selfie: Camera, license: FileText,
+  registration: FileText, insurance: Shield,
 };
 
 const docLabels: Record<string, string> = {
-  cin: 'National ID (CIN)',
-  selfie: 'Selfie Verification',
-  license: 'Driver License',
-  registration: 'Vehicle Registration',
+  cin: 'National ID (CIN)', selfie: 'Selfie Verification',
+  license: 'Driver License', registration: 'Vehicle Registration',
   insurance: 'Insurance',
 };
 
@@ -70,47 +52,25 @@ export function AdminVerifications() {
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadVerifications();
+  const getHeaders = useCallback(async () => {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const jwt = sessionData.session?.access_token || '';
+    return {
+      'apikey': SUPABASE_ANON_KEY,
+      'Authorization': `Bearer ${jwt}`,
+      'Content-Type': 'application/json',
+    };
   }, []);
 
-  useEffect(() => {
-    let result = verifications;
-    if (statusFilter !== 'all') {
-      if (statusFilter === 'pending') {
-        // Show both 'pending' and 'uploaded' (both are "under review")
-        result = result.filter((v) => v.status === 'pending' || v.status === 'uploaded');
-      } else {
-        result = result.filter((v) => v.status === statusFilter);
-      }
-    }
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      result = result.filter(
-        (v) =>
-          v.user_name.toLowerCase().includes(q) ||
-          v.user_email.toLowerCase().includes(q) ||
-          docLabels[v.doc_type]?.toLowerCase().includes(q)
-      );
-    }
-    setFiltered(result);
-  }, [verifications, statusFilter, search]);
-
-  const loadVerifications = async () => {
+  const loadVerifications = useCallback(async () => {
     setLoading(true);
     try {
-      // Get JWT token for admin (for RLS)
-      const { data: sessionData } = await supabase.auth.getSession();
-      const jwt = sessionData.session?.access_token || '';
-      const headers = {
-        'apikey': SUPABASE_ANON_KEY,
-        'Authorization': `Bearer ${jwt}`,
-      };
+      const headers = await getHeaders();
 
       // Fetch ALL verifications
       const verifRes = await fetch(
         `${SUPABASE_URL}/rest/v1/verifications?select=*&order=created_at.desc`,
-        { headers }
+        { headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': headers['Authorization'] } }
       );
       if (!verifRes.ok) throw new Error(await verifRes.text());
       const verifData = await verifRes.json();
@@ -118,7 +78,7 @@ export function AdminVerifications() {
       // Get all users
       const usersRes = await fetch(
         `${SUPABASE_URL}/rest/v1/profiles?select=id,name,email,avatar,role`,
-        { headers }
+        { headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': headers['Authorization'] } }
       );
       const usersData = usersRes.ok ? await usersRes.json() : [];
 
@@ -136,23 +96,35 @@ export function AdminVerifications() {
       setVerifications(combined);
     } catch (err: any) {
       toast.error('Failed to load: ' + err.message);
+      console.error('[AdminVerifications]', err);
     }
     setLoading(false);
-  };
+  }, [getHeaders]);
 
+  useEffect(() => { loadVerifications(); }, [loadVerifications]);
 
+  useEffect(() => {
+    let result = verifications;
+    if (statusFilter !== 'all') {
+      if (statusFilter === 'pending') {
+        result = result.filter((v) => v.status === 'pending' || v.status === 'uploaded');
+      } else {
+        result = result.filter((v) => v.status === statusFilter);
+      }
+    }
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      result = result.filter(
+        (v) => v.user_name.toLowerCase().includes(q) || v.user_email.toLowerCase().includes(q) || docLabels[v.doc_type]?.toLowerCase().includes(q)
+      );
+    }
+    setFiltered(result);
+  }, [verifications, statusFilter, search]);
 
   const handleApprove = async (id: string, userId: string) => {
     setProcessingId(id);
     try {
-      // Get JWT token
-      const { data: sessionData } = await supabase.auth.getSession();
-      const jwt = sessionData.session?.access_token || '';
-      const headers = {
-        'apikey': SUPABASE_ANON_KEY,
-        'Authorization': `Bearer ${jwt}`,
-        'Content-Type': 'application/json',
-      };
+      const headers = await getHeaders();
 
       // Update verification to 'verified'
       const res = await fetch(
@@ -169,22 +141,24 @@ export function AdminVerifications() {
       );
       if (!res.ok) throw new Error(await res.text());
 
-      // Check if all docs are verified for this user
+      // Check if all docs verified for this user
       const verifRes = await fetch(
         `${SUPABASE_URL}/rest/v1/verifications?select=status&user_id=eq.${userId}`,
-        { headers }
+        { headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': headers['Authorization'] } }
       );
       const userVerifs = verifRes.ok ? await verifRes.json() : [];
       const allVerified = userVerifs.length > 0 && userVerifs.every((v: any) => v.status === 'verified');
 
       if (allVerified) {
-        // Mark user as verified
+        // Mark user as verified - try is_verified column only (verification_status may not exist)
         await fetch(
           `${SUPABASE_URL}/rest/v1/profiles?id=eq.${userId}`,
           {
             method: 'PATCH',
             headers,
-            body: JSON.stringify({ is_verified: true, verification_status: 'approved' }),
+            body: JSON.stringify({
+              is_verified: true,
+            }),
           }
         );
         toast.success('All documents approved! Driver is now verified.');
@@ -207,14 +181,7 @@ export function AdminVerifications() {
     }
     setProcessingId(id);
     try {
-      // Get JWT token
-      const { data: sessionData } = await supabase.auth.getSession();
-      const jwt = sessionData.session?.access_token || '';
-      const headers = {
-        'apikey': SUPABASE_ANON_KEY,
-        'Authorization': `Bearer ${jwt}`,
-        'Content-Type': 'application/json',
-      };
+      const headers = await getHeaders();
 
       const res = await fetch(
         `${SUPABASE_URL}/rest/v1/verifications?id=eq.${id}`,
@@ -243,7 +210,7 @@ export function AdminVerifications() {
   const statusCounts = {
     all: verifications.length,
     uploaded: verifications.filter((v) => v.status === 'uploaded').length,
-    pending: verifications.filter((v) => v.status === 'pending').length,
+    pending: verifications.filter((v) => v.status === 'pending' || v.status === 'uploaded').length,
     verified: verifications.filter((v) => v.status === 'verified').length,
     rejected: verifications.filter((v) => v.status === 'rejected').length,
   };
@@ -253,7 +220,6 @@ export function AdminVerifications() {
 
   return (
     <AdminLayout>
-      {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
         <div>
           <h2 className="text-xl font-bold text-white">Verification Management</h2>
@@ -264,7 +230,6 @@ export function AdminVerifications() {
         </Button>
       </div>
 
-      {/* Status Filter Tabs */}
       <div className="flex flex-wrap gap-2 mb-6">
         {([
           { key: 'all' as StatusFilter, label: 'All', count: statusCounts.all, color: 'bg-white/5 text-[#A0A0A0]' },
@@ -273,36 +238,25 @@ export function AdminVerifications() {
           { key: 'verified' as StatusFilter, label: 'Approved', count: statusCounts.verified, color: 'bg-green-500/10 text-green-400' },
           { key: 'rejected' as StatusFilter, label: 'Rejected', count: statusCounts.rejected, color: 'bg-red-500/10 text-red-400' },
         ]).map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => setStatusFilter(tab.key)}
+          <button key={tab.key} onClick={() => setStatusFilter(tab.key)}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
               statusFilter === tab.key ? `${tab.color} ring-1 ring-current` : 'text-[#A0A0A0] hover:bg-white/5'
-            }`}
-          >
-            {tab.label}
-            <span className={`text-xs px-1.5 py-0.5 rounded-full ${tab.color}`}>{tab.count}</span>
+            }`}>
+            {tab.label} <span className={`text-xs px-1.5 py-0.5 rounded-full ${tab.color}`}>{tab.count}</span>
           </button>
         ))}
       </div>
 
-      {/* Search */}
       <div className="relative mb-6">
         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#A0A0A0]" />
-        <Input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
+        <Input value={search} onChange={(e) => setSearch(e.target.value)}
           placeholder="Search by name, email, or document type..."
-          className="pl-11 bg-[#111318] border-white/5 text-white rounded-xl h-11"
-        />
+          className="pl-11 bg-[#111318] border-white/5 text-white rounded-xl h-11" />
       </div>
 
-      {/* Verifications Table */}
       <div className="bg-[#111318] rounded-2xl border border-white/5 overflow-hidden">
         {loading ? (
-          <div className="flex items-center justify-center h-48">
-            <Loader2 className="w-6 h-6 text-[#FF6B00] animate-spin" />
-          </div>
+          <div className="flex items-center justify-center h-48"><Loader2 className="w-6 h-6 text-[#FF6B00] animate-spin" /></div>
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-48 text-center">
             <ShieldCheck className="w-10 h-10 text-[#A0A0A0] mb-3" />
@@ -313,11 +267,11 @@ export function AdminVerifications() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-white/5 text-left">
-                  <th className="px-5 py-3.5 text-xs font-semibold text-[#A0A0A0] uppercase tracking-wider">User</th>
-                  <th className="px-5 py-3.5 text-xs font-semibold text-[#A0A0A0] uppercase tracking-wider">Document</th>
-                  <th className="px-5 py-3.5 text-xs font-semibold text-[#A0A0A0] uppercase tracking-wider">Status</th>
-                  <th className="px-5 py-3.5 text-xs font-semibold text-[#A0A0A0] uppercase tracking-wider">Date</th>
-                  <th className="px-5 py-3.5 text-xs font-semibold text-[#A0A0A0] uppercase tracking-wider">Actions</th>
+                  <th className="px-5 py-3.5 text-xs font-semibold text-[#A0A0A0] uppercase">User</th>
+                  <th className="px-5 py-3.5 text-xs font-semibold text-[#A0A0A0] uppercase">Document</th>
+                  <th className="px-5 py-3.5 text-xs font-semibold text-[#A0A0A0] uppercase">Status</th>
+                  <th className="px-5 py-3.5 text-xs font-semibold text-[#A0A0A0] uppercase">Date</th>
+                  <th className="px-5 py-3.5 text-xs font-semibold text-[#A0A0A0] uppercase">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
@@ -329,7 +283,7 @@ export function AdminVerifications() {
                         <div className="flex items-center gap-3">
                           <img src={v.user_avatar} alt="" className="w-9 h-9 rounded-full bg-[#1B1F27]" />
                           <div>
-                            <p className="text-sm font-medium text-white">{v.user_name}</p>
+                            <p className="text-sm font-medium text-white truncate">{v.user_name}</p>
                             <p className="text-xs text-[#A0A0A0]">{v.user_email}</p>
                           </div>
                         </div>
@@ -356,37 +310,22 @@ export function AdminVerifications() {
                       <td className="px-5 py-4 text-sm text-[#A0A0A0]">{formatDate(v.created_at)}</td>
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-2">
-                          {/* View button */}
                           {v.url && (
-                            <button
-                              onClick={() => setPreviewImage(v.url)}
-                              className="p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors text-[#A0A0A0] hover:text-white"
-                              title="View document"
-                            >
+                            <button onClick={() => setPreviewImage(v.url)} className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-[#A0A0A0] hover:text-white transition-colors" title="View document">
                               <Eye className="w-4 h-4" />
                             </button>
                           )}
-                          {/* Approve */}
                           {(v.status === 'uploaded' || v.status === 'pending') && (
-                            <button
-                              onClick={() => handleApprove(v.id, v.user_id)}
-                              disabled={processingId === v.id}
-                              className="p-2 rounded-lg bg-green-500/10 hover:bg-green-500/20 text-green-400 transition-colors disabled:opacity-50"
-                              title="Approve"
-                            >
-                              {processingId === v.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                            </button>
-                          )}
-                          {/* Reject */}
-                          {(v.status === 'uploaded' || v.status === 'pending') && (
-                            <button
-                              onClick={() => setSelectedDoc(v)}
-                              disabled={processingId === v.id}
-                              className="p-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 transition-colors disabled:opacity-50"
-                              title="Reject"
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
+                            <>
+                              <button onClick={() => handleApprove(v.id, v.user_id)} disabled={processingId === v.id}
+                                className="p-2 rounded-lg bg-green-500/10 hover:bg-green-500/20 text-green-400 transition-colors disabled:opacity-50" title="Approve">
+                                {processingId === v.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                              </button>
+                              <button onClick={() => setSelectedDoc(v)} disabled={processingId === v.id}
+                                className="p-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 transition-colors disabled:opacity-50" title="Reject">
+                                <X className="w-4 h-4" />
+                              </button>
+                            </>
                           )}
                         </div>
                       </td>
@@ -399,27 +338,14 @@ export function AdminVerifications() {
         )}
       </div>
 
-      {/* Image Preview Modal */}
       <AnimatePresence>
         {previewImage && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             onClick={() => setPreviewImage(null)}
-            className="fixed inset-0 z-[70] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4"
-          >
-            <motion.div
-              initial={{ scale: 0.9 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0.9 }}
-              onClick={(e) => e.stopPropagation()}
-              className="relative max-w-3xl max-h-[85vh]"
-            >
-              <button
-                onClick={() => setPreviewImage(null)}
-                className="absolute -top-10 right-0 p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-colors"
-              >
+            className="fixed inset-0 z-[70] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4">
+            <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} exit={{ scale: 0.9 }}
+              onClick={(e) => e.stopPropagation()} className="relative max-w-3xl max-h-[85vh]">
+              <button onClick={() => setPreviewImage(null)} className="absolute -top-10 right-0 p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white">
                 <X className="w-5 h-5" />
               </button>
               <img src={previewImage} alt="Document" className="max-w-full max-h-[80vh] rounded-2xl border border-white/10" />
@@ -428,64 +354,34 @@ export function AdminVerifications() {
         )}
       </AnimatePresence>
 
-      {/* Reject Modal */}
       <AnimatePresence>
         {selectedDoc && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             onClick={() => setSelectedDoc(null)}
-            className="fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
-          >
-            <motion.div
-              initial={{ scale: 0.95, y: 20 }}
-              animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.95, y: 20 }}
-              onClick={(e) => e.stopPropagation()}
-              className="bg-[#1B1F27] rounded-2xl border border-white/10 p-6 w-full max-w-md"
-            >
+            className="fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+            <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }}
+              onClick={(e) => e.stopPropagation()} className="bg-[#1B1F27] rounded-2xl border border-white/10 p-6 w-full max-w-md">
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 bg-red-500/10 rounded-xl flex items-center justify-center">
-                  <AlertCircle className="w-5 h-5 text-red-400" />
-                </div>
+                <div className="w-10 h-10 bg-red-500/10 rounded-xl flex items-center justify-center"><AlertCircle className="w-5 h-5 text-red-400" /></div>
                 <div>
                   <h3 className="text-lg font-bold text-white">Reject Document</h3>
                   <p className="text-xs text-[#A0A0A0]">{docLabels[selectedDoc.doc_type]} for {selectedDoc.user_name}</p>
                 </div>
               </div>
-
               <div className="mb-4">
                 <label className="text-sm text-[#A0A0A0] mb-2 block">Rejection Reason</label>
-                <textarea
-                  value={rejectReason}
-                  onChange={(e) => setRejectReason(e.target.value)}
+                <textarea value={rejectReason} onChange={(e) => setRejectReason(e.target.value)}
                   placeholder="Enter reason for rejection..."
-                  className="w-full bg-[#0A0C10] border border-white/10 rounded-xl p-3 text-sm text-white placeholder:text-[#A0A0A0] resize-none h-24 focus:outline-none focus:border-[#FF6B00]/30"
-                />
+                  className="w-full bg-[#0A0C10] border border-white/10 rounded-xl p-3 text-sm text-white placeholder:text-[#A0A0A0] resize-none h-24 focus:outline-none focus:border-[#FF6B00]/30" />
               </div>
-
               {selectedDoc.url && (
-                <div className="mb-4">
-                  <img src={selectedDoc.url} alt="Document" className="w-full max-h-40 object-cover rounded-xl border border-white/5" />
-                </div>
+                <div className="mb-4"><img src={selectedDoc.url} alt="Document" className="w-full max-h-40 object-cover rounded-xl border border-white/5" /></div>
               )}
-
               <div className="flex gap-3">
-                <Button
-                  onClick={() => setSelectedDoc(null)}
-                  variant="outline"
-                  className="flex-1 border-white/10 text-white rounded-xl"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={() => handleReject(selectedDoc.id)}
-                  disabled={processingId === selectedDoc.id || !rejectReason.trim()}
-                  className="flex-1 bg-red-500 text-white hover:bg-red-600 rounded-xl disabled:opacity-50"
-                >
-                  {processingId === selectedDoc.id ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                  Reject
+                <Button onClick={() => setSelectedDoc(null)} variant="outline" className="flex-1 border-white/10 text-white rounded-xl">Cancel</Button>
+                <Button onClick={() => handleReject(selectedDoc.id)} disabled={processingId === selectedDoc.id || !rejectReason.trim()}
+                  className="flex-1 bg-red-500 text-white hover:bg-red-600 rounded-xl disabled:opacity-50">
+                  {processingId === selectedDoc.id ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null} Reject
                 </Button>
               </div>
             </motion.div>

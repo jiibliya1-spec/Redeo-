@@ -73,7 +73,12 @@ export function AdminVerifications() {
   useEffect(() => {
     let result = verifications;
     if (statusFilter !== 'all') {
-      result = result.filter((v) => v.status === statusFilter);
+      if (statusFilter === 'pending') {
+        // Show both 'pending' and 'uploaded' (both are "under review")
+        result = result.filter((v) => v.status === 'pending' || v.status === 'uploaded');
+      } else {
+        result = result.filter((v) => v.status === statusFilter);
+      }
     }
     if (search.trim()) {
       const q = search.toLowerCase();
@@ -90,58 +95,105 @@ export function AdminVerifications() {
   const loadVerifications = async () => {
     setLoading(true);
     try {
-      const { data: verifData, error: verifError } = await supabase
-        .from('verifications')
-        .select('*')
-        .order('created_at', { ascending: false });
+      // Get JWT token for admin
+      const { data: sessionData } = await supabase.auth.getSession();
+      const jwt = sessionData.session?.access_token || '';
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
+      const apiKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+      const headers = {
+        'apikey': apiKey,
+        'Authorization': `Bearer ${jwt}`,
+      };
 
-      if (verifError) throw verifError;
+      // Fetch ALL verifications using REST API (bypasses RLS issues)
+      const verifRes = await fetch(
+        `${supabaseUrl}/rest/v1/verifications?select=*&order=created_at.desc`,
+        { headers }
+      );
+      if (!verifRes.ok) throw new Error(await verifRes.text());
+      const verifData = await verifRes.json();
 
-      // Get user info for each verification
-      const { data: users } = await supabase.from('profiles').select('id, name, email, avatar, role');
+      // Get all users
+      const usersRes = await fetch(
+        `${supabaseUrl}/rest/v1/profiles?select=id,name,email,avatar,role`,
+        { headers }
+      );
+      const usersData = usersRes.ok ? await usersRes.json() : [];
 
       const combined = (verifData || []).map((v: any) => {
-        const user = users?.find((u: any) => u.id === v.user_id);
+        const u = usersData?.find((u: any) => u.id === v.user_id);
         return {
           ...v,
-          user_name: user?.name || 'Unknown',
-          user_email: user?.email || '',
-          user_avatar: user?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${v.user_id}`,
-          user_role: user?.role || 'passenger',
+          user_name: u?.name || 'Unknown',
+          user_email: u?.email || '',
+          user_avatar: u?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${v.user_id}`,
+          user_role: u?.role || 'passenger',
         };
       });
 
       setVerifications(combined);
     } catch (err: any) {
-      toast.error('Failed to load verifications: ' + err.message);
+      toast.error('Failed to load: ' + err.message);
     }
     setLoading(false);
+  };
+
+  // Helper to get auth headers
+  const getHeaders = async () => {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const jwt = sessionData.session?.access_token || '';
+    return {
+      'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY || '',
+      'Authorization': `Bearer ${jwt}`,
+      'Content-Type': 'application/json',
+    };
   };
 
   const handleApprove = async (id: string, userId: string) => {
     setProcessingId(id);
     try {
-      // Update verification status
-      const { error } = await supabase
-        .from('verifications')
-        .update({ status: 'verified', admin_notes: 'Approved by admin', updated_at: new Date().toISOString() })
-        .eq('id', id);
+      const headers = await getHeaders();
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
 
-      if (error) throw error;
+      // Update verification to 'verified'
+      const res = await fetch(
+        `${supabaseUrl}/rest/v1/verifications?id=eq.${id}`,
+        {
+          method: 'PATCH',
+          headers,
+          body: JSON.stringify({
+            status: 'verified',
+            admin_notes: 'Approved by admin',
+            updated_at: new Date().toISOString(),
+          }),
+        }
+      );
+      if (!res.ok) throw new Error(await res.text());
 
       // Check if all docs are verified for this user
-      const { data: userVerifs } = await supabase.from('verifications').select('status').eq('user_id', userId);
-      const allVerified = userVerifs && userVerifs.length > 0 && userVerifs.every((v: any) => v.status === 'verified');
+      const verifRes = await fetch(
+        `${supabaseUrl}/rest/v1/verifications?select=status&user_id=eq.${userId}`,
+        { headers: { 'apikey': headers['apikey'], 'Authorization': headers['Authorization'] } }
+      );
+      const userVerifs = verifRes.ok ? await verifRes.json() : [];
+      const allVerified = userVerifs.length > 0 && userVerifs.every((v: any) => v.status === 'verified');
 
       if (allVerified) {
         // Mark user as verified
-        await supabase.from('profiles').update({ is_verified: true, verification_status: 'approved' }).eq('id', userId);
+        await fetch(
+          `${supabaseUrl}/rest/v1/profiles?id=eq.${userId}`,
+          {
+            method: 'PATCH',
+            headers,
+            body: JSON.stringify({ is_verified: true, verification_status: 'approved' }),
+          }
+        );
+        toast.success('All documents approved! Driver is now verified.');
+      } else {
+        toast.success('Document approved!');
       }
 
-      setVerifications((prev) =>
-        prev.map((v) => (v.id === id ? { ...v, status: 'verified', admin_notes: 'Approved by admin' } : v))
-      );
-      toast.success('Document approved!');
+      await loadVerifications();
     } catch (err: any) {
       toast.error('Approval failed: ' + err.message);
     }
@@ -156,17 +208,25 @@ export function AdminVerifications() {
     }
     setProcessingId(id);
     try {
-      const { error } = await supabase
-        .from('verifications')
-        .update({ status: 'rejected', admin_notes: rejectReason, updated_at: new Date().toISOString() })
-        .eq('id', id);
+      const headers = await getHeaders();
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
 
-      if (error) throw error;
-
-      setVerifications((prev) =>
-        prev.map((v) => (v.id === id ? { ...v, status: 'rejected', admin_notes: rejectReason } : v))
+      const res = await fetch(
+        `${supabaseUrl}/rest/v1/verifications?id=eq.${id}`,
+        {
+          method: 'PATCH',
+          headers,
+          body: JSON.stringify({
+            status: 'rejected',
+            admin_notes: rejectReason,
+            updated_at: new Date().toISOString(),
+          }),
+        }
       );
+      if (!res.ok) throw new Error(await res.text());
+
       toast.success('Document rejected');
+      await loadVerifications();
     } catch (err: any) {
       toast.error('Rejection failed: ' + err.message);
     }

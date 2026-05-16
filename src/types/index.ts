@@ -6,6 +6,7 @@ export interface User {
   avatar?: string;
   role: 'passenger' | 'driver' | 'admin';
   is_verified?: boolean;
+  verification_status?: 'pending' | 'submitted' | 'approved' | 'rejected';
   rating?: number;
   trips_count?: number;
   created_at?: string;

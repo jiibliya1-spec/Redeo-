@@ -216,7 +216,6 @@ const translations: Record<Lang, Record<string, string>> = {
     'verify.verified': 'Fully Verified',
     'verify.verified_desc': 'Your account is fully verified. All features unlocked.',
     'verify.remaining_docs': 'document(s) remaining.',
-    'verify.upload_docs': 'Upload documents below to verify your account.',
     'verify.partial': 'Partially Verified',
     'verify.required': 'Verification Required',
     'verify.cin': 'National ID (CIN)',
@@ -234,6 +233,8 @@ const translations: Record<Lang, Record<string, string>> = {
     'verify.reupload': 'Re-upload',
     'verify.under_review': 'Under review by our team',
     'verify.upload_success': 'Document uploaded successfully!',
+    'verify.submit_review': 'Submit for Review',
+    'verify.upload_docs': 'Please upload all required documents',
 
     // ─── Chat ───
     'chat.title': 'Messages',

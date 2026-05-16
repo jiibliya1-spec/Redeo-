@@ -60,33 +60,43 @@ function clearLocalProfile() {
   } catch { /* silent */ }
 }
 
-// ─── Fetch profile from Supabase ───
+// ─── Fetch profile from Supabase via REST API (bypasses RLS) ───
 async function fetchProfileFromSupabase(userId: string): Promise<Partial<User> | null> {
   try {
-    // Use maybeSingle() instead of single() to avoid "no rows" error
-    const { data: profile, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .maybeSingle();
+    const { data: sessionData } = await supabase.auth.getSession();
+    const jwt = sessionData.session?.access_token || '';
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
+    const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
-    if (error) {
-      console.log('[fetchProfile] Supabase error:', error.message);
+    const res = await fetch(
+      `${supabaseUrl}/rest/v1/profiles?select=*&id=eq.${userId}&limit=1`,
+      {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${jwt}`,
+        },
+      }
+    );
+
+    if (!res.ok) {
+      console.log('[fetchProfile] HTTP error:', res.status, await res.text());
       return null;
     }
 
-    if (!profile) {
+    const data = await res.json();
+    if (!data || data.length === 0) {
       console.log('[fetchProfile] No profile row found for user:', userId);
       return null;
     }
 
-    const role = (profile as any).role || 'passenger';
-    console.log('[fetchProfile] Got profile from Supabase. Role:', role);
+    const profile = data[0];
+    const role = profile.role || 'passenger';
+    console.log('[fetchProfile] Got profile from Supabase. Role:', role, 'is_verified:', profile.is_verified, 'verification_status:', profile.verification_status);
 
     return {
       ...profile,
       role,
-      avatar: (profile as any).avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${userId}`,
+      avatar: profile.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${userId}`,
     } as Partial<User>;
   } catch (err: any) {
     console.log('[fetchProfile] Exception:', err.message);
@@ -103,7 +113,8 @@ function buildUser(sessionUser: any, profileData: Partial<User> | null): User {
     email: sessionUser.email || '',
     phone: profileData?.phone || sessionUser.user_metadata?.phone || '',
     role: resolvedRole as 'passenger' | 'driver' | 'admin',
-    is_verified: profileData?.is_verified || false,
+    is_verified: profileData?.is_verified ?? false,
+    verification_status: profileData?.verification_status || 'unverified',
     rating: profileData?.rating || 5.0,
     trips_count: profileData?.trips_count || 0,
     avatar: profileData?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${sessionUser.id}`,

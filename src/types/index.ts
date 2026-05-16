@@ -6,7 +6,7 @@ export interface User {
   avatar?: string;
   role: 'passenger' | 'driver' | 'admin';
   is_verified?: boolean;
-  verification_status?: 'pending' | 'submitted' | 'approved' | 'rejected';
+  verification_status?: 'unverified' | 'pending' | 'submitted' | 'approved' | 'rejected';
   rating?: number;
   trips_count?: number;
   created_at?: string;
@@ -93,7 +93,7 @@ export interface VerificationDoc {
   id: string;
   user_id: string;
   doc_type: 'cin' | 'license' | 'selfie' | 'registration' | 'insurance';
-  status: 'pending' | 'approved' | 'rejected';
+  status: 'pending' | 'uploaded' | 'verified' | 'rejected';
   url?: string;
   created_at?: string;
 }

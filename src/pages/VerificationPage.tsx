@@ -70,35 +70,71 @@ export function VerificationPage() {
     });
   };
 
-  // ─── SAVE TO SUPABASE ONLY (with authenticated JWT) ───
+  // ─── UPSERT: Check if exists → UPDATE, else INSERT ───
   const saveDocToSupabase = async (userId: string, docType: DocType, url: string) => {
-    // 1. Get the user's JWT token (authenticated)
+    // 1. Get the user's JWT token
     const { data: sessionData } = await supabase.auth.getSession();
     const jwt = sessionData.session?.access_token;
     if (!jwt) throw new Error('Not authenticated - please login');
 
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://qhbiafoyhvmvyyzwdzhd.supabase.co';
+    const apiKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoYmlhZm95aHZtdnl5endkemhkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3OTIwNDcsImV4cCI6MjA5NDM2ODA0N30.04MftiDjQUrnGegTeaL88WyES9ydDKxRrrmVua0rVbM';
+
+    // 2. Check if a record already exists for this user_id + doc_type
+    let exists = false;
+    try {
+      const checkRes = await fetch(
+        `${supabaseUrl}/rest/v1/verifications?select=id&user_id=eq.${userId}&doc_type=eq.${docType}&limit=1`,
+        {
+          headers: {
+            'apikey': apiKey,
+            'Authorization': `Bearer ${jwt}`,
+          },
+        }
+      );
+      if (checkRes.ok) {
+        const rows = await checkRes.json();
+        exists = rows && rows.length > 0;
+      }
+    } catch { /* assume not exists */ }
+
+    // 3. UPDATE if exists, INSERT if new
+    const headers: Record<string, string> = {
+      'apikey': apiKey,
+      'Authorization': `Bearer ${jwt}`,
+      'Content-Type': 'application/json',
+    };
 
     try {
-      const res = await fetch(`${supabaseUrl}/rest/v1/verifications`, {
-        method: 'POST',
-        headers: {
-          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoYmlhZm95aHZtdnl5endkemhkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3OTIwNDcsImV4cCI6MjA5NDM2ODA0N30.04MftiDjQUrnGegTeaL88WyES9ydDKxRrrmVua0rVbM',
-          'Authorization': `Bearer ${jwt}`,
-          'Content-Type': 'application/json',
-          'Prefer': 'resolution=merge-duplicates,return=representation',
-        },
-        body: JSON.stringify({
-          user_id: userId,
-          doc_type: docType,
-          status: 'uploaded',
-          url,
-          updated_at: new Date().toISOString(),
-        }),
-      });
-      if (!res.ok) {
-        const errText = await res.text();
-        throw new Error(errText);
+      if (exists) {
+        // UPDATE existing row (PATCH)
+        const res = await fetch(
+          `${supabaseUrl}/rest/v1/verifications?user_id=eq.${userId}&doc_type=eq.${docType}`,
+          {
+            method: 'PATCH',
+            headers: { ...headers, 'Prefer': 'return=representation' },
+            body: JSON.stringify({
+              status: 'uploaded',
+              url,
+              updated_at: new Date().toISOString(),
+            }),
+          }
+        );
+        if (!res.ok) throw new Error(await res.text());
+      } else {
+        // INSERT new row (POST)
+        const res = await fetch(`${supabaseUrl}/rest/v1/verifications`, {
+          method: 'POST',
+          headers: { ...headers, 'Prefer': 'return=representation' },
+          body: JSON.stringify({
+            user_id: userId,
+            doc_type: docType,
+            status: 'uploaded',
+            url,
+            updated_at: new Date().toISOString(),
+          }),
+        });
+        if (!res.ok) throw new Error(await res.text());
       }
     } catch (err: any) {
       console.log('DB save warning:', err.message);

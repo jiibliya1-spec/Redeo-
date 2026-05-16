@@ -72,7 +72,13 @@ export function AdminVerifications() {
         `${SUPABASE_URL}/rest/v1/verifications?select=*&order=created_at.desc`,
         { headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': headers['Authorization'] } }
       );
-      if (!verifRes.ok) throw new Error(await verifRes.text());
+      
+      if (!verifRes.ok) {
+        const errorText = await verifRes.text();
+        console.error('[AdminVerifications] Error response:', errorText.substring(0, 500));
+        throw new Error('Server returned: ' + verifRes.status + ' ' + verifRes.statusText);
+      }
+      
       const verifData = await verifRes.json();
 
       // Get all users
@@ -80,7 +86,13 @@ export function AdminVerifications() {
         `${SUPABASE_URL}/rest/v1/profiles?select=id,name,email,avatar,role`,
         { headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': headers['Authorization'] } }
       );
-      const usersData = usersRes.ok ? await usersRes.json() : [];
+      
+      let usersData: any[] = [];
+      if (usersRes.ok) {
+        usersData = await usersRes.json();
+      } else {
+        console.warn('[AdminVerifications] Users fetch failed:', usersRes.status);
+      }
 
       const combined = (verifData || []).map((v: any) => {
         const u = usersData?.find((u: any) => u.id === v.user_id);
@@ -95,8 +107,8 @@ export function AdminVerifications() {
 
       setVerifications(combined);
     } catch (err: any) {
-      toast.error('Failed to load: ' + err.message);
-      console.error('[AdminVerifications]', err);
+      toast.error('Failed to load verifications. Please login as admin.');
+      console.error('[AdminVerifications] Error:', err);
     }
     setLoading(false);
   }, [getHeaders]);

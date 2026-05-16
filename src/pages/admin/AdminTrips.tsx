@@ -54,7 +54,13 @@ export function AdminTrips() {
         `${SUPABASE_URL}/rest/v1/trips?select=*&order=created_at.desc`,
         { headers }
       );
-      if (!tripsRes.ok) throw new Error(await tripsRes.text());
+      
+      if (!tripsRes.ok) {
+        const errorText = await tripsRes.text();
+        console.error('[AdminTrips] Error response:', errorText.substring(0, 500));
+        throw new Error('Server returned: ' + tripsRes.status + ' ' + tripsRes.statusText);
+      }
+      
       const tripsData = await tripsRes.json();
 
       // Fetch ALL drivers
@@ -62,7 +68,12 @@ export function AdminTrips() {
         `${SUPABASE_URL}/rest/v1/profiles?select=id,name,avatar&role=eq.driver`,
         { headers }
       );
-      const usersData = usersRes.ok ? await usersRes.json() : [];
+      let usersData: any[] = [];
+      if (usersRes.ok) {
+        usersData = await usersRes.json();
+      } else {
+        console.warn('[AdminTrips] Users fetch failed:', usersRes.status);
+      }
 
       const combined = (tripsData || []).map((t: any) => {
         const driver = usersData?.find((u: any) => u.id === t.driver_id);

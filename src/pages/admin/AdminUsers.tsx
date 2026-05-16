@@ -73,7 +73,13 @@ export function AdminUsers() {
         `${SUPABASE_URL}/rest/v1/profiles?select=*&order=created_at.desc`,
         { headers }
       );
-      if (!usersRes.ok) throw new Error(await usersRes.text());
+      
+      if (!usersRes.ok) {
+        const errorText = await usersRes.text();
+        console.error('[AdminUsers] Error response:', errorText.substring(0, 500));
+        throw new Error('Server returned: ' + usersRes.status + ' ' + usersRes.statusText);
+      }
+      
       const profiles = await usersRes.json();
 
       // Get verification counts
@@ -81,7 +87,12 @@ export function AdminUsers() {
         `${SUPABASE_URL}/rest/v1/verifications?select=user_id`,
         { headers }
       );
-      const verifs = verifsRes.ok ? await verifsRes.json() : [];
+      let verifs: any[] = [];
+      if (verifsRes.ok) {
+        verifs = await verifsRes.json();
+      } else {
+        console.warn('[AdminUsers] Verifications fetch failed:', verifsRes.status);
+      }
 
       const combined = (profiles || []).map((p: any) => {
         const userVerifs = verifs?.filter((v: any) => v.user_id === p.id) || [];

@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import {
   Car, MapPin, Calendar, DollarSign, Users, Loader2, Search,
-  Trash2, Ban, ChevronRight
+  Trash2, Ban, ChevronRight,
 } from 'lucide-react';
 
 const SUPABASE_URL = 'https://qhbiafoyhvmvyyzwdzhd.supabase.co';
@@ -28,11 +28,14 @@ interface TripRecord {
   driver_avatar: string;
 }
 
+type StatusFilter = 'all' | 'upcoming' | 'ongoing' | 'in_progress' | 'completed' | 'cancelled';
+
 export function AdminTrips() {
   const [trips, setTrips] = useState<TripRecord[]>([]);
   const [filtered, setFiltered] = useState<TripRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [processingId, setProcessingId] = useState<string | null>(null);
 
   const getHeaders = useCallback(async () => {
@@ -41,6 +44,7 @@ export function AdminTrips() {
     return {
       'apikey': SUPABASE_ANON_KEY,
       'Authorization': `Bearer ${jwt}`,
+      'Content-Type': 'application/json',
     };
   }, []);
 
@@ -49,34 +53,20 @@ export function AdminTrips() {
     try {
       const headers = await getHeaders();
 
-      // Fetch ALL trips (admin view)
-      const tripsRes = await fetch(
-        `${SUPABASE_URL}/rest/v1/trips?select=*&order=created_at.desc`,
-        { headers }
-      );
-      
-      if (!tripsRes.ok) {
-        const errorText = await tripsRes.text();
-        console.error('[AdminTrips] Error response:', errorText.substring(0, 500));
-        throw new Error('Server returned: ' + tripsRes.status + ' ' + tripsRes.statusText);
-      }
-      
-      const tripsData = await tripsRes.json();
+      const [tripsRes, usersRes] = await Promise.all([
+        fetch(`${SUPABASE_URL}/rest/v1/trips?select=*&order=created_at.desc`, { headers }),
+        fetch(`${SUPABASE_URL}/rest/v1/profiles?select=id,name,avatar`, { headers }),
+      ]);
 
-      // Fetch ALL drivers
-      const usersRes = await fetch(
-        `${SUPABASE_URL}/rest/v1/profiles?select=id,name,avatar&role=eq.driver`,
-        { headers }
-      );
-      let usersData: any[] = [];
-      if (usersRes.ok) {
-        usersData = await usersRes.json();
-      } else {
-        console.warn('[AdminTrips] Users fetch failed:', usersRes.status);
-      }
+      if (!tripsRes.ok) throw new Error('Status ' + tripsRes.status + ': ' + await tripsRes.text());
+
+      const [tripsData, usersData] = await Promise.all([
+        tripsRes.json(),
+        usersRes.ok ? usersRes.json() : [],
+      ]);
 
       const combined = (tripsData || []).map((t: any) => {
-        const driver = usersData?.find((u: any) => u.id === t.driver_id);
+        const driver = (usersData || []).find((u: any) => u.id === t.driver_id);
         return {
           ...t,
           driver_name: driver?.name || 'Unknown',
@@ -87,17 +77,32 @@ export function AdminTrips() {
       setTrips(combined);
     } catch (err: any) {
       toast.error('Failed to load trips: ' + err.message);
-      console.error('[AdminTrips]', err);
     }
     setLoading(false);
   }, [getHeaders]);
 
+  useEffect(() => { loadTrips(); }, [loadTrips]);
+
+  // Realtime subscription
   useEffect(() => {
-    loadTrips();
+    const channel = supabase
+      .channel('admin-trips')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'trips' }, () => {
+        loadTrips();
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   }, [loadTrips]);
 
   useEffect(() => {
     let result = trips;
+    if (statusFilter !== 'all') {
+      result = result.filter((t) => {
+        if (statusFilter === 'ongoing') return t.status === 'ongoing' || t.status === 'in_progress';
+        return t.status === statusFilter;
+      });
+    }
     if (search.trim()) {
       const q = search.toLowerCase();
       result = result.filter(
@@ -108,17 +113,14 @@ export function AdminTrips() {
       );
     }
     setFiltered(result);
-  }, [trips, search]);
+  }, [trips, search, statusFilter]);
 
   const handleDelete = async (id: string) => {
     if (!confirm('Delete this trip permanently?')) return;
     setProcessingId(id);
     try {
       const headers = await getHeaders();
-      const res = await fetch(
-        `${SUPABASE_URL}/rest/v1/trips?id=eq.${id}`,
-        { method: 'DELETE', headers }
-      );
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/trips?id=eq.${id}`, { method: 'DELETE', headers });
       if (!res.ok) throw new Error(await res.text());
       toast.success('Trip deleted');
       await loadTrips();
@@ -131,15 +133,12 @@ export function AdminTrips() {
   const handleCancel = async (id: string) => {
     setProcessingId(id);
     try {
-      const headers = { ...(await getHeaders()), 'Content-Type': 'application/json' };
-      const res = await fetch(
-        `${SUPABASE_URL}/rest/v1/trips?id=eq.${id}`,
-        {
-          method: 'PATCH',
-          headers,
-          body: JSON.stringify({ status: 'cancelled' }),
-        }
-      );
+      const headers = await getHeaders();
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/trips?id=eq.${id}`, {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify({ status: 'cancelled' }),
+      });
       if (!res.ok) throw new Error(await res.text());
       toast.success('Trip cancelled');
       await loadTrips();
@@ -152,11 +151,26 @@ export function AdminTrips() {
   const statusColor = (s: string) => {
     switch (s) {
       case 'upcoming': return 'bg-blue-500/10 text-blue-400';
-      case 'ongoing': return 'bg-yellow-500/10 text-yellow-400';
+      case 'ongoing':
+      case 'in_progress': return 'bg-yellow-500/10 text-yellow-400';
       case 'completed': return 'bg-green-500/10 text-green-400';
       case 'cancelled': return 'bg-red-500/10 text-red-400';
       default: return 'bg-white/5 text-[#A0A0A0]';
     }
+  };
+
+  const statusLabel = (s: string) => {
+    if (s === 'in_progress') return 'Active';
+    if (s === 'ongoing') return 'Active';
+    return s.charAt(0).toUpperCase() + s.slice(1);
+  };
+
+  const counts = {
+    all: trips.length,
+    upcoming: trips.filter(t => t.status === 'upcoming').length,
+    ongoing: trips.filter(t => t.status === 'ongoing' || t.status === 'in_progress').length,
+    completed: trips.filter(t => t.status === 'completed').length,
+    cancelled: trips.filter(t => t.status === 'cancelled').length,
   };
 
   return (
@@ -167,11 +181,29 @@ export function AdminTrips() {
           <p className="text-sm text-[#A0A0A0] mt-0.5">All published trips from all drivers</p>
         </div>
         <div className="flex items-center gap-2">
-          <p className="text-sm text-[#A0A0A0]">{trips.length} trips</p>
+          <p className="text-sm text-[#A0A0A0]">{trips.length} trips total</p>
           <Button onClick={loadTrips} variant="outline" size="sm" className="border-white/10 text-[#A0A0A0] rounded-xl">
             <Loader2 className="w-3 h-3 mr-1" /> Refresh
           </Button>
         </div>
+      </div>
+
+      {/* Status filter tabs */}
+      <div className="flex flex-wrap gap-2 mb-6">
+        {([
+          { key: 'all' as StatusFilter, label: 'All', count: counts.all, color: 'bg-white/5 text-[#A0A0A0]' },
+          { key: 'upcoming' as StatusFilter, label: 'Upcoming', count: counts.upcoming, color: 'bg-blue-500/10 text-blue-400' },
+          { key: 'ongoing' as StatusFilter, label: 'Active', count: counts.ongoing, color: 'bg-yellow-500/10 text-yellow-400' },
+          { key: 'completed' as StatusFilter, label: 'Completed', count: counts.completed, color: 'bg-green-500/10 text-green-400' },
+          { key: 'cancelled' as StatusFilter, label: 'Cancelled', count: counts.cancelled, color: 'bg-red-500/10 text-red-400' },
+        ]).map((tab) => (
+          <button key={tab.key} onClick={() => setStatusFilter(tab.key)}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
+              statusFilter === tab.key ? `${tab.color} ring-1 ring-current` : 'text-[#A0A0A0] hover:bg-white/5'
+            }`}>
+            {tab.label} <span className={`text-xs px-1.5 py-0.5 rounded-full ${tab.color}`}>{tab.count}</span>
+          </button>
+        ))}
       </div>
 
       <div className="relative mb-6">
@@ -193,7 +225,9 @@ export function AdminTrips() {
           <div className="flex flex-col items-center justify-center h-48 text-center">
             <Car className="w-10 h-10 text-[#A0A0A0] mb-3" />
             <p className="text-sm text-[#A0A0A0]">No trips found</p>
-            <p className="text-xs text-[#A0A0A0] mt-1">Trips will appear here when drivers publish them</p>
+            <p className="text-xs text-[#A0A0A0] mt-1">
+              {trips.length > 0 ? 'Try changing the filter above' : 'Trips will appear here when drivers publish them'}
+            </p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -220,9 +254,9 @@ export function AdminTrips() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1 text-sm text-white">
-                        <MapPin className="w-3 h-3 text-[#FF6B00]" />
+                        <MapPin className="w-3 h-3 text-[#FF6B00] shrink-0" />
                         <span className="truncate max-w-[80px]">{trip.from_location}</span>
-                        <ChevronRight className="w-3 h-3 text-[#A0A0A0]" />
+                        <ChevronRight className="w-3 h-3 text-[#A0A0A0] shrink-0" />
                         <span className="truncate max-w-[80px]">{trip.to_location}</span>
                       </div>
                     </td>
@@ -246,31 +280,23 @@ export function AdminTrips() {
                     </td>
                     <td className="px-4 py-3">
                       <span className={`text-xs px-2 py-0.5 rounded-full capitalize ${statusColor(trip.status)}`}>
-                        {trip.status}
+                        {statusLabel(trip.status)}
                       </span>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1">
-                        {trip.status !== 'cancelled' && (
+                        {trip.status !== 'cancelled' && trip.status !== 'completed' && (
                           <>
-                            <button
-                              onClick={() => handleCancel(trip.id)}
-                              disabled={processingId === trip.id}
-                              className="p-1.5 rounded-lg bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-400 transition-colors"
-                              title="Cancel trip"
-                            >
-                              <Ban className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              onClick={() => handleDelete(trip.id)}
-                              disabled={processingId === trip.id}
-                              className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 transition-colors"
-                              title="Delete trip"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
+                            <button onClick={() => handleCancel(trip.id)} disabled={processingId === trip.id}
+                              className="p-1.5 rounded-lg bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-400 transition-colors" title="Cancel trip">
+                              {processingId === trip.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Ban className="w-3.5 h-3.5" />}
                             </button>
                           </>
                         )}
+                        <button onClick={() => handleDelete(trip.id)} disabled={processingId === trip.id}
+                          className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 transition-colors" title="Delete trip">
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
                       </div>
                     </td>
                   </tr>

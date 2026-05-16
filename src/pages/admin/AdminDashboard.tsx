@@ -4,14 +4,7 @@ import { Link } from 'react-router-dom';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { supabase } from '@/lib/supabase';
 import {
-  Users,
-  ShieldCheck,
-  Car,
-  MessageSquare,
-  UserCheck,
-  UserX,
-  Clock,
-  ChevronRight,
+  Users, ShieldCheck, Car, MessageSquare, UserCheck, UserX, Clock, ChevronRight,
 } from 'lucide-react';
 
 const SUPABASE_URL = 'https://qhbiafoyhvmvyyzwdzhd.supabase.co';
@@ -34,6 +27,7 @@ interface RecentUser {
   email: string;
   role: string;
   is_verified: boolean;
+  verification_status: string;
   created_at: string;
   avatar: string;
 }
@@ -73,85 +67,60 @@ export function AdminDashboard() {
     try {
       const headers = await getHeaders();
 
-      // Fetch ALL profiles
-      const usersRes = await fetch(
-        `${SUPABASE_URL}/rest/v1/profiles?select=*&order=created_at.desc`,
-        { headers }
-      );
+      const [usersRes, verifRes, tripsRes, msgsRes] = await Promise.all([
+        fetch(`${SUPABASE_URL}/rest/v1/profiles?select=*&order=created_at.desc`, { headers }),
+        fetch(`${SUPABASE_URL}/rest/v1/verifications?select=*&order=created_at.desc`, { headers }),
+        fetch(`${SUPABASE_URL}/rest/v1/trips?select=id,status`, { headers }),
+        fetch(`${SUPABASE_URL}/rest/v1/messages?select=id`, { headers }),
+      ]);
+
       const users = usersRes.ok ? await usersRes.json() : [];
-
-      if (users && users.length > 0) {
-        const drivers = users.filter((u: any) => u.role === 'driver');
-        const passengers = users.filter((u: any) => u.role === 'passenger');
-        const verified = users.filter((u: any) => u.is_verified);
-
-        setStats((s) => ({
-          ...s,
-          totalUsers: users.length,
-          totalDrivers: drivers.length,
-          totalPassengers: passengers.length,
-          approvedDrivers: verified.length,
-        }));
-
-        setRecentUsers(users.slice(0, 5).map((u: any) => ({
-          id: u.id,
-          name: u.name || 'Unknown',
-          email: u.email || '',
-          role: u.role || 'passenger',
-          is_verified: u.is_verified || false,
-          created_at: u.created_at,
-          avatar: u.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${u.id}`,
-        })));
-      }
-
-      // Fetch ALL verifications
-      const verifRes = await fetch(
-        `${SUPABASE_URL}/rest/v1/verifications?select=*&order=created_at.desc`,
-        { headers }
-      );
       const verifications = verifRes.ok ? await verifRes.json() : [];
-
-      if (verifications) {
-        const pending = verifications.filter((v: any) => v.status === 'uploaded' || v.status === 'pending');
-        const rejected = verifications.filter((v: any) => v.status === 'rejected');
-
-        setStats((s) => ({
-          ...s,
-          pendingVerifications: pending.length,
-          rejectedVerifications: rejected.length,
-        }));
-
-        const pendingWithUsers = pending.slice(0, 5).map((v: any) => {
-          const user = users?.find((u: any) => u.id === v.user_id);
-          return {
-            id: v.id,
-            user_id: v.user_id,
-            doc_type: v.doc_type,
-            status: v.status,
-            created_at: v.created_at,
-            user_name: user?.name || 'Unknown',
-            user_email: user?.email || '',
-            user_avatar: user?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${v.user_id}`,
-          };
-        });
-        setPendingVerifications(pendingWithUsers);
-      }
-
-      // Count trips
-      const tripsRes = await fetch(
-        `${SUPABASE_URL}/rest/v1/trips?select=id`,
-        { headers }
-      );
       const trips = tripsRes.ok ? await tripsRes.json() : [];
-      setStats((s) => ({ ...s, totalTrips: trips.length }));
-
-      // Count messages
-      const msgsRes = await fetch(
-        `${SUPABASE_URL}/rest/v1/messages?select=id`,
-        { headers }
-      );
       const msgs = msgsRes.ok ? await msgsRes.json() : [];
-      setStats((s) => ({ ...s, totalMessages: msgs.length }));
+
+      const drivers = (users || []).filter((u: any) => u.role === 'driver');
+      const passengers = (users || []).filter((u: any) => u.role === 'passenger');
+      const verified = (users || []).filter((u: any) => u.is_verified);
+      const pending = (verifications || []).filter((v: any) => v.status === 'uploaded' || v.status === 'pending');
+      const rejected = (verifications || []).filter((v: any) => v.status === 'rejected');
+
+      setStats({
+        totalUsers: (users || []).length,
+        totalDrivers: drivers.length,
+        totalPassengers: passengers.length,
+        approvedDrivers: verified.length,
+        pendingVerifications: pending.length,
+        rejectedVerifications: rejected.length,
+        totalTrips: (trips || []).length,
+        totalMessages: (msgs || []).length,
+      });
+
+      setRecentUsers((users || []).slice(0, 5).map((u: any) => ({
+        id: u.id,
+        name: u.name || 'Unknown',
+        email: u.email || '',
+        role: u.role || 'passenger',
+        is_verified: u.is_verified || false,
+        verification_status: u.verification_status || 'unverified',
+        created_at: u.created_at,
+        avatar: u.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${u.id}`,
+      })));
+
+      const pendingWithUsers = pending.slice(0, 5).map((v: any) => {
+        const user = (users || []).find((u: any) => u.id === v.user_id);
+        return {
+          id: v.id,
+          user_id: v.user_id,
+          doc_type: v.doc_type,
+          status: v.status,
+          created_at: v.created_at,
+          user_name: user?.name || 'Unknown',
+          user_email: user?.email || '',
+          user_avatar: user?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${v.user_id}`,
+        };
+      });
+      setPendingVerifications(pendingWithUsers);
 
     } catch (err: any) {
       console.error('[AdminDashboard] Error:', err);
@@ -159,8 +128,19 @@ export function AdminDashboard() {
     setLoading(false);
   }, [getHeaders]);
 
+  useEffect(() => { loadDashboardData(); }, [loadDashboardData]);
+
+  // Realtime subscriptions for live stats
   useEffect(() => {
-    loadDashboardData();
+    const channel = supabase
+      .channel('admin-dashboard')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => loadDashboardData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'verifications' }, () => loadDashboardData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'trips' }, () => loadDashboardData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, () => loadDashboardData())
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   }, [loadDashboardData]);
 
   const statCards = [
@@ -168,7 +148,7 @@ export function AdminDashboard() {
     { label: 'Drivers', value: stats.totalDrivers, icon: Car, color: 'bg-[#FF6B00]/10 text-[#FF6B00]', link: '/admin/users' },
     { label: 'Passengers', value: stats.totalPassengers, icon: Users, color: 'bg-green-500/10 text-green-400', link: '/admin/users' },
     { label: 'Pending Verifications', value: stats.pendingVerifications, icon: ShieldCheck, color: 'bg-yellow-500/10 text-yellow-400', link: '/admin/verifications' },
-    { label: 'Verified Drivers', value: stats.approvedDrivers, icon: UserCheck, color: 'bg-purple-500/10 text-purple-400', link: '/admin/verifications' },
+    { label: 'Verified Users', value: stats.approvedDrivers, icon: UserCheck, color: 'bg-purple-500/10 text-purple-400', link: '/admin/verifications' },
     { label: 'Total Trips', value: stats.totalTrips, icon: Car, color: 'bg-cyan-500/10 text-cyan-400', link: '/admin/trips' },
     { label: 'Messages', value: stats.totalMessages, icon: MessageSquare, color: 'bg-pink-500/10 text-pink-400', link: '/admin/messages' },
     { label: 'Rejected', value: stats.rejectedVerifications, icon: UserX, color: 'bg-red-500/10 text-red-400', link: '/admin/verifications' },
@@ -183,6 +163,13 @@ export function AdminDashboard() {
       registration: 'Vehicle Registration', insurance: 'Insurance',
     };
     return labels[type] || type;
+  };
+
+  const verificationStatusLabel = (u: RecentUser) => {
+    if (u.is_verified) return { label: 'Verified', cls: 'bg-green-500/10 text-green-400' };
+    if (u.verification_status === 'submitted' || u.verification_status === 'pending') return { label: 'Pending Review', cls: 'bg-blue-500/10 text-blue-400' };
+    if (u.verification_status === 'rejected') return { label: 'Rejected', cls: 'bg-red-500/10 text-red-400' };
+    return { label: 'Unverified', cls: 'bg-yellow-500/10 text-yellow-400' };
   };
 
   if (loading) {
@@ -232,25 +219,26 @@ export function AdminDashboard() {
                 <p className="text-sm text-[#A0A0A0]">No users yet</p>
               </div>
             ) : (
-              recentUsers.map((user) => (
-                <div key={user.id} className="flex items-center gap-3 p-4 hover:bg-white/[0.02] transition-colors">
-                  <img src={user.avatar} alt="" className="w-10 h-10 rounded-full bg-[#1B1F27]" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-white truncate">{user.name}</p>
-                    <p className="text-xs text-[#A0A0A0] truncate">{user.email}</p>
+              recentUsers.map((user) => {
+                const vs = verificationStatusLabel(user);
+                return (
+                  <div key={user.id} className="flex items-center gap-3 p-4 hover:bg-white/[0.02] transition-colors">
+                    <img src={user.avatar} alt="" className="w-10 h-10 rounded-full bg-[#1B1F27]" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-white truncate">{user.name}</p>
+                      <p className="text-xs text-[#A0A0A0] truncate">{user.email}</p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full capitalize ${
+                        user.role === 'driver' ? 'bg-[#FF6B00]/10 text-[#FF6B00]' :
+                        user.role === 'admin' ? 'bg-purple-500/10 text-purple-400' :
+                        'bg-green-500/10 text-green-400'
+                      }`}>{user.role}</span>
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full ${vs.cls}`}>{vs.label}</span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <span className={`text-[10px] px-2 py-0.5 rounded-full capitalize ${
-                      user.role === 'driver' ? 'bg-[#FF6B00]/10 text-[#FF6B00]' :
-                      user.role === 'admin' ? 'bg-purple-500/10 text-purple-400' :
-                      'bg-green-500/10 text-green-400'
-                    }`}>{user.role}</span>
-                    <span className={`text-[10px] px-2 py-0.5 rounded-full ${user.is_verified ? 'bg-green-500/10 text-green-400' : 'bg-yellow-500/10 text-yellow-400'}`}>
-                      {user.is_verified ? 'Verified' : 'Pending'}
-                    </span>
-                  </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         </motion.div>

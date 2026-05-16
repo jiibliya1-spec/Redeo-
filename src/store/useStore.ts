@@ -3,6 +3,9 @@ import { persist } from 'zustand/middleware';
 import type { User, Trip, Booking, SearchFilters } from '@/types';
 import { supabase } from '@/lib/supabase';
 
+const SUPABASE_URL = 'https://qhbiafoyhvmvyyzwdzhd.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoYmlhZm95aHZtdnl5endkemhkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3OTIwNDcsImV4cCI6MjA5NDM2ODA0N30.04MftiDjQUrnGegTeaL88WyES9ydDKxRrrmVua0rVbM';
+
 interface AppState {
   user: User | null;
   isAuthenticated: boolean;
@@ -56,23 +59,20 @@ function setLocalProfile(data: Partial<User>) {
 function clearLocalProfile() {
   try {
     localStorage.removeItem(PROFILE_KEY);
-    console.log('[clearLocalProfile] Profile cleared from localStorage');
   } catch { /* silent */ }
 }
 
-// ─── Fetch profile from Supabase via REST API (bypasses RLS) ───
+// ─── Fetch profile from Supabase via REST API ───
 async function fetchProfileFromSupabase(userId: string): Promise<Partial<User> | null> {
   try {
     const { data: sessionData } = await supabase.auth.getSession();
     const jwt = sessionData.session?.access_token || '';
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-    const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
     const res = await fetch(
-      `${supabaseUrl}/rest/v1/profiles?select=*&id=eq.${userId}&limit=1`,
+      `${SUPABASE_URL}/rest/v1/profiles?select=*&id=eq.${userId}&limit=1`,
       {
         headers: {
-          'apikey': supabaseKey,
+          'apikey': SUPABASE_ANON_KEY,
           'Authorization': `Bearer ${jwt}`,
         },
       }
@@ -91,7 +91,7 @@ async function fetchProfileFromSupabase(userId: string): Promise<Partial<User> |
 
     const profile = data[0];
     const role = profile.role || 'passenger';
-    console.log('[fetchProfile] Got profile from Supabase. Role:', role, 'is_verified:', profile.is_verified, 'verification_status:', profile.verification_status);
+    console.log('[fetchProfile] Got profile. Role:', role, 'is_verified:', profile.is_verified, 'verification_status:', profile.verification_status);
 
     return {
       ...profile,
@@ -162,7 +162,7 @@ export const useStore = create<AppState>()(
 
           if (freshProfile) {
             const user = buildUser(session.user, freshProfile);
-            console.log('[initAuth] Using Supabase profile. Role:', user.role);
+            console.log('[initAuth] Using Supabase profile. Role:', user.role, 'is_verified:', user.is_verified);
             set({ user, isAuthenticated: true, isLoading: false });
             setLocalProfile(user);
             return;
@@ -189,10 +189,21 @@ export const useStore = create<AppState>()(
         const freshProfile = await fetchProfileFromSupabase(currentUser.id);
 
         if (freshProfile) {
-          const user = buildUser({ id: currentUser.id, email: currentUser.email, user_metadata: {} }, freshProfile);
-          console.log('[refreshProfile] Profile refreshed. Role:', user.role);
-          set({ user: { ...currentUser, ...user } as User });
-          setLocalProfile(user);
+          const updated: User = {
+            ...currentUser,
+            is_verified: freshProfile.is_verified ?? currentUser.is_verified,
+            verification_status: freshProfile.verification_status || currentUser.verification_status,
+            role: (freshProfile.role as any) || currentUser.role,
+            name: freshProfile.name || currentUser.name,
+            avatar: freshProfile.avatar || currentUser.avatar,
+            phone: freshProfile.phone || currentUser.phone,
+            bio: freshProfile.bio || currentUser.bio,
+            rating: freshProfile.rating || currentUser.rating,
+            trips_count: freshProfile.trips_count || currentUser.trips_count,
+          };
+          console.log('[refreshProfile] Updated. is_verified:', updated.is_verified, 'verification_status:', updated.verification_status);
+          set({ user: updated });
+          setLocalProfile(updated);
         }
       },
 
@@ -212,10 +223,9 @@ export const useStore = create<AppState>()(
           if (authError) return { success: false, error: authError.message };
           if (!authData.user) return { success: false, error: 'No user returned' };
 
-          // Try insert profile
           const profileData = {
             id: authData.user.id, name, email, phone, role,
-            is_verified: false, rating: 5.0, trips_count: 0,
+            is_verified: false, verification_status: 'unverified', rating: 5.0, trips_count: 0,
             avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(name)}`, bio: '',
           };
 
@@ -224,7 +234,6 @@ export const useStore = create<AppState>()(
 
           setLocalProfile(profileData as any);
 
-          // Auto sign in
           const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({ email, password });
           if (signInError) return { success: true };
 
@@ -247,16 +256,14 @@ export const useStore = create<AppState>()(
 
           if (freshProfile) {
             const user = buildUser(data.user, freshProfile);
-            console.log('[signIn] Supabase profile. Role:', user.role);
+            console.log('[signIn] Supabase profile. Role:', user.role, 'is_verified:', user.is_verified);
             set({ user, isAuthenticated: true });
             setLocalProfile(user);
             return { success: true };
           }
 
-          // Fallback to localStorage
           const localProfile = getLocalProfile(data.user.id);
           const user = buildUser(data.user, localProfile);
-          console.log('[signIn] localStorage fallback. Role:', user.role);
           set({ user, isAuthenticated: true });
           setLocalProfile(user);
           return { success: true };
@@ -269,7 +276,6 @@ export const useStore = create<AppState>()(
       signOut: async () => {
         await supabase.auth.signOut();
         clearLocalProfile();
-        // Clear ALL caches
         try {
           localStorage.removeItem('wansniauto-storage');
           localStorage.removeItem('wansniauto_profile_data');

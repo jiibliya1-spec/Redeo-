@@ -67,35 +67,20 @@ export function AdminVerifications() {
     try {
       const headers = await getHeaders();
 
-      // Fetch ALL verifications
-      const verifRes = await fetch(
-        `${SUPABASE_URL}/rest/v1/verifications?select=*&order=created_at.desc`,
-        { headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': headers['Authorization'] } }
-      );
-      
-      if (!verifRes.ok) {
-        const errorText = await verifRes.text();
-        console.error('[AdminVerifications] Error response:', errorText.substring(0, 500));
-        throw new Error('Server returned: ' + verifRes.status + ' ' + verifRes.statusText);
-      }
-      
-      const verifData = await verifRes.json();
+      const [verifRes, usersRes] = await Promise.all([
+        fetch(`${SUPABASE_URL}/rest/v1/verifications?select=*&order=created_at.desc`, { headers }),
+        fetch(`${SUPABASE_URL}/rest/v1/profiles?select=id,name,email,avatar,role`, { headers }),
+      ]);
 
-      // Get all users
-      const usersRes = await fetch(
-        `${SUPABASE_URL}/rest/v1/profiles?select=id,name,email,avatar,role`,
-        { headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': headers['Authorization'] } }
-      );
-      
-      let usersData: any[] = [];
-      if (usersRes.ok) {
-        usersData = await usersRes.json();
-      } else {
-        console.warn('[AdminVerifications] Users fetch failed:', usersRes.status);
-      }
+      if (!verifRes.ok) throw new Error('Status ' + verifRes.status + ': ' + await verifRes.text());
+
+      const [verifData, usersData] = await Promise.all([
+        verifRes.json(),
+        usersRes.ok ? usersRes.json() : [],
+      ]);
 
       const combined = (verifData || []).map((v: any) => {
-        const u = usersData?.find((u: any) => u.id === v.user_id);
+        const u = (usersData || []).find((u: any) => u.id === v.user_id);
         return {
           ...v,
           user_name: u?.name || 'Unknown',
@@ -107,13 +92,27 @@ export function AdminVerifications() {
 
       setVerifications(combined);
     } catch (err: any) {
-      toast.error('Failed to load verifications. Please login as admin.');
-      console.error('[AdminVerifications] Error:', err);
+      toast.error('Failed to load verifications: ' + err.message);
     }
     setLoading(false);
   }, [getHeaders]);
 
   useEffect(() => { loadVerifications(); }, [loadVerifications]);
+
+  // Realtime subscription
+  useEffect(() => {
+    const channel = supabase
+      .channel('admin-verifications')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'verifications' }, () => {
+        loadVerifications();
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles' }, () => {
+        loadVerifications();
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [loadVerifications]);
 
   useEffect(() => {
     let result = verifications;
@@ -138,50 +137,37 @@ export function AdminVerifications() {
     try {
       const headers = await getHeaders();
 
-      // Update verification to 'verified'
-      const res = await fetch(
-        `${SUPABASE_URL}/rest/v1/verifications?id=eq.${id}`,
-        {
-          method: 'PATCH',
-          headers,
-          body: JSON.stringify({
-            status: 'verified',
-            admin_notes: 'Approved by admin',
-            updated_at: new Date().toISOString(),
-          }),
-        }
-      );
+      // 1. Update this verification to 'verified'
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/verifications?id=eq.${id}`, {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify({ status: 'verified', admin_notes: 'Approved by admin', updated_at: new Date().toISOString() }),
+      });
       if (!res.ok) throw new Error(await res.text());
 
-      // Check if all docs verified for this user
+      // 2. Check if ALL docs for this user are now verified
       const verifRes = await fetch(
         `${SUPABASE_URL}/rest/v1/verifications?select=status&user_id=eq.${userId}`,
-        { headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': headers['Authorization'] } }
+        { headers }
       );
       const userVerifs = verifRes.ok ? await verifRes.json() : [];
       const allVerified = userVerifs.length > 0 && userVerifs.every((v: any) => v.status === 'verified');
 
       if (allVerified) {
-        // Mark user as verified - BOTH is_verified AND verification_status
-        const profileRes = await fetch(
-          `${SUPABASE_URL}/rest/v1/profiles?id=eq.${userId}`,
-          {
-            method: 'PATCH',
-            headers,
-            body: JSON.stringify({
-              is_verified: true,
-              verification_status: 'approved',
-            }),
-          }
-        );
+        // 3. Mark user as fully verified
+        const profileRes = await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${userId}`, {
+          method: 'PATCH',
+          headers,
+          body: JSON.stringify({ is_verified: true, verification_status: 'approved' }),
+        });
         if (!profileRes.ok) {
           console.error('[Admin] Profile update failed:', await profileRes.text());
         } else {
-          console.log('[Admin] Driver', userId, 'marked as verified!');
+          toast.success('All documents approved! User is now fully verified.');
         }
-        toast.success('All documents approved! Driver is now verified.');
       } else {
-        toast.success('Document approved! ' + (userVerifs.length - userVerifs.filter((v: any) => v.status === 'verified').length) + ' docs remaining');
+        const remaining = userVerifs.filter((v: any) => v.status !== 'verified').length;
+        toast.success(`Document approved! ${remaining} doc(s) still pending.`);
       }
 
       await loadVerifications();
@@ -192,7 +178,7 @@ export function AdminVerifications() {
     setSelectedDoc(null);
   };
 
-  const handleReject = async (id: string) => {
+  const handleReject = async (id: string, userId: string) => {
     if (!rejectReason.trim()) {
       toast.error('Please provide a rejection reason');
       return;
@@ -201,21 +187,22 @@ export function AdminVerifications() {
     try {
       const headers = await getHeaders();
 
-      const res = await fetch(
-        `${SUPABASE_URL}/rest/v1/verifications?id=eq.${id}`,
-        {
-          method: 'PATCH',
-          headers,
-          body: JSON.stringify({
-            status: 'rejected',
-            admin_notes: rejectReason,
-            updated_at: new Date().toISOString(),
-          }),
-        }
-      );
+      // 1. Update this verification to 'rejected'
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/verifications?id=eq.${id}`, {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify({ status: 'rejected', admin_notes: rejectReason, updated_at: new Date().toISOString() }),
+      });
       if (!res.ok) throw new Error(await res.text());
 
-      toast.success('Document rejected');
+      // 2. Update user profile verification_status to 'rejected'
+      await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${userId}`, {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify({ verification_status: 'rejected', is_verified: false }),
+      });
+
+      toast.success('Document rejected. User has been notified.');
       await loadVerifications();
     } catch (err: any) {
       toast.error('Rejection failed: ' + err.message);
@@ -252,7 +239,7 @@ export function AdminVerifications() {
         {([
           { key: 'all' as StatusFilter, label: 'All', count: statusCounts.all, color: 'bg-white/5 text-[#A0A0A0]' },
           { key: 'uploaded' as StatusFilter, label: 'Uploaded', count: statusCounts.uploaded, color: 'bg-yellow-500/10 text-yellow-400' },
-          { key: 'pending' as StatusFilter, label: 'Pending', count: statusCounts.pending, color: 'bg-blue-500/10 text-blue-400' },
+          { key: 'pending' as StatusFilter, label: 'Pending Review', count: statusCounts.pending, color: 'bg-blue-500/10 text-blue-400' },
           { key: 'verified' as StatusFilter, label: 'Approved', count: statusCounts.verified, color: 'bg-green-500/10 text-green-400' },
           { key: 'rejected' as StatusFilter, label: 'Rejected', count: statusCounts.rejected, color: 'bg-red-500/10 text-red-400' },
         ]).map((tab) => (
@@ -322,14 +309,15 @@ export function AdminVerifications() {
                           {v.status === 'verified' ? <UserCheck className="w-3 h-3" /> :
                            v.status === 'rejected' ? <UserX className="w-3 h-3" /> :
                            <Clock className="w-3 h-3" />}
-                          {v.status}
+                          {v.status === 'pending' ? 'Pending Review' : v.status === 'verified' ? 'Verified' : v.status}
                         </span>
                       </td>
                       <td className="px-5 py-4 text-sm text-[#A0A0A0]">{formatDate(v.created_at)}</td>
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-2">
                           {v.url && (
-                            <button onClick={() => setPreviewImage(v.url)} className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-[#A0A0A0] hover:text-white transition-colors" title="View document">
+                            <button onClick={() => setPreviewImage(v.url)}
+                              className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-[#A0A0A0] hover:text-white transition-colors" title="View document">
                               <Eye className="w-4 h-4" />
                             </button>
                           )}
@@ -396,8 +384,9 @@ export function AdminVerifications() {
                 <div className="mb-4"><img src={selectedDoc.url} alt="Document" className="w-full max-h-40 object-cover rounded-xl border border-white/5" /></div>
               )}
               <div className="flex gap-3">
-                <Button onClick={() => setSelectedDoc(null)} variant="outline" className="flex-1 border-white/10 text-white rounded-xl">Cancel</Button>
-                <Button onClick={() => handleReject(selectedDoc.id)} disabled={processingId === selectedDoc.id || !rejectReason.trim()}
+                <Button onClick={() => { setSelectedDoc(null); setRejectReason(''); }} variant="outline" className="flex-1 border-white/10 text-white rounded-xl">Cancel</Button>
+                <Button onClick={() => handleReject(selectedDoc.id, selectedDoc.user_id)}
+                  disabled={processingId === selectedDoc.id || !rejectReason.trim()}
                   className="flex-1 bg-red-500 text-white hover:bg-red-600 rounded-xl disabled:opacity-50">
                   {processingId === selectedDoc.id ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null} Reject
                 </Button>

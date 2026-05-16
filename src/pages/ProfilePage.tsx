@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useStore } from '@/store/useStore';
 import { useI18n } from '@/lib/i18n';
-import { apiPatch } from '@/lib/supabase';
+import { apiPatch, supabase } from '@/lib/supabase';
 import { uploadAvatar } from '@/services/storageService';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,9 +12,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { Camera, Edit, Check, Shield, Star, Car, Calendar, ChevronRight, Loader2, LogOut, Upload, Globe } from 'lucide-react';
 
+const SUPABASE_URL = 'https://qhbiafoyhvmvyyzwdzhd.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoYmlhZm95aHZtdnl5endkemhkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3OTIwNDcsImV4cCI6MjA5NDM2ODA0N30.04MftiDjQUrnGegTeaL88WyES9ydDKxRrrmVua0rVbM';
+
 export function ProfilePage() {
   const navigate = useNavigate();
-  const { user, signOut, setUser } = useStore();
+  const { user, signOut, setUser, refreshProfile } = useStore();
   const { lang, setLang, t } = useI18n();
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState('');
@@ -25,11 +28,9 @@ export function ProfilePage() {
   const [isUploading, setIsUploading] = useState(false);
   const [showUploadMenu, setShowUploadMenu] = useState(false);
 
-  // Separate refs for gallery vs camera
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
-  // Load user data into form
   useEffect(() => {
     if (user) {
       setName(user.name || '');
@@ -39,7 +40,39 @@ export function ProfilePage() {
     }
   }, [user]);
 
-  // Process uploaded avatar file
+  // Refresh profile on mount to get latest verification status
+  useEffect(() => {
+    refreshProfile();
+  }, []);
+
+  // Realtime subscription for profile verification updates
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const channel = supabase
+      .channel(`profile-page:${user.id}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${user.id}` },
+        async (payload) => {
+          const p = payload.new as any;
+          if (p && user) {
+            setUser({
+              ...user,
+              is_verified: p.is_verified,
+              verification_status: p.verification_status,
+            });
+            if (p.is_verified && !user.is_verified) {
+              toast.success('Your account has been verified!');
+            }
+          }
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [user?.id]);
+
   const processAvatarFile = async (file: File) => {
     if (!user?.id) return;
 
@@ -48,24 +81,17 @@ export function ProfilePage() {
     try {
       const url = await uploadAvatar(user.id, file);
       setAvatarUrl(url);
-
-      // Also update Supabase profile via REST API
       try {
         await apiPatch('profiles', 'id', user.id, { avatar: url });
-      } catch {
-        // table may not exist, localStorage handles it via handleSave
-      }
-
-      // Update local user state
+      } catch { /* fallback handled below */ }
       setUser({ ...user, avatar: url });
       toast.success('Avatar uploaded!');
-    } catch (err: any) {
-      // Fallback: show as data URL
+    } catch {
       const reader = new FileReader();
       reader.onload = (e) => {
         const dataUrl = e.target?.result as string;
         setAvatarUrl(dataUrl);
-        setUser({ ...user, avatar: dataUrl });
+        setUser({ ...user!, avatar: dataUrl });
         toast.success('Avatar saved locally!');
       };
       reader.readAsDataURL(file);
@@ -74,7 +100,6 @@ export function ProfilePage() {
     }
   };
 
-  // Gallery file handler
   const handleGalleryFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -82,7 +107,6 @@ export function ProfilePage() {
     await processAvatarFile(file);
   };
 
-  // Camera file handler
   const handleCameraFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -97,26 +121,21 @@ export function ProfilePage() {
     const updates = { name, bio, phone, avatar: avatarUrl };
 
     try {
-      // Try REST API first (more reliable)
       await apiPatch('profiles', 'id', user.id, updates);
-      toast.success('Profile saved to cloud!');
+      toast.success('Profile saved!');
     } catch (err: any) {
-      console.warn('Supabase save failed, using localStorage:', err.message);
-      saveProfileLocally(updates);
+      console.warn('Supabase save failed:', err.message);
+      try {
+        const stored = localStorage.getItem('wansniauto_profile_data');
+        const existing = stored ? JSON.parse(stored) : {};
+        localStorage.setItem('wansniauto_profile_data', JSON.stringify({ ...existing, ...updates }));
+      } catch { /* silent */ }
       toast.success('Profile saved locally');
     }
 
     setUser({ ...user, ...updates });
     setIsEditing(false);
     setIsSaving(false);
-  };
-
-  const saveProfileLocally = (updates: Partial<typeof user>) => {
-    try {
-      const stored = localStorage.getItem('wansniauto_profile_data');
-      const existing = stored ? JSON.parse(stored) : {};
-      localStorage.setItem('wansniauto_profile_data', JSON.stringify({ ...existing, ...updates }));
-    } catch { /* silent */ }
   };
 
   if (!user) {
@@ -127,6 +146,19 @@ export function ProfilePage() {
     );
   }
 
+  const verificationBadge = () => {
+    if (user.is_verified) {
+      return <span className="flex items-center gap-1 text-xs text-green-400"><Shield className="w-3 h-3" /> {t('profile.verified') || 'Verified'}</span>;
+    }
+    if (user.verification_status === 'submitted' || user.verification_status === 'pending') {
+      return <span className="flex items-center gap-1 text-xs text-blue-400"><Shield className="w-3 h-3" /> Pending Review</span>;
+    }
+    if (user.verification_status === 'rejected') {
+      return <span className="flex items-center gap-1 text-xs text-red-400"><Shield className="w-3 h-3" /> Rejected</span>;
+    }
+    return <span className="flex items-center gap-1 text-xs text-[#A0A0A0]"><Shield className="w-3 h-3" /> {t('profile.unverified') || 'Unverified'}</span>;
+  };
+
   const menuItems = [
     { icon: Shield, label: t('verify.title'), desc: t('verify.subtitle'), action: () => navigate('/verification') },
     { icon: Car, label: t('passenger.title'), desc: t('passenger.title'), action: () => navigate('/dashboard') },
@@ -136,34 +168,15 @@ export function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-[#0F1115] pt-20 pb-8">
-      {/* Hidden inputs for avatar upload */}
-      <input
-        ref={galleryInputRef}
-        type="file"
-        accept="image/jpeg,image/png,image/webp"
-        className="hidden"
-        onChange={handleGalleryFile}
-      />
-      <input
-        ref={cameraInputRef}
-        type="file"
-        accept="image/*"
-        capture="user"
-        className="hidden"
-        onChange={handleCameraFile}
-      />
+      <input ref={galleryInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleGalleryFile} />
+      <input ref={cameraInputRef} type="file" accept="image/*" capture="user" className="hidden" onChange={handleCameraFile} />
 
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Profile Card */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-[#1B1F27] rounded-2xl border border-white/5 p-6 mb-6">
           <div className="flex items-start justify-between mb-6">
             <div className="flex items-center gap-4">
-              {/* Avatar with upload menu */}
               <div className="relative">
-                <div
-                  className="cursor-pointer"
-                  onClick={() => setShowUploadMenu(!showUploadMenu)}
-                >
+                <div className="cursor-pointer" onClick={() => setShowUploadMenu(!showUploadMenu)}>
                   {isUploading ? (
                     <div className="w-20 h-20 rounded-full bg-[#FF6B00]/10 flex items-center justify-center">
                       <Loader2 className="w-8 h-8 text-[#FF6B00] animate-spin" />
@@ -182,24 +195,16 @@ export function ProfilePage() {
                   )}
                 </div>
 
-                {/* Upload menu popup */}
                 {showUploadMenu && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="absolute top-full left-0 mt-2 bg-[#1B1F27] border border-white/10 rounded-xl shadow-xl overflow-hidden z-50 min-w-[160px]"
-                  >
-                    <button
-                      onClick={() => { galleryInputRef.current?.click(); setShowUploadMenu(false); }}
-                      className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition-colors text-left"
-                    >
+                  <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
+                    className="absolute top-full left-0 mt-2 bg-[#1B1F27] border border-white/10 rounded-xl shadow-xl overflow-hidden z-50 min-w-[160px]">
+                    <button onClick={() => { galleryInputRef.current?.click(); setShowUploadMenu(false); }}
+                      className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition-colors text-left">
                       <Upload className="w-4 h-4 text-[#FF6B00]" />
                       <span className="text-sm text-white">Gallery</span>
                     </button>
-                    <button
-                      onClick={() => { cameraInputRef.current?.click(); setShowUploadMenu(false); }}
-                      className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition-colors text-left border-t border-white/5"
-                    >
+                    <button onClick={() => { cameraInputRef.current?.click(); setShowUploadMenu(false); }}
+                      className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition-colors text-left border-t border-white/5">
                       <Camera className="w-4 h-4 text-[#FF6B00]" />
                       <span className="text-sm text-white">Camera</span>
                     </button>
@@ -215,8 +220,7 @@ export function ProfilePage() {
                 )}
                 <p className="text-sm text-[#A0A0A0]">{user.email}</p>
                 <div className="flex items-center gap-2 mt-1">
-                  {user.is_verified && <span className="flex items-center gap-1 text-xs text-[#FF6B00]"><Shield className="w-3 h-3" /> {t('profile.verified')}</span>}
-                  {!user.is_verified && <span className="flex items-center gap-1 text-xs text-[#A0A0A0]"><Shield className="w-3 h-3" /> {t('profile.unverified')}</span>}
+                  {verificationBadge()}
                   <span className="flex items-center gap-1 text-xs text-[#A0A0A0]"><Star className="w-3 h-3 text-[#FF6B00] fill-[#FF6B00]" /> {user.rating || 5}</span>
                 </div>
               </div>
@@ -263,15 +267,10 @@ export function ProfilePage() {
               { code: 'fr' as const, label: 'Francais', flag: 'FR' },
               { code: 'ar' as const, label: 'Arabe', flag: 'AR' },
             ]).map((l) => (
-              <button
-                key={l.code}
-                onClick={() => setLang(l.code)}
+              <button key={l.code} onClick={() => setLang(l.code)}
                 className={`p-3 rounded-xl border text-center transition-all ${
-                  lang === l.code
-                    ? 'border-[#FF6B00] bg-[#FF6B00]/10 text-[#FF6B00]'
-                    : 'border-white/10 text-white hover:border-white/20'
-                }`}
-              >
+                  lang === l.code ? 'border-[#FF6B00] bg-[#FF6B00]/10 text-[#FF6B00]' : 'border-white/10 text-white hover:border-white/20'
+                }`}>
                 <span className="text-xs font-bold block mb-1">{l.flag}</span>
                 <span className="text-xs">{l.label}</span>
               </button>
@@ -282,14 +281,9 @@ export function ProfilePage() {
         {/* Menu */}
         <div className="bg-[#1B1F27] rounded-2xl border border-white/5 overflow-hidden mb-6">
           {menuItems.map((item, i) => (
-            <motion.button
-              key={item.label}
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: i * 0.05 }}
+            <motion.button key={item.label} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}
               onClick={item.action}
-              className="w-full flex items-center gap-4 p-4 hover:bg-white/5 transition-colors border-b border-white/5 last:border-0"
-            >
+              className="w-full flex items-center gap-4 p-4 hover:bg-white/5 transition-colors border-b border-white/5 last:border-0">
               <div className="w-10 h-10 rounded-xl bg-[#FF6B00]/10 flex items-center justify-center">
                 <item.icon className="w-5 h-5 text-[#FF6B00]" />
               </div>

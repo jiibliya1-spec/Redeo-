@@ -5,7 +5,7 @@ import { useI18n } from '@/lib/i18n';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { Shield, Check, Upload, CreditCard, Camera, FileText, AlertCircle, Loader2, X } from 'lucide-react';
+import { Shield, Check, Upload, CreditCard, Camera, FileText, AlertCircle, Loader2, X, Clock } from 'lucide-react';
 
 type DocType = 'cin' | 'license' | 'selfie' | 'registration' | 'insurance';
 
@@ -48,17 +48,20 @@ export function VerificationPage() {
     };
   }, []);
 
-  // Load from Supabase
+  // Load from Supabase - ALSO refresh user profile status
   const loadVerifications = useCallback(async () => {
     if (!user?.id) return;
     try {
       const headers = await getHeaders();
+      
+      // 1. Fetch user's verifications
       const res = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/verifications?select=*&user_id=eq.${user.id}&order=created_at.desc`,
         { headers }
       );
       if (!res.ok) throw new Error(await res.text());
       const data = await res.json();
+      
       if (data && data.length > 0) {
         setSteps(prev =>
           prev.map(s => {
@@ -67,10 +70,31 @@ export function VerificationPage() {
           })
         );
       }
+      
+      // 2. ALSO fetch fresh user profile to get is_verified status
+      const profileRes = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/profiles?select=is_verified,verification_status&id=eq.${user.id}&limit=1`,
+        { headers }
+      );
+      if (profileRes.ok) {
+        const profileData = await profileRes.json();
+        if (profileData && profileData.length > 0) {
+          const p = profileData[0];
+          // Update user in store with fresh status
+          if (user && (user.is_verified !== p.is_verified || user.verification_status !== p.verification_status)) {
+            setUser({ 
+              ...user, 
+              is_verified: p.is_verified, 
+              verification_status: p.verification_status 
+            });
+            console.log('[Verification] Profile updated:', p.is_verified, p.verification_status);
+          }
+        }
+      }
     } catch (err: any) {
       console.log('[Verification] Load error:', err.message);
     }
-  }, [user?.id, getHeaders]);
+  }, [user?.id, getHeaders, user, setUser]);
 
   useEffect(() => {
     if (user?.id) loadVerifications();
@@ -307,29 +331,45 @@ export function VerificationPage() {
           </div>
         </div>
 
-        {/* Status Banner */}
-        {user.is_verified ? (
+        {/* Status Banner - Shows REAL status from Supabase */}
+        {user?.is_verified === true ? (
           <div className="bg-green-500/10 border border-green-500/20 rounded-2xl p-4 mb-6 flex items-center gap-3">
-            <Check className="w-5 h-5 text-green-400" />
+            <div className="w-10 h-10 bg-green-500/20 rounded-full flex items-center justify-center">
+              <Check className="w-5 h-5 text-green-400" />
+            </div>
             <div>
-              <p className="text-sm text-green-400 font-semibold">{t('verify.verified') || 'Verified'}</p>
-              <p className="text-xs text-[#A0A0A0]">{t('verify.verified_desc') || 'Your documents have been approved'}</p>
+              <p className="text-sm text-green-400 font-semibold">✅ Fully Verified</p>
+              <p className="text-xs text-[#A0A0A0]">Your documents have been approved by admin. You can now publish trips!</p>
+            </div>
+          </div>
+        ) : user?.verification_status === 'submitted' || user?.verification_status === 'pending' ? (
+          <div className="bg-blue-500/10 border border-blue-500/20 rounded-2xl p-4 mb-6 flex items-center gap-3">
+            <div className="w-10 h-10 bg-blue-500/20 rounded-full flex items-center justify-center">
+              <Clock className="w-5 h-5 text-blue-400" />
+            </div>
+            <div>
+              <p className="text-sm text-blue-400 font-semibold">⏳ Under Review</p>
+              <p className="text-xs text-[#A0A0A0]">Your documents have been submitted. Waiting for admin approval...</p>
             </div>
           </div>
         ) : completed > 0 ? (
           <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-2xl p-4 mb-6 flex items-center gap-3">
-            <AlertCircle className="w-5 h-5 text-yellow-400" />
+            <div className="w-10 h-10 bg-yellow-500/20 rounded-full flex items-center justify-center">
+              <AlertCircle className="w-5 h-5 text-yellow-400" />
+            </div>
             <div>
-              <p className="text-sm text-yellow-400 font-semibold">{t('verify.partial') || 'Documents Uploaded'}</p>
-              <p className="text-xs text-[#A0A0A0]">{steps.length - completed} {t('verify.remaining_docs') || 'documents remaining'}</p>
+              <p className="text-sm text-yellow-400 font-semibold">📤 Documents Ready</p>
+              <p className="text-xs text-[#A0A0A0]">{completed}/{steps.length} uploaded. Click "Submit for Review" below!</p>
             </div>
           </div>
         ) : (
-          <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-2xl p-4 mb-6 flex items-center gap-3">
-            <AlertCircle className="w-5 h-5 text-yellow-400" />
+          <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-4 mb-6 flex items-center gap-3">
+            <div className="w-10 h-10 bg-red-500/20 rounded-full flex items-center justify-center">
+              <AlertCircle className="w-5 h-5 text-red-400" />
+            </div>
             <div>
-              <p className="text-sm text-yellow-400 font-semibold">{t('verify.required') || 'Verification Required'}</p>
-              <p className="text-xs text-[#A0A0A0]">{t('verify.upload_docs') || 'Please upload all required documents'}</p>
+              <p className="text-sm text-red-400 font-semibold">⚠️ Verification Required</p>
+              <p className="text-xs text-[#A0A0A0]">Please upload all required documents to get verified</p>
             </div>
           </div>
         )}

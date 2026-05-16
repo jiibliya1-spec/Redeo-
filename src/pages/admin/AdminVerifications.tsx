@@ -162,20 +162,26 @@ export function AdminVerifications() {
       const allVerified = userVerifs.length > 0 && userVerifs.every((v: any) => v.status === 'verified');
 
       if (allVerified) {
-        // Mark user as verified - try is_verified column only (verification_status may not exist)
-        await fetch(
+        // Mark user as verified - BOTH is_verified AND verification_status
+        const profileRes = await fetch(
           `${SUPABASE_URL}/rest/v1/profiles?id=eq.${userId}`,
           {
             method: 'PATCH',
             headers,
             body: JSON.stringify({
               is_verified: true,
+              verification_status: 'approved',
             }),
           }
         );
+        if (!profileRes.ok) {
+          console.error('[Admin] Profile update failed:', await profileRes.text());
+        } else {
+          console.log('[Admin] Driver', userId, 'marked as verified!');
+        }
         toast.success('All documents approved! Driver is now verified.');
       } else {
-        toast.success('Document approved!');
+        toast.success('Document approved! ' + (userVerifs.length - userVerifs.filter((v: any) => v.status === 'verified').length) + ' docs remaining');
       }
 
       await loadVerifications();

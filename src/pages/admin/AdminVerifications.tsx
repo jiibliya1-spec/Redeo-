@@ -148,29 +148,17 @@ export function AdminVerifications() {
       });
       if (!res.ok) throw new Error(await res.text());
 
-      // 2. Check if ALL docs for this user are now verified
-      const verifRes = await fetch(
-        `${SUPABASE_URL}/rest/v1/verifications?select=status&user_id=eq.${userId}`,
-        { headers }
-      );
-      const userVerifs = verifRes.ok ? await verifRes.json() : [];
-      const allVerified = userVerifs.length > 0 && userVerifs.every((v: any) => v.status === 'verified');
-
-      if (allVerified) {
-        // 3. Mark user as fully verified
-        const profileRes = await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${userId}`, {
-          method: 'PATCH',
-          headers,
-          body: JSON.stringify({ is_verified: true, verification_status: 'approved' }),
-        });
-        if (!profileRes.ok) {
-          console.error('[Admin] Profile update failed:', await profileRes.text());
-        } else {
-          toast.success('All documents approved! User is now fully verified.');
-        }
+      // 2. Mark user as verified on ANY doc approval (simplified)
+      const profileRes = await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${userId}`, {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify({ is_verified: true, verification_status: 'approved' }),
+      });
+      if (!profileRes.ok) {
+        console.error('[Admin] Profile update failed:', await profileRes.text());
+        toast.success('Doc approved but profile update failed');
       } else {
-        const remaining = userVerifs.filter((v: any) => v.status !== 'verified').length;
-        toast.success(`Document approved! ${remaining} doc(s) still pending.`);
+        toast.success('Document approved! User is now verified.');
       }
 
       await loadVerifications();

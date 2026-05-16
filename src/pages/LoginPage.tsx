@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useStore } from '@/store/useStore';
@@ -11,8 +11,22 @@ import { Car, Eye, EyeOff, Loader2 } from 'lucide-react';
 
 export function LoginPage() {
   const navigate = useNavigate();
-  const { signIn } = useStore();
+  const { signIn, user, isAuthenticated } = useStore();
   const { t } = useI18n();
+
+  // Redirect based on role after login
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      console.log('[LoginPage] User authenticated, role:', user.role);
+      if (user.role === 'admin') {
+        console.log('[LoginPage] Admin detected → redirecting to /admin');
+        navigate('/admin', { replace: true });
+      } else {
+        console.log('[LoginPage] Non-admin → redirecting to /dashboard');
+        navigate('/dashboard', { replace: true });
+      }
+    }
+  }, [isAuthenticated, user, navigate]);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -26,7 +40,7 @@ export function LoginPage() {
 
     if (result.success) {
       toast.success('Welcome back!');
-      navigate('/dashboard');
+      // useEffect will handle redirect based on role
     } else {
       toast.error(result.error || 'Login failed');
     }

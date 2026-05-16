@@ -88,12 +88,14 @@ export const useStore = create<AppState>()(
             if (error || !profile) {
               // Table doesn't exist or row not found - use localStorage fallback
               const localProfile = getLocalProfile(session.user.id);
+              const resolvedRole = (localProfile?.role as any) || (session.user.user_metadata?.role as any) || 'passenger';
+              console.log('[initAuth] Profile not found, using localStorage. Role:', resolvedRole);
               const userData: User = {
                 id: session.user.id,
                 name: localProfile?.name || session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
                 email: session.user.email || '',
                 phone: localProfile?.phone || session.user.user_metadata?.phone || '',
-                role: (localProfile?.role as any) || (session.user.user_metadata?.role as any) || 'passenger',
+                role: resolvedRole,
                 is_verified: localProfile?.is_verified || false,
                 rating: localProfile?.rating || 5.0,
                 trips_count: 0,
@@ -101,14 +103,16 @@ export const useStore = create<AppState>()(
                 bio: localProfile?.bio || '',
               };
               set({ user: userData, isAuthenticated: true, isLoading: false });
-              // Save to localStorage for persistence
               setLocalProfile(userData);
               return;
             }
 
-            set({ user: profile as User, isAuthenticated: true, isLoading: false });
-            // Also save to localStorage as backup
-            setLocalProfile(profile as User);
+            // ALWAYS preserve the role from Supabase profile
+            const resolvedRole = (profile as any).role || 'passenger';
+            console.log('[initAuth] Profile loaded from Supabase. Role:', resolvedRole);
+            const userWithRole = { ...profile, role: resolvedRole } as User;
+            set({ user: userWithRole, isAuthenticated: true, isLoading: false });
+            setLocalProfile(userWithRole);
             return;
           }
           set({ isLoading: false });
@@ -211,12 +215,14 @@ export const useStore = create<AppState>()(
           if (profileError || !profile) {
             // Use localStorage fallback or create from auth data
             const localProfile = getLocalProfile(data.user.id);
+            const resolvedRole = (localProfile?.role as any) || (data.user.user_metadata?.role as any) || 'passenger';
+            console.log('[signIn] Profile not found, using fallback. Role:', resolvedRole);
             const user: User = {
               id: data.user.id,
               name: localProfile?.name || data.user.user_metadata?.name || email.split('@')[0],
               email,
               phone: localProfile?.phone || data.user.user_metadata?.phone || '',
-              role: (localProfile?.role as any) || (data.user.user_metadata?.role as any) || 'passenger',
+              role: resolvedRole,
               is_verified: localProfile?.is_verified || false,
               rating: localProfile?.rating || 5.0,
               trips_count: 0,
@@ -228,8 +234,12 @@ export const useStore = create<AppState>()(
             return { success: true };
           }
 
-          set({ user: profile as User, isAuthenticated: true });
-          setLocalProfile(profile as User);
+          // ALWAYS preserve the role from Supabase profile
+          const resolvedRole = (profile as any).role || 'passenger';
+          console.log('[signIn] Profile loaded. Role:', resolvedRole);
+          const userWithRole = { ...profile, role: resolvedRole } as User;
+          set({ user: userWithRole, isAuthenticated: true });
+          setLocalProfile(userWithRole);
           return { success: true };
         } catch (err: any) {
           return { success: false, error: err.message || 'Login failed' };

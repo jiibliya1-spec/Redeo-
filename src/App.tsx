@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
 import { useStore } from '@/store/useStore';
 import { Navbar } from '@/components/Navbar';
@@ -26,6 +26,65 @@ import { PublishTripPage } from '@/pages/PublishTripPage';
 import { Toaster } from '@/components/ui/sonner';
 import { Spinner } from '@/components/ui/spinner';
 
+/* ─── Role-based redirect for /dashboard ─── */
+function DashboardRouter() {
+  const { user, isAuthenticated } = useStore();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    console.log('[DashboardRouter] User role:', user?.role);
+    if (user?.role === 'admin') {
+      console.log('[DashboardRouter] Admin → redirecting to /admin');
+      navigate('/admin', { replace: true });
+    }
+    // else: render the appropriate dashboard component below
+  }, [isAuthenticated, user, navigate]);
+
+  if (!isAuthenticated) return <Navigate to="/login" />;
+  if (user?.role === 'admin') return <Navigate to="/admin" replace />;
+  if (user?.role === 'driver') return <DriverDashboard />;
+  return <PassengerDashboard />;
+}
+
+/* ─── Protected login - redirect if already authenticated ─── */
+function ProtectedLogin() {
+  const { isAuthenticated, user } = useStore();
+  if (isAuthenticated) {
+    if (user?.role === 'admin') return <Navigate to="/admin" replace />;
+    return <Navigate to="/dashboard" replace />;
+  }
+  return <LoginPage />;
+}
+
+/* ─── Protected register - redirect if already authenticated ─── */
+function ProtectedRegister() {
+  const { isAuthenticated, user } = useStore();
+  if (isAuthenticated) {
+    if (user?.role === 'admin') return <Navigate to="/admin" replace />;
+    return <Navigate to="/dashboard" replace />;
+  }
+  return <RegisterPage />;
+}
+
+/* ─── Admin pages wrapper ─── */
+function AdminRoutes() {
+  return (
+    <AdminRouteGuard>
+      <Routes>
+        <Route path="/" element={<AdminDashboard />} />
+        <Route path="/verifications" element={<AdminVerifications />} />
+        <Route path="/users" element={<AdminUsers />} />
+        <Route path="/trips" element={<AdminTrips />} />
+        <Route path="/messages" element={<AdminMessages />} />
+        <Route path="/settings" element={<AdminSettings />} />
+        <Route path="*" element={<Navigate to="/admin" replace />} />
+      </Routes>
+    </AdminRouteGuard>
+  );
+}
+
+/* ─── App content with conditional navbar ─── */
 function AppContent() {
   const { isAuthenticated, user, isLoading, initAuth } = useStore();
 
@@ -44,57 +103,38 @@ function AppContent() {
     );
   }
 
+  const isAdmin = user?.role === 'admin';
+
   return (
     <div className="min-h-screen bg-[#0F1115] text-white font-sans">
-      <Routes>
-        {/* Admin routes - no navbar/bottomnav */}
-        <Route path="/admin/*" element={
-          <AdminRouteGuard>
-            <Routes>
-              <Route path="/" element={<AdminDashboard />} />
-              <Route path="/verifications" element={<AdminVerifications />} />
-              <Route path="/users" element={<AdminUsers />} />
-              <Route path="/trips" element={<AdminTrips />} />
-              <Route path="/messages" element={<AdminMessages />} />
-              <Route path="/settings" element={<AdminSettings />} />
-              <Route path="*" element={<Navigate to="/admin" replace />} />
-            </Routes>
-          </AdminRouteGuard>
-        } />
-      </Routes>
+      {/* Show navbar only for non-admin users */}
+      {!isAdmin && <Navbar />}
 
-      {/* Non-admin routes with navbar/bottomnav */}
-      <Routes>
-        <Route path="/admin/*" element={null} />
-        <Route path="*" element={
-          <>
-            <Navbar />
-            <main className="pb-20 md:pb-0">
-              <Routes>
-                <Route path="/" element={<LandingPage />} />
-                <Route path="/search" element={<SearchResultsPage />} />
-                <Route path="/trip/:id" element={<TripDetailsPage />} />
-                <Route path="/booking/:id" element={<BookingPage />} />
-                <Route path="/login" element={!isAuthenticated ? <LoginPage /> : <Navigate to="/dashboard" />} />
-                <Route path="/register" element={!isAuthenticated ? <RegisterPage /> : <Navigate to="/dashboard" />} />
-                <Route path="/dashboard" element={
-                  isAuthenticated ? (
-                    user?.role === 'driver' ? <DriverDashboard /> : <PassengerDashboard />
-                  ) : <Navigate to="/login" />
-                } />
-                <Route path="/driver" element={isAuthenticated && (user?.role === 'driver' || user?.role === 'admin') ? <DriverDashboard /> : <Navigate to="/login" />} />
-                <Route path="/publish-trip" element={isAuthenticated ? <PublishTripPage /> : <Navigate to="/login" />} />
-                <Route path="/profile" element={isAuthenticated ? <ProfilePage /> : <Navigate to="/login" />} />
-                <Route path="/verification" element={isAuthenticated ? <VerificationPage /> : <Navigate to="/login" />} />
-                <Route path="/messages" element={isAuthenticated ? <MessagesPage /> : <Navigate to="/login" />} />
-                <Route path="/notifications" element={isAuthenticated ? <NotificationsPage /> : <Navigate to="/login" />} />
-                <Route path="*" element={<Navigate to="/" />} />
-              </Routes>
-            </main>
-            <BottomNav />
-          </>
-        } />
-      </Routes>
+      <main className={isAdmin ? '' : 'pb-20 md:pb-0'}>
+        <Routes>
+          {/* Admin routes - NO navbar, NO bottomnav */}
+          <Route path="/admin/*" element={<AdminRoutes />} />
+
+          {/* Normal user routes */}
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/search" element={<SearchResultsPage />} />
+          <Route path="/trip/:id" element={<TripDetailsPage />} />
+          <Route path="/booking/:id" element={<BookingPage />} />
+          <Route path="/login" element={<ProtectedLogin />} />
+          <Route path="/register" element={<ProtectedRegister />} />
+          <Route path="/dashboard" element={<DashboardRouter />} />
+          <Route path="/driver" element={isAuthenticated && (user?.role === 'driver' || user?.role === 'admin') ? <DriverDashboard /> : <Navigate to="/login" />} />
+          <Route path="/publish-trip" element={isAuthenticated ? <PublishTripPage /> : <Navigate to="/login" />} />
+          <Route path="/profile" element={isAuthenticated ? <ProfilePage /> : <Navigate to="/login" />} />
+          <Route path="/verification" element={isAuthenticated ? <VerificationPage /> : <Navigate to="/login" />} />
+          <Route path="/messages" element={isAuthenticated ? <MessagesPage /> : <Navigate to="/login" />} />
+          <Route path="/notifications" element={isAuthenticated ? <NotificationsPage /> : <Navigate to="/login" />} />
+          <Route path="*" element={<Navigate to="/" />} />
+        </Routes>
+      </main>
+
+      {/* Show bottomnav only for non-admin users */}
+      {!isAdmin && <BottomNav />}
 
       <Toaster
         position="top-right"

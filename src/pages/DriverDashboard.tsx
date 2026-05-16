@@ -25,6 +25,7 @@ import {
   ChevronRight,
   TrendingUp,
   CarFront,
+  Shield,
 } from 'lucide-react';
 
 const LOCAL_TRIPS_KEY = 'wansniauto_trips';
@@ -159,6 +160,7 @@ export function DriverDashboard() {
 
   // Publish form
   const [showPublish, setShowPublish] = useState(false);
+  const [showVerifyAlert, setShowVerifyAlert] = useState(false);
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
   const [date, setDate] = useState('');
@@ -233,6 +235,11 @@ export function DriverDashboard() {
   const handlePublish = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user?.id) return;
+
+    if (!user?.is_verified) {
+      setShowVerifyAlert(true);
+      return;
+    }
 
     if (from === to) {
       toast.error('Departure and arrival must be different');
@@ -320,6 +327,29 @@ export function DriverDashboard() {
 
   return (
     <div className="min-h-screen bg-[#0F1115] pt-20 pb-24">
+      {/* Verification Required Alert */}
+      <AnimatePresence>
+        {showVerifyAlert && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }} className="bg-[#1B1F27] rounded-2xl border border-white/10 p-6 w-full max-w-sm text-center">
+              <div className="w-16 h-16 bg-yellow-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Shield className="w-8 h-8 text-yellow-400" />
+              </div>
+              <h3 className="text-lg font-bold text-white mb-2">{t('verify.required')}</h3>
+              <p className="text-sm text-[#A0A0A0] mb-6">{t('driver.verify_before_publish')}</p>
+              <div className="flex gap-3">
+                <Button onClick={() => setShowVerifyAlert(false)} variant="outline" className="flex-1 border-white/10 text-white rounded-xl">
+                  {t('common.cancel')}
+                </Button>
+                <Button onClick={() => { setShowVerifyAlert(false); navigate('/verification'); }} className="flex-1 bg-[#FF6B00] text-white hover:bg-[#E56000] rounded-xl">
+                  {t('verify.title')}
+                </Button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Publish Modal */}
       <AnimatePresence>
         {showPublish && (
@@ -417,7 +447,16 @@ export function DriverDashboard() {
             <p className="text-sm text-[#A0A0A0] mt-1">{t('driver.subtitle')}</p>
           </div>
           <div className="flex gap-2">
-            <Button onClick={() => setShowPublish(true)} className="bg-[#FF6B00] text-white hover:bg-[#E56000] rounded-xl shadow-lg shadow-[#FF6B00]/20">
+            <Button
+              onClick={() => {
+                if (!user?.is_verified) {
+                  setShowVerifyAlert(true);
+                  return;
+                }
+                setShowPublish(true);
+              }}
+              className="bg-[#FF6B00] text-white hover:bg-[#E56000] rounded-xl shadow-lg shadow-[#FF6B00]/20"
+            >
               <Plus className="w-4 h-4 mr-2" /> {t('driver.publish')}
             </Button>
           </div>
@@ -466,7 +505,10 @@ export function DriverDashboard() {
                   <Car className="w-12 h-12 text-[#A0A0A0] mx-auto mb-3" />
                   <p className="text-sm text-[#A0A0A0] mb-2">{t('driver.no_trips')}</p>
                   <p className="text-xs text-[#A0A0A0]">Start earning by publishing your first trip!</p>
-                  <Button onClick={() => setShowPublish(true)} variant="outline" className="mt-4 border-[#FF6B00]/30 text-[#FF6B00] rounded-xl">
+                  <Button onClick={() => {
+                    if (!user?.is_verified) { setShowVerifyAlert(true); return; }
+                    setShowPublish(true);
+                  }} variant="outline" className="mt-4 border-[#FF6B00]/30 text-[#FF6B00] rounded-xl">
                     {t('driver.publish_first')}
                   </Button>
                 </div>

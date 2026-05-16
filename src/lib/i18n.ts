@@ -164,6 +164,7 @@ const translations: Record<Lang, Record<string, string>> = {
     'driver.my_trips': 'My Published Trips',
     'driver.no_trips': 'No trips published yet',
     'driver.publish_first': 'Publish your first trip',
+    'driver.verify_before_publish': 'You must be verified before publishing trips. Please complete your verification.',
     'driver.vehicle_info': 'Vehicle Information',
     'driver.make': 'Make',
     'driver.model': 'Model',
@@ -276,6 +277,14 @@ const translations: Record<Lang, Record<string, string>> = {
     'common.favorite_routes': 'Favorite routes coming soon',
     'common.support': 'Support',
     'common.support_coming': 'Support coming soon',
+
+    // ─── Notifications ───
+    'notifications.title': 'Notifications',
+    'notifications.all': 'All',
+    'notifications.messages': 'Messages',
+    'notifications.bookings': 'Bookings',
+    'notifications.empty': 'No notifications',
+    'notifications.empty_desc': 'Your notifications will appear here.',
   },
 
   fr: {
@@ -430,6 +439,7 @@ const translations: Record<Lang, Record<string, string>> = {
     'driver.my_trips': 'Mes Trajets Publies',
     'driver.no_trips': 'Aucun trajet publie',
     'driver.publish_first': 'Publiez votre premier trajet',
+    'driver.verify_before_publish': 'Vous devez etre verifie avant de publier des trajets. Veuillez completer votre verification.',
     'driver.vehicle_info': 'Informations du Vehicule',
     'driver.make': 'Marque',
     'driver.model': 'Modele',
@@ -542,6 +552,14 @@ const translations: Record<Lang, Record<string, string>> = {
     'common.favorite_routes': 'Trajets favoris bientot disponibles',
     'common.support': 'Support',
     'common.support_coming': 'Support bientot disponible',
+
+    // ─── Notifications ───
+    'notifications.title': 'Notifications',
+    'notifications.all': 'Toutes',
+    'notifications.messages': 'Messages',
+    'notifications.bookings': 'Reservations',
+    'notifications.empty': 'Aucune notification',
+    'notifications.empty_desc': 'Vos notifications apparaissent ici.',
   },
 
   ar: {
@@ -696,6 +714,7 @@ const translations: Record<Lang, Record<string, string>> = {
     'driver.my_trips': 'رحلاتي المنشورة',
     'driver.no_trips': 'م نشرتي حتى رحلة',
     'driver.publish_first': 'نشر أول رحلة',
+    'driver.verify_before_publish': 'خاصك تتفيريفا قبل ما تنشر رحلات. كمل التحقق ديالك.',
     'driver.vehicle_info': 'معلومات السيارة',
     'driver.make': 'الشركة',
     'driver.model': 'الموديل',
@@ -808,6 +827,14 @@ const translations: Record<Lang, Record<string, string>> = {
     'common.favorite_routes': 'المسارات المفضلة جايين قريب',
     'common.support': 'الدعم',
     'common.support_coming': 'الدعم جاي قريب',
+
+    // ─── Notifications ───
+    'notifications.title': 'الإشعارات',
+    'notifications.all': 'الكل',
+    'notifications.messages': 'الرسائل',
+    'notifications.bookings': 'الحجوزات',
+    'notifications.empty': 'ماعندك حتى إشعار',
+    'notifications.empty_desc': 'الإشعارات ديالك غادي تبان هنا.',
   },
 };
 

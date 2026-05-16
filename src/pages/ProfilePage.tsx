@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useStore } from '@/store/useStore';
 import { useI18n } from '@/lib/i18n';
-import { supabase } from '@/lib/supabase';
+import { apiPatch } from '@/lib/supabase';
 import { uploadAvatar } from '@/services/storageService';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -49,11 +49,11 @@ export function ProfilePage() {
       const url = await uploadAvatar(user.id, file);
       setAvatarUrl(url);
 
-      // Also update Supabase profile
+      // Also update Supabase profile via REST API
       try {
-        await supabase.from('profiles').update({ avatar: url }).eq('id', user.id);
+        await apiPatch('profiles', 'id', user.id, { avatar: url });
       } catch {
-        // table may not exist
+        // table may not exist, localStorage handles it via handleSave
       }
 
       // Update local user state
@@ -97,18 +97,11 @@ export function ProfilePage() {
     const updates = { name, bio, phone, avatar: avatarUrl };
 
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .update(updates)
-        .eq('id', user.id);
-
-      if (error) {
-        saveProfileLocally(updates);
-        toast.success('Profile saved locally (Supabase table not ready)');
-      } else {
-        toast.success('Profile saved!');
-      }
-    } catch {
+      // Try REST API first (more reliable)
+      await apiPatch('profiles', 'id', user.id, updates);
+      toast.success('Profile saved to cloud!');
+    } catch (err: any) {
+      console.warn('Supabase save failed, using localStorage:', err.message);
       saveProfileLocally(updates);
       toast.success('Profile saved locally');
     }

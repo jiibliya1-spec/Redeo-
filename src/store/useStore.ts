@@ -20,6 +20,9 @@ interface AppState {
   setSearchFilters: (filters: SearchFilters) => void;
   setLanguage: (lang: 'en' | 'fr' | 'ar') => void;
   addBooking: (booking: Booking) => void;
+  setUnreadCount: (count: number) => void;
+  incrementUnread: () => void;
+  clearUnread: () => void;
 
   // Auth
   initAuth: () => Promise<void>;
@@ -66,6 +69,9 @@ export const useStore = create<AppState>()(
       setSearchFilters: (searchFilters) => set({ searchFilters }),
       setLanguage: (language) => set({ language }),
       addBooking: (booking) => set((s) => ({ bookings: [booking, ...s.bookings] })),
+      setUnreadCount: (unreadCount) => set({ unreadCount }),
+      incrementUnread: () => set((s) => ({ unreadCount: s.unreadCount + 1 })),
+      clearUnread: () => set({ unreadCount: 0 }),
 
       // Initialize auth state from Supabase session
       initAuth: async () => {

@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 export function Navbar() {
-  const { user, isAuthenticated, signOut, notifications, unreadCount } = useStore();
+  const { user, isAuthenticated, signOut, unreadCount } = useStore();
   const { lang, setLang, t } = useI18n();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
@@ -90,36 +90,19 @@ export function Navbar() {
                   </DropdownMenuContent>
                 </DropdownMenu>
 
-                {/* Notifications */}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <button className="relative p-2.5 rounded-xl hover:bg-white/5 transition-colors">
-                      <Bell className="w-5 h-5 text-[#A0A0A0]" />
-                      {unreadCount > 0 && (
-                        <span className="absolute top-1.5 right-1.5 w-4.5 h-4.5 bg-[#FF6B00] text-white text-[10px] font-bold rounded-full flex items-center justify-center">
-                          {unreadCount}
-                        </span>
-                      )}
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-80 bg-[#1B1F27] border border-white/10">
-                    <div className="px-4 py-3 border-b border-white/5">
-                      <span className="text-sm font-medium text-white">{t('nav.chat')}</span>
-                    </div>
-                    {notifications.length > 0 ? notifications.slice(0, 5).map(n => (
-                      <DropdownMenuItem key={n.id} className={`px-4 py-3 cursor-pointer ${!n.read ? 'bg-[#FF6B00]/5' : ''}`}>
-                        <div>
-                          <p className="text-sm text-white font-medium">{n.title}</p>
-                          <p className="text-xs text-[#A0A0A0] mt-0.5">{n.message}</p>
-                        </div>
-                      </DropdownMenuItem>
-                    )) : (
-                      <div className="px-4 py-6 text-center">
-                        <p className="text-sm text-[#A0A0A0]">{t('common.no_messages')}</p>
-                      </div>
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                {/* Notifications - link to page */}
+                <button
+                  onClick={() => navigate('/notifications')}
+                  className="relative p-2.5 rounded-xl hover:bg-white/5 transition-colors"
+                  title="Notifications"
+                >
+                  <Bell className="w-5 h-5 text-[#A0A0A0]" />
+                  {unreadCount > 0 && (
+                    <span className="absolute top-1.5 right-1.5 min-w-[18px] h-[18px] bg-[#FF6B00] text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
+                  )}
+                </button>
 
                 {/* User Menu */}
                 <DropdownMenu>

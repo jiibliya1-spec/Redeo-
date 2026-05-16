@@ -4,7 +4,7 @@ import { useI18n } from '@/lib/i18n';
 import { Search, Plus, Car, MessageCircle, User } from 'lucide-react';
 
 export function BottomNav() {
-  const { isAuthenticated, user } = useStore();
+  const { isAuthenticated, user, unreadCount } = useStore();
   const { t } = useI18n();
   const location = useLocation();
 
@@ -51,8 +51,15 @@ export function BottomNav() {
         </Link>
 
         {/* Messages */}
-        <Link to="/messages" className={`flex flex-col items-center gap-0.5 py-2 px-3 rounded-xl transition-colors ${isActive('/messages') ? 'text-[#FF6B00]' : 'text-[#A0A0A0]'}`}>
-          <MessageCircle className="w-5 h-5" />
+        <Link to="/messages" className={`flex flex-col items-center gap-0.5 py-2 px-3 rounded-xl transition-colors relative ${isActive('/messages') ? 'text-[#FF6B00]' : 'text-[#A0A0A0]'}`}>
+          <div className="relative">
+            <MessageCircle className="w-5 h-5" />
+            {unreadCount > 0 && (
+              <span className="absolute -top-1.5 -right-2 min-w-[16px] h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center px-1">
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            )}
+          </div>
           <span className="text-[10px] font-medium">{t('nav.chat')}</span>
         </Link>
 

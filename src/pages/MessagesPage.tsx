@@ -32,6 +32,44 @@ interface Conversation {
 // ─── localStorage Keys ───
 const CONVS_KEY = 'wansniauto_conversations';
 const MESSAGES_KEY = 'wansniauto_messages';
+const NOTIFS_KEY = 'wansniauto_notifications';
+
+// ─── Notifications ───
+interface NotificationItem {
+  id: string;
+  type: 'message' | 'booking' | 'system';
+  title: string;
+  message: string;
+  created_at: string;
+  read: boolean;
+  link?: string;
+  contactId?: string;
+  contactName?: string;
+  contactAvatar?: string;
+}
+
+function loadNotificationsFromStorage(): NotificationItem[] {
+  try {
+    const raw = localStorage.getItem(NOTIFS_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch { /* silent */ }
+  return [];
+}
+
+function saveNotification(notif: NotificationItem) {
+  try {
+    const existing = loadNotificationsFromStorage();
+    const isDuplicate = existing.some(n =>
+      n.contactId === notif.contactId &&
+      n.message === notif.message &&
+      (Date.now() - new Date(n.created_at).getTime()) < 5 * 60 * 1000
+    );
+    if (!isDuplicate) {
+      const updated = [notif, ...existing].slice(0, 100);
+      localStorage.setItem(NOTIFS_KEY, JSON.stringify(updated));
+    }
+  } catch { /* silent */ }
+}
 
 function loadConversationsFromStorage(): Conversation[] {
   try {
@@ -60,7 +98,7 @@ function saveMessagesToStorage(msgs: Record<string, ChatMessage[]>) {
 export function MessagesPage() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user } = useStore();
+  const { user, setUnreadCount, incrementUnread } = useStore();
   const { t, dir } = useI18n();
 
   // Read driver contact info from navigation state
@@ -79,6 +117,11 @@ export function MessagesPage() {
 
   const [conversations, setConversations] = useState<Conversation[]>(loadConversationsFromStorage);
   const [messages, setMessages] = useState<Record<string, ChatMessage[]>>(loadMessagesFromStorage);
+
+  // ─── Clear unread count when opening messages ───
+  useEffect(() => {
+    setUnreadCount(0);
+  }, []);
 
   // ─── Handle navigation from TripDetailsPage ───
   useEffect(() => {
@@ -216,6 +259,23 @@ export function MessagesPage() {
               saveMessagesToStorage(updated);
               return updated;
             });
+            // Increment unread if message is from the other person
+            if (msg.sender_id === activeConv) {
+              incrementUnread();
+              // Also save notification
+              const conv = conversations.find(c => c.user_id === activeConv);
+              saveNotification({
+                id: `notif-${Date.now()}`,
+                type: 'message',
+                title: conv?.name || 'New Message',
+                message: msg.content.length > 60 ? msg.content.substring(0, 60) + '...' : msg.content,
+                created_at: new Date().toISOString(),
+                read: false,
+                contactId: activeConv,
+                contactName: conv?.name,
+                contactAvatar: conv?.avatar,
+              });
+            }
 
             // Update conversation last_message
             setConversations(prevConvs => {

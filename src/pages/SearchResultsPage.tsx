@@ -1,15 +1,19 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useStore } from '@/store/useStore';
 import { useI18n } from '@/lib/i18n';
-import { apiGet } from '@/lib/supabase';
+import { apiGet, supabase } from '@/lib/supabase';
 import { MOROCCAN_CITIES } from '@/lib/data';
-import type { Trip } from '@/types';
+import type { Trip, User } from '@/types';
 import { Button } from '@/components/ui/button';
 import {
-  ArrowLeft, MapPin, Clock, Star, Users, Filter, Loader2
+  ArrowLeft, MapPin, Clock, Star, Users, Filter, Loader2,
+  ShieldCheck,
 } from 'lucide-react';
+
+const SUPABASE_URL = 'https://qhbiafoyhvmvyyzwdzhd.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoYmlhZm95aHZtdnl5endkemhkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3OTIwNDcsImV4cCI6MjA5NDM2ODA0N30.04MftiDjQUrnGegTeaL88WyES9ydDKxRrrmVua0rVbM';
 
 const LOCAL_TRIPS_KEY = 'wansniauto_trips';
 
@@ -23,6 +27,9 @@ function getLocalTrips(): Trip[] {
 function TripCard({ trip, index }: { trip: Trip; index: number }) {
   const navigate = useNavigate();
   const { t } = useI18n();
+
+  const driver = trip.driver;
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -31,18 +38,31 @@ function TripCard({ trip, index }: { trip: Trip; index: number }) {
       onClick={() => navigate(`/trip/${trip.id}`)}
       className="bg-[#1B1F27] rounded-2xl border border-white/5 hover:border-[#FF6B00]/30 transition-all cursor-pointer group p-5"
     >
+      {/* Driver Row */}
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
-          <img 
-            src={trip.driver?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${trip.driver?.name || 'driver'}`} 
-            alt={trip.driver?.name} 
-            className="w-12 h-12 rounded-full object-cover ring-2 ring-[#FF6B00]/20 bg-[#1B1F27]" 
-          />
+          <div className="relative">
+            <img
+              src={driver?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${driver?.name || 'driver'}`}
+              alt={driver?.name}
+              className="w-12 h-12 rounded-full object-cover ring-2 ring-[#FF6B00]/20 bg-[#1B1F27]"
+            />
+            {driver?.is_verified && (
+              <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
+                <ShieldCheck className="w-3 h-3 text-white" />
+              </div>
+            )}
+          </div>
           <div>
-            <p className="text-sm font-medium text-white">{trip.driver?.name || 'Driver'}</p>
+            <div className="flex items-center gap-2">
+              <p className="text-sm font-medium text-white">{driver?.name || 'Driver'}</p>
+              {driver?.is_verified && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-green-500/10 text-green-400 font-medium">Verified</span>
+              )}
+            </div>
             <div className="flex items-center gap-1">
               <Star className="w-3.5 h-3.5 text-[#FF6B00] fill-[#FF6B00]" />
-              <span className="text-xs text-[#A0A0A0]">{trip.driver?.rating || 5} &middot; {trip.driver?.trips_count || 0} {t('trip.trips_done')}</span>
+              <span className="text-xs text-[#A0A0A0]">{driver?.rating || 5} &middot; {driver?.trips_count || 0} {t('trip.trips_done')}</span>
             </div>
           </div>
         </div>
@@ -51,6 +71,8 @@ function TripCard({ trip, index }: { trip: Trip; index: number }) {
           <p className="text-xs text-[#A0A0A0]">{t('trip.price')}</p>
         </div>
       </div>
+
+      {/* Route Row */}
       <div className="flex items-center gap-4 mb-4">
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-1">
@@ -61,7 +83,7 @@ function TripCard({ trip, index }: { trip: Trip; index: number }) {
         </div>
         <div className="flex flex-col items-center px-2">
           <Clock className="w-4 h-4 text-[#A0A0A0]" />
-          <span className="text-xs text-[#A0A0A0] mt-0.5">{trip.duration}</span>
+          <span className="text-xs text-[#A0A0A0] mt-0.5">{trip.duration || '—'}</span>
         </div>
         <div className="flex-1 text-right">
           <div className="flex items-center justify-end gap-2 mb-1">
@@ -71,6 +93,8 @@ function TripCard({ trip, index }: { trip: Trip; index: number }) {
           <p className="text-sm text-[#A0A0A0] mr-5">{trip.to_location}</p>
         </div>
       </div>
+
+      {/* Footer Row */}
       <div className="flex items-center justify-between pt-4 border-t border-white/5">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-1.5">
@@ -79,7 +103,7 @@ function TripCard({ trip, index }: { trip: Trip; index: number }) {
           </div>
           <div className="flex items-center gap-1.5">
             <MapPin className="w-4 h-4 text-[#A0A0A0]" />
-            <span className="text-xs text-[#A0A0A0]">{trip.distance}</span>
+            <span className="text-xs text-[#A0A0A0]">{trip.distance || '—'}</span>
           </div>
         </div>
         <span className="text-xs text-[#FF6B00] bg-[#FF6B00]/10 px-2.5 py-1 rounded-full font-medium capitalize">{trip.status}</span>
@@ -96,62 +120,112 @@ export function SearchResultsPage() {
   const [sortBy, setSortBy] = useState('price');
   const [isLoading, setIsLoading] = useState(true);
 
+  // ─── Fetch driver profiles for trips ───
+  const enrichTripsWithDrivers = useCallback(async (trips: Trip[]): Promise<Trip[]> => {
+    const driverIds = [...new Set(trips.map(t => t.driver_id).filter(Boolean))];
+    if (driverIds.length === 0) return trips;
+
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const jwt = sessionData.session?.access_token || '';
+
+      // Fetch all driver profiles in one batch
+      const idsFilter = driverIds.map(id => `id=eq.${id}`).join(',');
+      const res = await fetch(
+        `${SUPABASE_URL}/rest/v1/profiles?select=id,name,email,avatar,bio,phone,is_verified,verification_status,rating,trips_count,role&or=(${idsFilter})&limit=500`,
+        {
+          headers: {
+            'apikey': SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${jwt}`,
+          },
+        }
+      );
+
+      if (res.ok) {
+        const profiles = await res.json();
+        const profileMap = new Map<string, any>();
+        (profiles || []).forEach((p: any) => profileMap.set(p.id, p));
+
+        return trips.map(trip => {
+          const dp = profileMap.get(trip.driver_id);
+          if (dp) {
+            return {
+              ...trip,
+              driver: {
+                id: dp.id,
+                name: dp.name,
+                email: dp.email,
+                avatar: dp.avatar,
+                role: 'driver' as const,
+                is_verified: dp.is_verified,
+                verification_status: dp.verification_status,
+                rating: dp.rating,
+                trips_count: dp.trips_count,
+                bio: dp.bio,
+              } as User,
+            };
+          }
+          return trip;
+        });
+      }
+    } catch (err) {
+      console.error('[SearchResults] Driver fetch error:', err);
+    }
+
+    return trips;
+  }, []);
+
+  // ─── Load and filter trips ───
   useEffect(() => {
     setIsLoading(true);
 
     const loadResults = async () => {
+      let allTrips: Trip[] = [];
+
+      // 1. Try Supabase
       try {
-        // Use REST API directly
         const data = await apiGet('trips');
-        
-        let filtered = (data || []).filter((t: any) => t.status === 'upcoming');
-        
-        if (searchFilters.from) {
-          filtered = filtered.filter((t: any) => 
-            t.from_location?.toLowerCase().includes(searchFilters.from.toLowerCase())
-          );
+        if (data && data.length > 0) {
+          allTrips = data as Trip[];
         }
-        if (searchFilters.to) {
-          filtered = filtered.filter((t: any) => 
-            t.to_location?.toLowerCase().includes(searchFilters.to.toLowerCase())
-          );
-        }
-        if (searchFilters.date) {
-          filtered = filtered.filter((t: any) => t.departure_date === searchFilters.date);
-        }
-        if (searchFilters.passengers > 0) {
-          filtered = filtered.filter((t: any) => (t.available_seats || 0) >= searchFilters.passengers);
-        }
-
-        // Enrich with driver data from localStorage
-        const localTrips = getLocalTrips();
-        const enriched = filtered.map((t: any) => {
-          const localTrip = localTrips.find((lt: Trip) => lt.id === t.id);
-          return {
-            ...t,
-            driver: localTrip?.driver || { name: 'Driver', rating: 5, trips_count: 0 },
-            ...(!t.duration && { duration: localTrip?.duration || '' }),
-            ...(!t.distance && { distance: localTrip?.distance || '' }),
-          };
-        });
-
-        setResults(enriched);
       } catch {
-        // Fallback: search from localStorage only
-        const localTrips = getLocalTrips();
-        let filtered = localTrips.filter((t: Trip) => t.status === 'upcoming');
-        if (searchFilters.from) filtered = filtered.filter(t => t.from_location.toLowerCase().includes(searchFilters.from.toLowerCase()));
-        if (searchFilters.to) filtered = filtered.filter(t => t.to_location.toLowerCase().includes(searchFilters.to.toLowerCase()));
-        if (searchFilters.date) filtered = filtered.filter(t => t.departure_date === searchFilters.date);
-        if (searchFilters.passengers > 0) filtered = filtered.filter(t => (t.available_seats || 0) >= searchFilters.passengers);
-        setResults(filtered);
-      } finally {
-        setIsLoading(false);
+        console.log('[SearchResults] REST API failed, using localStorage');
       }
+
+      // 2. Fallback: localStorage
+      if (allTrips.length === 0) {
+        allTrips = getLocalTrips();
+      }
+
+      // 3. Filter
+      let filtered = allTrips.filter((t: Trip) => t.status === 'upcoming');
+
+      if (searchFilters.from) {
+        filtered = filtered.filter((t: Trip) =>
+          t.from_location?.toLowerCase().includes(searchFilters.from.toLowerCase())
+        );
+      }
+      if (searchFilters.to) {
+        filtered = filtered.filter((t: Trip) =>
+          t.to_location?.toLowerCase().includes(searchFilters.to.toLowerCase())
+        );
+      }
+      if (searchFilters.date) {
+        filtered = filtered.filter((t: Trip) => t.departure_date === searchFilters.date);
+      }
+      if (searchFilters.passengers > 0) {
+        filtered = filtered.filter((t: Trip) => (t.available_seats || 0) >= searchFilters.passengers);
+      }
+
+      // 4. Enrich with driver data
+      const enriched = await enrichTripsWithDrivers(filtered);
+
+      setResults(enriched);
+      setIsLoading(false);
     };
 
     loadResults();
-  }, [searchFilters]);
+  }, [searchFilters, enrichTripsWithDrivers]);
 
   const sorted = [...results].sort((a, b) => {
     if (sortBy === 'price') return a.price - b.price;

@@ -236,7 +236,8 @@ export function DriverDashboard() {
     e.preventDefault();
     if (!user?.id) return;
 
-    if (!user?.is_verified) {
+    const isVerified = user?.is_verified || user?.verification_status === 'verified' || user?.verification_status === 'approved';
+    if (!isVerified) {
       setShowVerifyAlert(true);
       return;
     }
@@ -449,7 +450,8 @@ export function DriverDashboard() {
           <div className="flex gap-2">
             <Button
               onClick={() => {
-                if (!user?.is_verified) {
+                const isVerified = user?.is_verified || user?.verification_status === 'verified' || user?.verification_status === 'approved';
+                if (!isVerified) {
                   setShowVerifyAlert(true);
                   return;
                 }
@@ -506,7 +508,8 @@ export function DriverDashboard() {
                   <p className="text-sm text-[#A0A0A0] mb-2">{t('driver.no_trips')}</p>
                   <p className="text-xs text-[#A0A0A0]">Start earning by publishing your first trip!</p>
                   <Button onClick={() => {
-                    if (!user?.is_verified) { setShowVerifyAlert(true); return; }
+                    const isVerified = user?.is_verified || user?.verification_status === 'verified' || user?.verification_status === 'approved';
+                    if (!isVerified) { setShowVerifyAlert(true); return; }
                     setShowPublish(true);
                   }} variant="outline" className="mt-4 border-[#FF6B00]/30 text-[#FF6B00] rounded-xl">
                     {t('driver.publish_first')}

@@ -65,8 +65,11 @@ export function AdminTrips() {
         usersRes.ok ? usersRes.json() : [],
       ]);
 
+      // O(1) driver lookup with Map
+      const usersMap = new Map<string, any>((usersData || []).map((u: any) => [u.id, u]));
+
       const combined = (tripsData || []).map((t: any) => {
-        const driver = (usersData || []).find((u: any) => u.id === t.driver_id);
+        const driver = usersMap.get(t.driver_id);
         return {
           ...t,
           driver_name: driver?.name || 'Unknown',

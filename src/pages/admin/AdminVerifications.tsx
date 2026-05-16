@@ -79,8 +79,11 @@ export function AdminVerifications() {
         usersRes.ok ? usersRes.json() : [],
       ]);
 
+      // O(1) lookup with Map instead of O(n) .find()
+      const usersMap = new Map<string, any>((usersData || []).map((u: any) => [u.id, u]));
+
       const combined = (verifData || []).map((v: any) => {
-        const u = (usersData || []).find((u: any) => u.id === v.user_id);
+        const u = usersMap.get(v.user_id);
         return {
           ...v,
           user_name: u?.name || 'Unknown',

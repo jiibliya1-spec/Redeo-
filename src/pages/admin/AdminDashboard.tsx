@@ -107,8 +107,11 @@ export function AdminDashboard() {
         avatar: u.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${u.id}`,
       })));
 
+      // O(1) user lookup with Map
+      const usersMap = new Map<string, any>((users || []).map((u: any) => [u.id, u]));
+
       const pendingWithUsers = pending.slice(0, 5).map((v: any) => {
-        const user = (users || []).find((u: any) => u.id === v.user_id);
+        const user = usersMap.get(v.user_id);
         return {
           id: v.id,
           user_id: v.user_id,

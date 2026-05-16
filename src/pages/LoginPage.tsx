@@ -23,21 +23,17 @@ export function LoginPage() {
     setIsLoading(true);
 
     // Clear ALL cached profile data before login
-    // This forces fresh fetch from Supabase to get the LATEST role
     try {
       localStorage.removeItem('wansniauto_profile_data');
-      localStorage.removeItem('wansniauto-storage'); // zustand persist
-      console.log('[LoginPage] Cleared all caches');
+      localStorage.removeItem('wansniauto-storage');
     } catch { /* silent */ }
 
     const result = await signIn(email, password);
 
     if (result.success) {
       toast.success('Welcome back!');
-      // Force refresh to get latest role from Supabase
       await refreshProfile();
       const { user: freshUser } = useStore.getState();
-      console.log('[LoginPage] Role after refresh:', freshUser?.role);
       if (freshUser?.role === 'admin') {
         navigate('/admin', { replace: true });
       } else {
@@ -48,16 +44,6 @@ export function LoginPage() {
     }
 
     setIsLoading(false);
-  };
-
-  const quickLogin = (role: 'passenger' | 'driver' | 'admin') => {
-    const demos: Record<string, { email: string; pass: string }> = {
-      passenger: { email: 'layla@demo.ma', pass: 'demo1234' },
-      driver: { email: 'youssef@demo.ma', pass: 'demo1234' },
-      admin: { email: 'admin@demo.ma', pass: 'demo1234' },
-    };
-    setEmail(demos[role].email);
-    setPassword(demos[role].pass);
   };
 
   return (
@@ -72,14 +58,6 @@ export function LoginPage() {
           </Link>
           <h1 className="text-2xl font-bold text-white">{t('auth.welcome_back')}</h1>
           <p className="text-sm text-[#A0A0A0] mt-1">{t('auth.login')}</p>
-        </div>
-
-        <div className="flex gap-2 mb-6">
-          {(['passenger', 'driver', 'admin'] as const).map(role => (
-            <button key={role} onClick={() => quickLogin(role)} className="flex-1 py-2 px-3 rounded-xl bg-white/5 border border-white/5 text-xs text-[#A0A0A0] hover:bg-[#FF6B00]/10 hover:border-[#FF6B00]/20 hover:text-[#FF6B00] transition-all capitalize">
-              {role === 'passenger' ? t('auth.passenger') : role === 'driver' ? t('auth.driver') : role}
-            </button>
-          ))}
         </div>
 
         <form onSubmit={handleLogin} className="space-y-4">

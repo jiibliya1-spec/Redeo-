@@ -27,6 +27,7 @@ import { NotificationsPage } from '@/pages/NotificationsPage';
 import { PublishTripPage } from '@/pages/PublishTripPage';
 import { SettingsPage } from '@/pages/SettingsPage';
 import { ContactSupportPage } from '@/pages/ContactSupportPage';
+import { DriverProfilePage } from '@/pages/DriverProfilePage';
 import { Toaster } from '@/components/ui/sonner';
 import { Spinner } from '@/components/ui/spinner';
 
@@ -142,6 +143,7 @@ function AppContent() {
           <Route path="/notifications" element={isAuthenticated ? <NotificationsPage /> : <Navigate to="/login" />} />
           <Route path="/settings" element={isAuthenticated ? <SettingsPage /> : <Navigate to="/login" />} />
           <Route path="/support" element={<ContactSupportPage />} />
+          <Route path="/profile/:id" element={<DriverProfilePage />} />
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </main>

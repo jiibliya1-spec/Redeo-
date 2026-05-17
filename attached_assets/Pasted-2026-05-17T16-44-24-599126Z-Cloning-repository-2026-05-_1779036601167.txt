@@ -1,0 +1,30 @@
+2026-05-17T16:44:24.599126Z	Cloning repository...
+2026-05-17T16:44:25.704421Z	From https://github.com/jiibliya1-spec/Redeo-
+2026-05-17T16:44:25.704826Z	 * branch            3daaabaeca8fefa640544aaa913bfeace749783e -> FETCH_HEAD
+2026-05-17T16:44:25.704914Z	
+2026-05-17T16:44:25.790750Z	HEAD is now at 3daaaba fix: remove unsupported [build] section from wrangler.toml for Pages
+2026-05-17T16:44:25.791097Z	
+2026-05-17T16:44:25.830371Z	
+2026-05-17T16:44:25.830770Z	Using v2 root directory strategy
+2026-05-17T16:44:25.842784Z	Success: Finished cloning repository files
+2026-05-17T16:44:27.413635Z	Checking for configuration in a Wrangler configuration file (BETA)
+2026-05-17T16:44:27.414114Z	
+2026-05-17T16:44:27.414318Z	Found wrangler.toml file. Reading build configuration...
+2026-05-17T16:44:27.418892Z	pages_build_output_dir: dist
+2026-05-17T16:44:27.419014Z	Build environment variables: (none found)
+2026-05-17T16:44:28.499870Z	Successfully read the Wrangler configuration file.
+2026-05-17T16:44:28.641972Z	Detected the following tools from environment: pnpm@10.11.1, nodejs@22.16.0, npm@10.9.2
+2026-05-17T16:44:29.452318Z	Installing project dependencies: pnpm install
+2026-05-17T16:44:29.917271Z	Scope: all 8 workspace projects
+2026-05-17T16:44:30.018676Z	..                                       | Progress: resolved 1, reused 0, downloaded 0, added 0
+2026-05-17T16:44:30.085658Z	..                                       | +476 ++++++++++++++++++++++++++++++++
+2026-05-17T16:44:31.033027Z	..                                       | Progress: resolved 476, reused 0, downloaded 207, added 157
+2026-05-17T16:44:32.033525Z	..                                       | Progress: resolved 476, reused 0, downloaded 316, added 254
+2026-05-17T16:44:33.040894Z	..                                       | Progress: resolved 476, reused 0, downloaded 416, added 316
+2026-05-17T16:44:33.353646Z	..                                       | Progress: resolved 476, reused 0, downloaded 476, added 476, done
+2026-05-17T16:44:33.549975Z	.../esbuild@0.27.3/node_modules/esbuild postinstall$ node install.js
+2026-05-17T16:44:33.711865Z	.../esbuild@0.27.3/node_modules/esbuild postinstall: Done
+2026-05-17T16:44:34.009364Z	.. preinstall$ sh -c 'rm -f package-lock.json yarn.lock; case "$npm_config_user_agent" in pnpm/*) ;; *) echo "Use pnpm instead" >&2; exit 1 ;; esac'
+2026-05-17T16:44:34.022651Z	.. preinstall: Done
+2026-05-17T16:44:34.188178Z	Done in 4.5s using pnpm v10.11.1
+2026-05-17T16:44:34.229228Z	Executing user command: npm install && npm run build

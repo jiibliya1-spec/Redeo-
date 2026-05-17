@@ -1,0 +1,54 @@
+2026-05-17T16:26:51.804787Z	Cloning repository...
+2026-05-17T16:26:53.518482Z	From https://github.com/jiibliya1-spec/Redeo-
+2026-05-17T16:26:53.51881Z	 * branch            4e025d9ef7f4e9a0725585834834e35e27c0c26b -> FETCH_HEAD
+2026-05-17T16:26:53.518903Z	
+2026-05-17T16:26:53.626365Z	HEAD is now at 4e025d9 fix: add wrangler.toml so Cloudflare Pages runs npm install from redeo-app
+2026-05-17T16:26:53.626714Z	
+2026-05-17T16:26:53.674978Z	
+2026-05-17T16:26:53.675419Z	Using v2 root directory strategy
+2026-05-17T16:26:53.726641Z	Success: Finished cloning repository files
+2026-05-17T16:26:55.709474Z	Checking for configuration in a Wrangler configuration file (BETA)
+2026-05-17T16:26:55.710023Z	
+2026-05-17T16:26:55.710096Z	Found wrangler.toml file. Reading build configuration...
+2026-05-17T16:26:56.828323Z	A Wrangler configuration file was found but it does not appear to be valid. Did you mean to use wrangler.toml to configure Pages? If so, then make sure the file is valid and contains the `pages_build_output_dir` property. Skipping file and continuing.
+2026-05-17T16:26:57.076353Z	Detected the following tools from environment: pnpm@10.11.1, nodejs@22.16.0, npm@10.9.2
+2026-05-17T16:26:58.491219Z	Installing project dependencies: pnpm install
+2026-05-17T16:26:59.211577Z	Scope: all 8 workspace projects
+2026-05-17T16:26:59.330436Z	..                                       | Progress: resolved 1, reused 0, downloaded 0, added 0
+2026-05-17T16:26:59.396104Z	..                                       | +476 ++++++++++++++++++++++++++++++++
+2026-05-17T16:27:00.332102Z	..                                       | Progress: resolved 476, reused 0, downloaded 121, added 66
+2026-05-17T16:27:01.368839Z	..                                       | Progress: resolved 476, reused 0, downloaded 295, added 241
+2026-05-17T16:27:02.365017Z	..                                       | Progress: resolved 476, reused 0, downloaded 313, added 249
+2026-05-17T16:27:03.366229Z	..                                       | Progress: resolved 476, reused 0, downloaded 405, added 307
+2026-05-17T16:27:03.893515Z	..                                       | Progress: resolved 476, reused 0, downloaded 476, added 476, done
+2026-05-17T16:27:04.212432Z	.../esbuild@0.27.3/node_modules/esbuild postinstall$ node install.js
+2026-05-17T16:27:04.331998Z	.../esbuild@0.27.3/node_modules/esbuild postinstall: Done
+2026-05-17T16:27:04.748165Z	.. preinstall$ sh -c 'rm -f package-lock.json yarn.lock; case "$npm_config_user_agent" in pnpm/*) ;; *) echo "Use pnpm instead" >&2; exit 1 ;; esac'
+2026-05-17T16:27:04.769464Z	.. preinstall: Done
+2026-05-17T16:27:04.954424Z	Done in 6.2s using pnpm v10.11.1
+2026-05-17T16:27:05.002429Z	Executing user command: npm install && npm run build
+2026-05-17T16:29:00.22663Z	
+2026-05-17T16:29:00.230046Z	added 550 packages, and audited 551 packages in 2m
+2026-05-17T16:29:00.230162Z	
+2026-05-17T16:29:00.230288Z	73 packages are looking for funding
+2026-05-17T16:29:00.230416Z	  run `npm fund` for details
+2026-05-17T16:29:00.248267Z	
+2026-05-17T16:29:00.248681Z	9 vulnerabilities (3 moderate, 6 high)
+2026-05-17T16:29:00.248981Z	
+2026-05-17T16:29:00.249101Z	To address all issues, run:
+2026-05-17T16:29:00.249179Z	  npm audit fix
+2026-05-17T16:29:00.249282Z	
+2026-05-17T16:29:00.249379Z	Run `npm audit` for details.
+2026-05-17T16:29:00.661129Z	
+2026-05-17T16:29:00.661517Z	> my-app@0.0.0 build
+2026-05-17T16:29:00.661755Z	> tsc -b && vite build
+2026-05-17T16:29:00.66187Z	
+2026-05-17T16:29:11.120594Z	src/pages/NotificationsPage.tsx(48,22): error TS7006: Parameter 'prev' implicitly has an 'any' type.
+2026-05-17T16:29:11.12122Z	src/pages/NotificationsPage.tsx(48,22): error TS2345: Argument of type '(prev: any) => any' is not assignable to parameter of type 'number'.
+2026-05-17T16:29:11.121456Z	src/pages/NotificationsPage.tsx(83,24): error TS7006: Parameter 'prev' implicitly has an 'any' type.
+2026-05-17T16:29:11.12155Z	src/pages/NotificationsPage.tsx(83,24): error TS2345: Argument of type '(prev: any) => number' is not assignable to parameter of type 'number'.
+2026-05-17T16:29:11.121713Z	src/pages/NotificationsPage.tsx(86,11): error TS2339: Property 'link' does not exist on type 'Notification'.
+2026-05-17T16:29:11.121922Z	src/pages/NotificationsPage.tsx(86,28): error TS2339: Property 'link' does not exist on type 'Notification'.
+2026-05-17T16:29:11.798711Z	Failed: Error while executing user command. Exited with error code: 2
+2026-05-17T16:29:11.825267Z	Failed: build command exited with code: 1
+2026-05-17T16:29:12.825108Z	Failed: error occurred while running build command

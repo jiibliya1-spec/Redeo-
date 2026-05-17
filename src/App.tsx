@@ -23,6 +23,7 @@ import { VerificationPage } from '@/pages/VerificationPage';
 import { MessagesPage } from '@/pages/MessagesPage';
 import { NotificationsPage } from '@/pages/NotificationsPage';
 import { PublishTripPage } from '@/pages/PublishTripPage';
+import { SettingsPage } from '@/pages/SettingsPage';
 import { Toaster } from '@/components/ui/sonner';
 import { Spinner } from '@/components/ui/spinner';
 
@@ -134,6 +135,7 @@ function AppContent() {
           <Route path="/verification" element={isAuthenticated ? <VerificationPage /> : <Navigate to="/login" />} />
           <Route path="/messages" element={isAuthenticated ? <MessagesPage /> : <Navigate to="/login" />} />
           <Route path="/notifications" element={isAuthenticated ? <NotificationsPage /> : <Navigate to="/login" />} />
+          <Route path="/settings" element={isAuthenticated ? <SettingsPage /> : <Navigate to="/login" />} />
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </main>

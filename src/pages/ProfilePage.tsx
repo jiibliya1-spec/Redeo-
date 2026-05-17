@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { Camera, Edit, Check, Shield, Star, Car, Calendar, ChevronRight, Loader2, LogOut, Upload, Globe, Users, RefreshCw } from 'lucide-react';
+import { Camera, Edit, Check, Shield, Star, Car, ChevronRight, Loader2, LogOut, Upload, Globe, Users, RefreshCw, Settings } from 'lucide-react';
 
 const SUPABASE_URL = 'https://qhbiafoyhvmvyyzwdzhd.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoYmlhZm95aHZtdnl5endkemhkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3OTIwNDcsImV4cCI6MjA5NDM2ODA0N30.04MftiDjQUrnGegTeaL88WyES9ydDKxRrrmVua0rVbM';
@@ -277,7 +277,7 @@ export function ProfilePage() {
     { icon: Shield, label: t('verify.title'), desc: t('verify.subtitle'), action: () => navigate('/verification') },
     { icon: Car, label: t('passenger.title'), desc: t('passenger.title'), action: () => navigate('/dashboard') },
     { icon: Star, label: t('profile.my_reviews'), desc: t('profile.my_reviews'), action: () => toast.info(t('common.favorite_routes')) },
-    { icon: Calendar, label: t('profile.preferences'), desc: t('profile.preferences'), action: () => toast.info(t('common.favorite_routes')) },
+    { icon: Settings, label: 'Settings', desc: 'Account & preferences', action: () => navigate('/settings') },
   ];
 
   return (

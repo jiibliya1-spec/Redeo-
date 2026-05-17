@@ -18,6 +18,7 @@ import { AdminUsers } from '@/pages/admin/AdminUsers';
 import { AdminTrips } from '@/pages/admin/AdminTrips';
 import { AdminMessages } from '@/pages/admin/AdminMessages';
 import { AdminSettings } from '@/pages/admin/AdminSettings';
+import { AdminSupportTickets } from '@/pages/admin/AdminSupportTickets';
 import { ProfilePage } from '@/pages/ProfilePage';
 import { VerificationPage } from '@/pages/VerificationPage';
 import { MessagesPage } from '@/pages/MessagesPage';
@@ -80,6 +81,7 @@ function AdminRoutes() {
         <Route path="/trips" element={<AdminTrips />} />
         <Route path="/messages" element={<AdminMessages />} />
         <Route path="/settings" element={<AdminSettings />} />
+        <Route path="/support" element={<AdminSupportTickets />} />
         <Route path="*" element={<Navigate to="/admin" replace />} />
       </Routes>
     </AdminRouteGuard>

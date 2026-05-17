@@ -13,6 +13,7 @@ import {
   Car,
   MessageSquare,
   Bell,
+  Ticket,
 } from 'lucide-react';
 
 const navItems = [
@@ -21,6 +22,7 @@ const navItems = [
   { path: '/admin/users', label: 'Users', icon: Users },
   { path: '/admin/trips', label: 'Trips', icon: Car },
   { path: '/admin/messages', label: 'Messages', icon: MessageSquare },
+  { path: '/admin/support', label: 'Support Tickets', icon: Ticket },
   { path: '/admin/settings', label: 'Settings', icon: Settings },
 ];
 

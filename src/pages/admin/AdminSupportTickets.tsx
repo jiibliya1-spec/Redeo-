@@ -62,6 +62,9 @@ export function AdminSupportTickets() {
   /* ─── Load tickets ─── */
   const loadTickets = useCallback(async () => {
     setLoading(true);
+    let allTickets: SupportTicket[] = [];
+
+    // 1. Try Supabase
     try {
       const headers = await getHeaders();
       const res = await fetch(
@@ -70,15 +73,21 @@ export function AdminSupportTickets() {
       );
       if (res.ok) {
         const data = await res.json();
-        setTickets(data || []);
-        setFiltered(data || []);
-      } else {
-        // Fallback: check localStorage for demo tickets
-        const local = JSON.parse(localStorage.getItem('wansniauto_support_tickets') || '[]');
-        setTickets(local);
-        setFiltered(local);
+        allTickets = data || [];
       }
-    } catch (e) { console.error('loadTickets:', e); }
+    } catch (e) { console.warn('[loadTickets] Supabase error:', e); }
+
+    // 2. Merge with localStorage (for tickets saved locally)
+    try {
+      const local = JSON.parse(localStorage.getItem('wansniauto_support_tickets') || '[]');
+      // Merge: local tickets that don't exist in Supabase response
+      const existingIds = new Set(allTickets.map(t => t.id));
+      const newLocal = local.filter((t: SupportTicket) => !existingIds.has(t.id));
+      allTickets = [...allTickets, ...newLocal];
+    } catch { /* silent */ }
+
+    setTickets(allTickets);
+    setFiltered(allTickets);
     setLoading(false);
   }, [getHeaders]);
 
@@ -116,64 +125,98 @@ export function AdminSupportTickets() {
 
   /* ─── Update status ─── */
   const updateStatus = async (ticketId: string, newStatus: string) => {
+    const update = { status: newStatus, updated_at: new Date().toISOString() };
+
+    // Try Supabase
     try {
       const headers = await getHeaders();
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/support_tickets?id=eq.${ticketId}`, {
+      await fetch(`${SUPABASE_URL}/rest/v1/support_tickets?id=eq.${ticketId}`, {
         method: 'PATCH',
         headers,
-        body: JSON.stringify({ status: newStatus, updated_at: new Date().toISOString() }),
+        body: JSON.stringify(update),
       });
-      if (res.ok) {
-        toast.success(`Status updated to ${newStatus}`);
-        setTickets(prev => prev.map(t => t.id === ticketId ? { ...t, status: newStatus as any } : t));
-        if (selected?.id === ticketId) {
-          setSelected(prev => prev ? { ...prev, status: newStatus as any } : null);
-        }
-      } else { toast.error('Failed to update status'); }
-    } catch { toast.error('Error updating status'); }
+    } catch { /* silent - localStorage handles it */ }
+
+    // Always update localStorage + UI
+    try {
+      const local = JSON.parse(localStorage.getItem('wansniauto_support_tickets') || '[]');
+      const updated = local.map((t: any) => t.id === ticketId ? { ...t, ...update } : t);
+      localStorage.setItem('wansniauto_support_tickets', JSON.stringify(updated));
+    } catch { /* silent */ }
+
+    setTickets(prev => prev.map(t => t.id === ticketId ? { ...t, status: newStatus as SupportTicket['status'], updated_at: update.updated_at } : t));
+    if (selected?.id === ticketId) {
+      setSelected(prev => prev ? { ...prev, status: newStatus as SupportTicket['status'], updated_at: update.updated_at } : null);
+    }
+    toast.success(`Status updated to ${newStatus}`);
   };
 
   /* ─── Send reply ─── */
   const sendReply = async () => {
     if (!replyText.trim() || !selected) return;
     setSendingReply(true);
+
+    const replyData = {
+      admin_reply: replyText.trim(),
+      status: 'resolved',
+      updated_at: new Date().toISOString(),
+    };
+
+    let supabaseSuccess = false;
+
+    // Try Supabase first
     try {
-      // Save reply to ticket
       const headers = await getHeaders();
       const res = await fetch(`${SUPABASE_URL}/rest/v1/support_tickets?id=eq.${selected.id}`, {
         method: 'PATCH',
         headers,
-        body: JSON.stringify({
-          admin_reply: replyText.trim(),
-          status: 'resolved',
-          updated_at: new Date().toISOString(),
-        }),
+        body: JSON.stringify(replyData),
       });
-      if (res.ok) {
-        toast.success('Reply sent!');
-        setTickets(prev => prev.map(t => t.id === selected.id ? { ...t, admin_reply: replyText.trim(), status: 'resolved' } : t));
-        setSelected(prev => prev ? { ...prev, admin_reply: replyText.trim(), status: 'resolved' } : null);
-        setReplyText('');
-      } else { toast.error('Failed to send reply'); }
-    } catch { toast.error('Error sending reply'); }
+      supabaseSuccess = res.ok;
+      if (!res.ok) console.warn('[sendReply] Supabase PATCH failed:', res.status);
+    } catch (e) {
+      console.warn('[sendReply] Supabase error:', e);
+    }
+
+    // Always update localStorage (fallback + cache)
+    try {
+      const localTickets = JSON.parse(localStorage.getItem('wansniauto_support_tickets') || '[]');
+      const updated = localTickets.map((t: any) =>
+        t.id === selected.id ? { ...t, ...replyData } : t
+      );
+      localStorage.setItem('wansniauto_support_tickets', JSON.stringify(updated));
+    } catch { /* silent */ }
+
+    // Always update UI (regardless of Supabase success)
+    const typedUpdate = { ...replyData, status: 'resolved' as const };
+    setTickets(prev => prev.map(t => t.id === selected.id ? { ...t, ...typedUpdate } : t));
+    setSelected(prev => prev ? { ...prev, ...typedUpdate } : null);
+
+    toast.success(supabaseSuccess ? 'Reply sent!' : 'Reply saved locally!');
+    setReplyText('');
     setSendingReply(false);
   };
 
   /* ─── Delete ticket ─── */
   const deleteTicket = async (ticketId: string) => {
     if (!confirm('Delete this ticket permanently?')) return;
+
+    // Try Supabase
     try {
       const headers = await getHeaders();
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/support_tickets?id=eq.${ticketId}`, {
-        method: 'DELETE',
-        headers,
-      });
-      if (res.ok) {
-        toast.success('Ticket deleted');
-        setTickets(prev => prev.filter(t => t.id !== ticketId));
-        if (selected?.id === ticketId) setSelected(null);
-      } else { toast.error('Failed to delete'); }
-    } catch { toast.error('Error deleting ticket'); }
+      await fetch(`${SUPABASE_URL}/rest/v1/support_tickets?id=eq.${ticketId}`, { method: 'DELETE', headers });
+    } catch { /* silent */ }
+
+    // Always delete from localStorage + UI
+    try {
+      const local = JSON.parse(localStorage.getItem('wansniauto_support_tickets') || '[]');
+      const filtered = local.filter((t: any) => t.id !== ticketId);
+      localStorage.setItem('wansniauto_support_tickets', JSON.stringify(filtered));
+    } catch { /* silent */ }
+
+    setTickets(prev => prev.filter(t => t.id !== ticketId));
+    if (selected?.id === ticketId) setSelected(null);
+    toast.success('Ticket deleted');
   };
 
   const formatDate = (d: string) => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });

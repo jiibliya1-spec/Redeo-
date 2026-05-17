@@ -7,146 +7,166 @@ import { apiGet, supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import type { Trip, User } from '@/types';
 import {
-  ArrowLeft, MapPin, Clock, Star, Check, MessageCircle, Calendar,
-  Wifi, Usb, Music, Armchair, Loader2, ShieldCheck,
-  Users,
+  ArrowLeft, Star, CheckCircle, MessageCircle,
+  Shield, Users, Loader2, Car, Leaf, AlertTriangle,
+  Share2, PawPrint, Ban, Calendar, ChevronRight, Phone,
+  Circle, CircleDot,
 } from 'lucide-react';
 
 const SUPABASE_URL = 'https://qhbiafoyhvmvyyzwdzhd.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoYmlhZm95aHZtdnl5endkemhkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3OTIwNDcsImV4cCI6MjA5NDM2ODA0N30.04MftiDjQUrnGegTeaL88WyES9ydDKxRrrmVua0rVbM';
 
-interface DriverProfile {
-  id: string;
+interface BookingPassenger {
   name: string;
-  email: string;
   avatar: string;
-  bio: string;
-  phone: string;
-  is_verified: boolean;
-  verification_status: string;
-  rating: number;
-  trips_count: number;
-  role: string;
+  from: string;
+  to: string;
 }
 
 export function TripDetailsPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { setSelectedTrip } = useStore();
-  const { t, dir } = useI18n();
+  const { user: _user } = useStore();
+  const { lang, dir } = useI18n();
 
   const [trip, setTrip] = useState<Trip | null>(null);
-  const [driverProfile, setDriverProfile] = useState<DriverProfile | null>(null);
+  const [driver, setDriver] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [passengers] = useState<BookingPassenger[]>([]);
 
-  // ─── Fetch driver profile directly from Supabase ───
-  const fetchDriverProfile = useCallback(async (driverId: string) => {
-    try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const jwt = sessionData.session?.access_token || '';
-
-      const res = await fetch(
-        `${SUPABASE_URL}/rest/v1/profiles?select=id,name,email,avatar,bio,phone,is_verified,verification_status,rating,trips_count,role&id=eq.${driverId}&limit=1`,
-        {
-          headers: {
-            'apikey': SUPABASE_ANON_KEY,
-            'Authorization': `Bearer ${jwt}`,
-          },
-        }
-      );
-
-      if (res.ok) {
-        const data = await res.json();
-        if (data && data.length > 0) {
-          setDriverProfile(data[0] as DriverProfile);
-          return data[0] as DriverProfile;
-        }
-      }
-    } catch (err) {
-      console.error('[TripDetails] Driver fetch error:', err);
-    }
-    return null;
+  const getHeaders = useCallback(async () => {
+    const { data: s } = await supabase.auth.getSession();
+    return {
+      'apikey': SUPABASE_ANON_KEY,
+      'Authorization': `Bearer ${s.session?.access_token || ''}`,
+    };
   }, []);
 
-  // ─── Load trip + driver ───
   useEffect(() => {
     if (!id) return;
     setIsLoading(true);
 
-    const loadTrip = async () => {
-      let foundTrip: Trip | null = null;
-
-      // 1. Fetch from Supabase REST API
+    const load = async () => {
+      // 1. Fetch trip
       try {
         const data = await apiGet('trips', { eq: { id } });
         if (data && data[0]) {
-          foundTrip = data[0] as Trip;
-        }
-      } catch (e) {
-        console.error('Failed to fetch trip:', e);
-      }
+          const t = data[0] as Trip;
+          setTrip(t);
 
-      if (foundTrip) {
-        setTrip(foundTrip);
-        setSelectedTrip(foundTrip);
-
-        // Fetch driver profile
-        if (foundTrip.driver_id) {
-          const profile = await fetchDriverProfile(foundTrip.driver_id);
-          if (profile) {
-            setTrip(prev => prev ? {
-              ...prev,
-              driver: {
-                id: profile.id,
-                name: profile.name,
-                email: profile.email,
-                avatar: profile.avatar,
-                role: 'driver' as const,
-                is_verified: profile.is_verified,
-                verification_status: (profile.verification_status || 'unverified') as User['verification_status'],
-                rating: profile.rating,
-                trips_count: profile.trips_count,
-                bio: profile.bio,
-              }
-            } : null);
+          // 2. Fetch driver
+          const headers = await getHeaders();
+          const dres = await fetch(
+            `${SUPABASE_URL}/rest/v1/profiles?select=*&id=eq.${t.driver_id}&limit=1`,
+            { headers }
+          );
+          if (dres.ok) {
+            const d = await dres.json();
+            if (d?.[0]) {
+              setDriver(d[0]);
+              setTrip(prev => prev ? { ...prev, driver: d[0] } : null);
+            }
           }
         }
-      }
-
+      } catch (e) { console.error('load error:', e); }
       setIsLoading(false);
     };
 
-    loadTrip();
-  }, [id, fetchDriverProfile, setSelectedTrip]);
+    load();
+  }, [id, getHeaders]);
 
   const handleBook = () => {
     if (!trip) return;
-    setSelectedTrip(trip);
     navigate(`/booking/${trip.id}`);
   };
 
   const handleContactDriver = () => {
     if (!trip?.driver_id) return;
-    const driver = trip.driver || driverProfile;
     navigate('/messages', {
       state: {
         contactId: trip.driver_id,
-        contactName: driver?.name || t('trip.driver'),
+        contactName: driver?.name || 'Driver',
         contactAvatar: driver?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${trip.driver_id}`,
       }
     });
   };
 
-  const handleViewDriverProfile = () => {
+  const handleViewDriver = () => {
     if (!trip?.driver_id) return;
     navigate(`/profile/${trip.driver_id}`);
   };
 
-  const amenityIcons: Record<string, typeof Wifi> = {
-    'WiFi': Wifi, 'USB Charging': Usb, 'Music': Music, 'Air Conditioning': Armchair,
+  const handleShare = () => {
+    if (navigator.share) {
+      navigator.share({
+        title: `WansniAuto: ${trip?.from_location} → ${trip?.to_location}`,
+        text: `Trip from ${trip?.from_location} to ${trip?.to_location} on ${trip?.departure_date}`,
+        url: window.location.href,
+      });
+    } else {
+      navigator.clipboard.writeText(window.location.href);
+    }
   };
 
-  const driver = trip?.driver || driverProfile;
+  const T = {
+    en: {
+      book_now: 'Book',
+      contact: 'Contact',
+      price: 'per seat',
+      seats_left: 'seat(s) left',
+      booking_note: 'Your booking will only be confirmed once the driver accepts your request.',
+      verified: 'Verified Profile',
+      no_animals: 'No pets allowed',
+      co2_saved: 'By sharing this ride, you help save approx.',
+      co2_note: 'of CO₂ compared to driving alone.',
+      share: 'Share trip',
+      report: 'Report trip',
+      passengers: 'Passengers',
+      vehicle: 'Vehicle',
+      back: 'Back',
+      departure: 'Departure',
+      arrival: 'Arrival',
+    },
+    fr: {
+      book_now: 'Réserver',
+      contact: 'Contacter',
+      price: 'par siège',
+      seats_left: 'place(s) restante(s)',
+      booking_note: 'Votre réservation ne sera confirmée que lorsque le conducteur acceptera votre demande.',
+      verified: 'Profil Vérifié',
+      no_animals: 'Pas d\'animaux',
+      co2_saved: 'En partageant ce trajet, vous économisez environ',
+      co2_note: 'de CO₂ par rapport à une conduite seul.',
+      share: 'Partager',
+      report: 'Signaler',
+      passengers: 'Passagers',
+      vehicle: 'Véhicule',
+      back: 'Retour',
+      departure: 'Départ',
+      arrival: 'Arrivée',
+    },
+    ar: {
+      book_now: 'احجز',
+      contact: 'تواصل',
+      price: 'لكرسي',
+      seats_left: 'مقاعد باقية',
+      booking_note: 'الحجز غادي يتأكد غير ملي السائق يقبل طلبك.',
+      verified: 'بروفايل مفحوص',
+      no_animals: 'ممنوع الحيوانات',
+      co2_saved: 'بمشاركة هاد الرحلة، كاتوفر حوالي',
+      co2_note: 'ديال CO₂ مقارنة بالسيارة فردية.',
+      share: 'شارك الرحلة',
+      report: 'بلّغ الرحلة',
+      passengers: 'الركاب',
+      vehicle: 'السيارة',
+      back: 'رجوع',
+      departure: 'المغادرة',
+      arrival: 'الوصول',
+    },
+  }[lang];
+
+  const co2Amount = Math.round((trip?.price || 0) * 12);
+  const isFullyBooked = (trip?.available_seats || 0) <= 0;
 
   if (isLoading) {
     return (
@@ -160,136 +180,212 @@ export function TripDetailsPage() {
     return (
       <div className="min-h-screen bg-[#0F1115] pt-20 flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-xl text-white mb-4" dir={dir}>{t('search.no_rides')}</h2>
-          <Button onClick={() => navigate('/search')} variant="outline" className="border-[#FF6B00]/30 text-[#FF6B00] rounded-xl">{t('landing.search_btn')}</Button>
+          <h2 className="text-xl text-white mb-4" dir={dir}>Trip not found</h2>
+          <Button onClick={() => navigate('/search')} variant="outline" className="border-[#FF6B00]/30 text-[#FF6B00] rounded-xl">Search</Button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#0F1115] pt-20 pb-24">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="flex items-center gap-4 mb-6">
-          <button onClick={() => navigate('/search')} className="p-2 rounded-xl hover:bg-white/5 transition-colors"><ArrowLeft className="w-5 h-5 text-[#A0A0A0]" /></button>
-          <h1 className="text-xl font-bold text-white" dir={dir}>{trip.from_location} &rarr; {trip.to_location}</h1>
+    <div className="min-h-screen bg-[#0F1115] pb-8">
+      {/* Top Nav */}
+      <div className="sticky top-0 z-40 bg-[#0F1115]/95 backdrop-blur-md border-b border-white/5 px-4 py-3 flex items-center gap-3">
+        <button onClick={() => navigate(-1)} className="p-2 rounded-full hover:bg-white/5 transition-colors">
+          <ArrowLeft className="w-5 h-5 text-white" />
+        </button>
+        <div className="flex-1">
+          <p className="text-xs text-[#A0A0A0]">{trip.departure_date}</p>
         </div>
+      </div>
 
-        {/* Driver Card */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-[#1B1F27] rounded-2xl border border-white/5 p-6 mb-5">
-          <div className="flex items-start justify-between">
-            <div className="flex items-center gap-4">
-              <div className="relative cursor-pointer" onClick={handleViewDriverProfile}>
-                <img
-                  src={driver?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${trip.driver_id}`}
-                  alt={driver?.name}
-                  className="w-16 h-16 rounded-full object-cover ring-2 ring-[#FF6B00]/30"
-                />
-                {(driver?.is_verified) && (
-                  <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
-                    <Check className="w-3.5 h-3.5 text-white" />
-                  </div>
-                )}
+      <div className="max-w-lg mx-auto px-4 py-4 space-y-4">
+
+        {/* ─── TIMELINE ─── */}
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-[#1B1F27] rounded-2xl border border-white/5 p-5">
+          {/* Date */}
+          <div className="flex items-center gap-2 mb-4">
+            <Calendar className="w-4 h-4 text-[#FF6B00]" />
+            <span className="text-sm text-[#A0A0A0]">{trip.departure_date}</span>
+          </div>
+
+          {/* Timeline */}
+          <div className="relative pl-8">
+            {/* Vertical line */}
+            <div className="absolute left-[11px] top-2 bottom-2 w-[2px] bg-white/10" />
+
+            {/* Departure */}
+            <div className="relative mb-6">
+              <CircleDot className="absolute -left-[21px] top-0 w-5 h-5 text-[#FF6B00] fill-[#FF6B00]" />
+              <p className="text-2xl font-bold text-white">{trip.departure_time}</p>
+              <p className="text-sm text-white font-medium">{trip.from_location}</p>
+              {trip.duration && <p className="text-xs text-[#A0A0A0]">{trip.duration}</p>}
+            </div>
+
+            {/* Duration badge */}
+            {trip.duration && (
+              <div className="relative mb-4">
+                <span className="text-xs text-[#FF6B00] bg-[#FF6B00]/10 px-2 py-0.5 rounded-full">{trip.duration}</span>
               </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h2
-                    className="text-lg font-semibold text-white cursor-pointer hover:text-[#FF6B00] transition-colors"
-                    onClick={handleViewDriverProfile}
-                  >
-                    {driver?.name || t('trip.driver')}
-                  </h2>
-                  {driver?.is_verified && (
-                    <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-400 font-medium">
-                      <ShieldCheck className="w-3 h-3" /> Verified
-                    </span>
-                  )}
-                </div>
-                <div className="flex items-center gap-2 mt-1">
-                  <Star className="w-4 h-4 text-[#FF6B00] fill-[#FF6B00]" />
-                  <span className="text-sm text-white">{driver?.rating || 5}</span>
-                  <span className="text-sm text-[#A0A0A0]">&middot; {driver?.trips_count || 0} {t('trip.trips_done')}</span>
-                </div>
-                {driver?.bio && (
-                  <p className="text-sm text-[#A0A0A0] mt-2 max-w-md">{driver.bio}</p>
-                )}
-              </div>
-            </div>
-            <div className="text-right hidden sm:block">
-              <p className="text-3xl font-bold text-[#FF6B00]">{trip.price} <span className="text-base font-normal text-[#A0A0A0]">MAD</span></p>
-              <p className="text-sm text-[#A0A0A0]">{t('trip.price')}</p>
-            </div>
-          </div>
+            )}
 
-          <div className="flex gap-3 mt-5">
-            <button onClick={handleContactDriver} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#FF6B00] text-white text-sm font-medium hover:bg-[#E56000] transition-colors">
-              <MessageCircle className="w-4 h-4" /> Contact Driver
-            </button>
-            <button onClick={handleViewDriverProfile} className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-white/10 text-sm text-[#A0A0A0] hover:bg-white/5 transition-colors">
-              <Users className="w-4 h-4" /> View Profile
-            </button>
-          </div>
-        </motion.div>
-
-        {/* Route */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="bg-[#1B1F27] rounded-2xl border border-white/5 p-6 mb-5">
-          <h3 className="text-xs font-medium text-[#A0A0A0] uppercase tracking-wider mb-4" dir={dir}>{t('trip.route')}</h3>
-          <div className="flex items-center gap-6">
-            <div className="flex-1">
-              <div className="flex items-center gap-3 mb-1"><div className="w-4 h-4 rounded-full bg-[#FF6B00]" /><span className="text-2xl font-bold text-white">{trip.departure_time}</span></div>
-              <p className="text-[#A0A0A0] ml-7">{trip.from_location}</p>
-            </div>
-            <div className="flex flex-col items-center px-4">
-              <Clock className="w-5 h-5 text-[#A0A0A0]" />
-              <span className="text-sm text-[#A0A0A0] mt-1">{trip.duration || '—'}</span>
-            </div>
-            <div className="flex-1 text-right">
-              <div className="flex items-center justify-end gap-3 mb-1"><span className="text-2xl font-bold text-white">{trip.arrival_time || '—'}</span><div className="w-4 h-4 rounded-full border-2 border-[#FF6B00]" /></div>
-              <p className="text-[#A0A0A0] mr-7">{trip.to_location}</p>
-            </div>
-          </div>
-          <div className="mt-5 pt-5 border-t border-white/5">
-            <div className="flex items-center gap-2 mb-2"><Calendar className="w-4 h-4 text-[#FF6B00]" /><span className="text-sm text-white">{trip.departure_date}</span></div>
-            <div className="flex items-center gap-2"><MapPin className="w-4 h-4 text-[#FF6B00]" /><span className="text-sm text-[#A0A0A0]">{(trip.route || []).join(' \u2192 ')}</span></div>
-          </div>
-        </motion.div>
-
-        {/* Seats & Distance */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="bg-[#1B1F27] rounded-2xl border border-white/5 p-6 mb-5">
-          <div className="grid grid-cols-3 gap-4 text-center">
-            <div>
-              <p className="text-2xl font-bold text-white">{trip.available_seats}</p>
-              <p className="text-xs text-[#A0A0A0]">{t('trip.seats_left')}</p>
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-white">{trip.total_seats}</p>
-              <p className="text-xs text-[#A0A0A0]">{t('driver.seats')}</p>
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-white">{trip.distance || '—'}</p>
-              <p className="text-xs text-[#A0A0A0]">{t('driver.distance')}</p>
+            {/* Arrival */}
+            <div className="relative">
+              <Circle className="absolute -left-[21px] top-0 w-5 h-5 text-[#FF6B00]" />
+              <p className="text-2xl font-bold text-white">{trip.arrival_time || '--:--'}</p>
+              <p className="text-sm text-white font-medium">{trip.to_location}</p>
             </div>
           </div>
         </motion.div>
 
-        {/* Vehicle & Amenities */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="bg-[#1B1F27] rounded-2xl border border-white/5 p-6 mb-5">
-          <h3 className="text-xs font-medium text-[#A0A0A0] uppercase tracking-wider mb-4" dir={dir}>{t('trip.amenities')}</h3>
-          <div className="flex flex-wrap gap-2">
-            {(trip.amenities || []).map(a => {
-              const Icon = amenityIcons[a] || Armchair;
-              return <span key={a} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#FF6B00]/10 text-[#FF6B00] text-sm"><Icon className="w-3.5 h-3.5" />{a}</span>;
-            })}
-          </div>
-        </motion.div>
+        {/* ─── SEATS LEFT BADGE ─── */}
+        {!isFullyBooked && (trip.available_seats || 0) <= 2 && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-[#FF6B00]/10 border border-[#FF6B00]/20 rounded-xl p-3 text-center">
+            <p className="text-sm text-[#FF6B00] font-medium">
+              Only {trip.available_seats} {T.seats_left}!
+            </p>
+          </motion.div>
+        )}
 
-        {/* Book Button */}
-        <div className="fixed bottom-0 left-0 right-0 md:relative md:bottom-auto glass md:bg-transparent md:backdrop-blur-none border-t border-white/5 md:border-0 p-4 md:p-0 z-40">
-          <Button onClick={handleBook} className="w-full bg-[#FF6B00] hover:bg-[#E56000] text-white rounded-xl py-6 text-base font-semibold shadow-lg shadow-[#FF6B00]/20">
-            {t('trip.book_now')} &middot; {trip.price} MAD / {t('trip.price')}
+        {/* ─── PRICE & BOOK ─── */}
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} className="bg-[#1B1F27] rounded-2xl border border-white/5 p-5">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Users className="w-5 h-5 text-[#A0A0A0]" />
+              <span className="text-sm text-white">1 {T.seats_left}</span>
+            </div>
+            <div className="text-right">
+              <p className="text-3xl font-bold text-white">{trip.price} <span className="text-base font-normal text-[#A0A0A0]">MAD</span></p>
+              <p className="text-xs text-[#A0A0A0]">{T.price}</p>
+            </div>
+          </div>
+          <Button
+            onClick={handleBook}
+            disabled={isFullyBooked}
+            className="w-full bg-[#FF6B00] hover:bg-[#E56000] text-white rounded-xl h-12 font-semibold text-base disabled:opacity-30"
+          >
+            {isFullyBooked ? 'Fully Booked' : T.book_now}
           </Button>
-        </div>
+        </motion.div>
+
+        {/* ─── DRIVER CARD ─── */}
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="bg-[#1B1F27] rounded-2xl border border-white/5 p-5">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="relative cursor-pointer" onClick={handleViewDriver}>
+              <img
+                src={driver?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${trip.driver_id}`}
+                alt={driver?.name}
+                className="w-14 h-14 rounded-full object-cover ring-2 ring-[#FF6B00]/20"
+              />
+              {driver?.is_verified && (
+                <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-[#4A9EFF] rounded-full flex items-center justify-center">
+                  <CheckCircle className="w-3 h-3 text-white" />
+                </div>
+              )}
+            </div>
+            <div className="flex-1 cursor-pointer" onClick={handleViewDriver}>
+              <p className="text-lg font-bold text-white">{driver?.name || 'Driver'}</p>
+              <div className="flex items-center gap-2">
+                <Star className="w-4 h-4 text-[#FF6B00] fill-[#FF6B00]" />
+                <span className="text-sm text-white font-medium">{driver?.rating || 5}/5</span>
+                <span className="text-xs text-[#A0A0A0]">- {driver?.trips_count || 0} reviews</span>
+              </div>
+            </div>
+            <ChevronRight className="w-5 h-5 text-[#A0A0A0]" />
+          </div>
+
+          {/* Driver badges */}
+          <div className="space-y-3">
+            {driver?.is_verified && (
+              <div className="flex items-center gap-3">
+                <Shield className="w-5 h-5 text-[#4A9EFF]" />
+                <span className="text-sm text-white">{T.verified}</span>
+              </div>
+            )}
+            <div className="flex items-center gap-3">
+              <Ban className="w-5 h-5 text-green-400" />
+              <span className="text-sm text-white">Never cancels rides</span>
+            </div>
+          </div>
+
+          {/* Contact button */}
+          <Button
+            onClick={handleContactDriver}
+            variant="outline"
+            className="w-full mt-4 border-white/10 text-white hover:bg-white/5 rounded-xl h-11"
+          >
+            <MessageCircle className="w-4 h-4 mr-2" /> {T.contact}
+          </Button>
+        </motion.div>
+
+        {/* ─── BOOKING INFO ─── */}
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="flex items-start gap-3 bg-[#1B1F27]/50 rounded-xl p-4 border border-white/5">
+          <Phone className="w-5 h-5 text-[#A0A0A0] shrink-0 mt-0.5" />
+          <p className="text-sm text-[#A0A0A0] leading-relaxed">{T.booking_note}</p>
+        </motion.div>
+
+        {/* ─── TRIP PREFERENCES ─── */}
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="bg-[#1B1F27] rounded-2xl border border-white/5 p-5 space-y-4">
+          <h3 className="text-sm font-medium text-white uppercase tracking-wider">Trip Preferences</h3>
+          <div className="space-y-3">
+            <div className="flex items-center gap-3">
+              <PawPrint className="w-5 h-5 text-red-400" />
+              <span className="text-sm text-white">{T.no_animals}</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <Users className="w-5 h-5 text-[#A0A0A0]" />
+              <span className="text-sm text-white">Max. 2 on the back seat</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <Car className="w-5 h-5 text-[#A0A0A0]" />
+              <span className="text-sm text-white">{T.vehicle}: SKODA Octavia - Yellow</span>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* ─── PASSENGERS ─── */}
+        {passengers.length > 0 && (
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }} className="bg-[#1B1F27] rounded-2xl border border-white/5 p-5">
+            <h3 className="text-lg font-bold text-white mb-4">{T.passengers}</h3>
+            <div className="space-y-3">
+              {passengers.map((p, i) => (
+                <div key={i} className="flex items-center gap-3">
+                  <img src={p.avatar} alt="" className="w-10 h-10 rounded-full" />
+                  <div>
+                    <p className="text-sm text-white font-medium">{p.name}</p>
+                    <p className="text-xs text-[#A0A0A0]">{p.from} → {p.to}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+
+        {/* ─── CO2 SAVING ─── */}
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="bg-[#1B1F27] rounded-2xl border border-white/5 p-5">
+          <div className="flex items-start gap-3">
+            <Leaf className="w-8 h-8 text-green-400 shrink-0" />
+            <div>
+              <p className="text-sm text-white leading-relaxed">
+                {T.co2_saved} <span className="font-bold text-green-400">~{co2Amount} kg</span> {T.co2_note}
+              </p>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* ─── SHARE / REPORT ─── */}
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }} className="space-y-2">
+          <button onClick={handleShare} className="w-full flex items-center gap-3 p-4 rounded-xl hover:bg-white/5 transition-colors text-left">
+            <Share2 className="w-5 h-5 text-[#4A9EFF]" />
+            <span className="text-sm text-[#4A9EFF]">{T.share}</span>
+          </button>
+          <button onClick={() => {}} className="w-full flex items-center gap-3 p-4 rounded-xl hover:bg-white/5 transition-colors text-left">
+            <AlertTriangle className="w-5 h-5 text-[#4A9EFF]" />
+            <span className="text-sm text-[#4A9EFF]">{T.report}</span>
+          </button>
+        </motion.div>
+
+        <div className="h-4" />
       </div>
     </div>
   );

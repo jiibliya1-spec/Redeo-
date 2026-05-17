@@ -1,0 +1,40 @@
+2026-05-17T16:23:30.304219Z	Cloning repository...
+2026-05-17T16:23:31.356834Z	From https://github.com/jiibliya1-spec/Redeo-
+2026-05-17T16:23:31.35726Z	 * branch            ff3dfe5a4d1c80721f3cfa8bb1c27ae03dc74e6a -> FETCH_HEAD
+2026-05-17T16:23:31.357377Z	
+2026-05-17T16:23:31.473031Z	HEAD is now at ff3dfe5 fix: Cloudflare Pages build - PORT optional, _redirects SPA routing, clean vite.config
+2026-05-17T16:23:31.473412Z	
+2026-05-17T16:23:31.520605Z	
+2026-05-17T16:23:31.521064Z	Using v2 root directory strategy
+2026-05-17T16:23:31.53491Z	Success: Finished cloning repository files
+2026-05-17T16:23:33.971197Z	Checking for configuration in a Wrangler configuration file (BETA)
+2026-05-17T16:23:33.971722Z	
+2026-05-17T16:23:35.065915Z	No Wrangler configuration file found. Continuing.
+2026-05-17T16:23:36.758603Z	Detected the following tools from environment: pnpm@10.11.1, nodejs@22.16.0, npm@10.9.2
+2026-05-17T16:23:37.61071Z	Installing project dependencies: pnpm install
+2026-05-17T16:23:38.080742Z	Scope: all 8 workspace projects
+2026-05-17T16:23:38.17758Z	..                                       | Progress: resolved 1, reused 0, downloaded 0, added 0
+2026-05-17T16:23:38.23335Z	..                                       | +476 ++++++++++++++++++++++++++++++++
+2026-05-17T16:23:39.177405Z	..                                       | Progress: resolved 476, reused 0, downloaded 139, added 131
+2026-05-17T16:23:40.182332Z	..                                       | Progress: resolved 476, reused 0, downloaded 215, added 167
+2026-05-17T16:23:41.178517Z	..                                       | Progress: resolved 476, reused 0, downloaded 373, added 252
+2026-05-17T16:23:41.752373Z	..                                       | Progress: resolved 476, reused 0, downloaded 476, added 476, done
+2026-05-17T16:23:41.937973Z	.../esbuild@0.27.3/node_modules/esbuild postinstall$ node install.js
+2026-05-17T16:23:42.046359Z	.../esbuild@0.27.3/node_modules/esbuild postinstall: Done
+2026-05-17T16:23:42.376715Z	.. preinstall$ sh -c 'rm -f package-lock.json yarn.lock; case "$npm_config_user_agent" in pnpm/*) ;; *) echo "Use pnpm instead" >&2; exit 1 ;; esac'
+2026-05-17T16:23:42.392655Z	.. preinstall: Done
+2026-05-17T16:23:42.59435Z	Done in 4.7s using pnpm v10.11.1
+2026-05-17T16:23:42.637382Z	Executing user command: npm run build
+2026-05-17T16:23:43.04035Z	
+2026-05-17T16:23:43.040632Z	> my-app@0.0.0 build
+2026-05-17T16:23:43.04069Z	> tsc -b && vite build
+2026-05-17T16:23:43.040728Z	
+2026-05-17T16:23:44.000039Z	error TS2688: Cannot find type definition file for 'vite/client'.
+2026-05-17T16:23:44.00032Z	  The file is in the program because:
+2026-05-17T16:23:44.000372Z	    Entry point of type library 'vite/client' specified in compilerOptions
+2026-05-17T16:23:44.024832Z	error TS2688: Cannot find type definition file for 'node'.
+2026-05-17T16:23:44.025075Z	  The file is in the program because:
+2026-05-17T16:23:44.025149Z	    Entry point of type library 'node' specified in compilerOptions
+2026-05-17T16:23:44.059263Z	Failed: Error while executing user command. Exited with error code: 1
+2026-05-17T16:23:44.065823Z	Failed: build command exited with code: 1
+2026-05-17T16:23:44.696996Z	Failed: error occurred while running build command

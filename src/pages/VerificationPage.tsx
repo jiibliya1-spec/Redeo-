@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { useStore } from '@/store/useStore';
 import { useI18n } from '@/lib/i18n';
 import { supabase } from '@/lib/supabase';
+import type { User } from '@/types';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { Shield, Check, Upload, CreditCard, Camera, FileText, AlertCircle, Loader2, X, Clock } from 'lucide-react';
@@ -83,19 +84,20 @@ export function VerificationPage() {
         const profileData = await profileRes.json();
         if (profileData && profileData.length > 0) {
           const p = profileData[0];
-          if (user.is_verified !== p.is_verified || user.verification_status !== p.verification_status) {
-            setUser({
+          if (user) {
+            const updatedUser: User = {
               ...user,
-              is_verified: p.is_verified,
-              verification_status: p.verification_status,
-            });
+              is_verified: p.is_verified === true,
+              verification_status: p.verification_status || 'unverified',
+            };
+            setUser(updatedUser);
           }
         }
       }
     } catch (err: any) {
       console.log('[Verification] Load error:', err.message);
     }
-  }, [user?.id, getHeaders, user, setUser]);
+  }, [user?.id, getHeaders, setUser]);
 
   useEffect(() => {
     if (user?.id) loadVerifications();
@@ -119,10 +121,15 @@ export function VerificationPage() {
         { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${user.id}` },
         async (payload) => {
           const p = payload.new as any;
-          if (p) {
-            setUser({ ...user, is_verified: p.is_verified, verification_status: p.verification_status });
+          if (p && user) {
+            const updatedUser: User = {
+              ...user,
+              is_verified: p.is_verified === true,
+              verification_status: p.verification_status || 'unverified',
+            };
+            setUser(updatedUser);
             if (p.is_verified) {
-              toast.success('🎉 Your account has been verified by admin!');
+              toast.success('Your account has been verified by admin!');
             } else if (p.verification_status === 'rejected') {
               toast.error('Your verification was rejected. Please re-upload your documents.');
             }

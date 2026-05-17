@@ -156,22 +156,21 @@ export function PublishTripPage() {
     setIsPublishing(true);
 
     try {
-      const tripData = {
+      const tripData: any = {
         driver_id: user.id,
         from_location: from,
         to_location: to,
         departure_date: date,
         departure_time: time,
-        arrival_time: '',
         price: parseFloat(price),
         available_seats: parseInt(seats),
         total_seats: parseInt(seats),
         distance: distance || '0 km',
         duration: duration || '',
         status: 'upcoming',
-        route: [from, to],
-        amenities: ['Air Conditioning'],
       };
+      // Only add optional fields if columns exist
+      if (duration) tripData.duration = duration;
 
       // Save to Supabase via REST API with JWT
       const result = await apiPost('trips', tripData);

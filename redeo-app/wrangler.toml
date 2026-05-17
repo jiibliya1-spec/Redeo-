@@ -1,8 +1,3 @@
-# Cloudflare Pages configuration
-  name = "redeo"
-  compatibility_date = "2024-01-01"
-  pages_build_output_dir = "./dist"
-
-  [build]
-  command = "npm install && npm run build"
-  
+name = "redeo"
+compatibility_date = "2024-01-01"
+pages_build_output_dir = "./dist"

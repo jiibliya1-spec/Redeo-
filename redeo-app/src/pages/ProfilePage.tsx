@@ -40,14 +40,16 @@ export function ProfilePage() {
 
   // ─── Direct fetch from Supabase (always fresh) ───
   const fetchFreshProfile = useCallback(async () => {
-    if (!user?.id) return;
+    // Use store.getState() to avoid stale closure
+    const currentUser = useStore.getState().user;
+    if (!currentUser?.id) return;
     setIsRefreshing(true);
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       const jwt = sessionData.session?.access_token || '';
 
       const res = await fetch(
-        `${SUPABASE_URL}/rest/v1/profiles?select=is_verified,verification_status,role&id=eq.${user.id}&limit=1`,
+        `${SUPABASE_URL}/rest/v1/profiles?select=is_verified,verification_status,role&id=eq.${currentUser.id}&limit=1`,
         {
           headers: {
             'apikey': SUPABASE_ANON_KEY,
@@ -65,10 +67,11 @@ export function ProfilePage() {
           setProfileStatus(p.verification_status || 'unverified');
           setProfileRole(p.role || 'passenger');
 
-          // Also update the global user state
-          if (user) {
+          // Also update the global user state with FRESH user
+          const freshUser = useStore.getState().user;
+          if (freshUser) {
             setUser({
-              ...user,
+              ...freshUser,
               is_verified: p.is_verified === true,
               verification_status: p.verification_status || 'unverified',
               role: (p.role || 'passenger') as 'passenger' | 'driver' | 'admin',
@@ -82,7 +85,7 @@ export function ProfilePage() {
       console.error('[ProfilePage] Error:', err.message);
     }
     setIsRefreshing(false);
-  }, [user?.id, setUser]);
+  }, [setUser]);
 
   // Load user data into form
   useEffect(() => {
@@ -103,19 +106,29 @@ export function ProfilePage() {
     fetchFreshProfile();
   }, [fetchFreshProfile]);
 
+  // ─── Polling: refresh profile every 8 seconds (fallback if realtime is down) ───
+  useEffect(() => {
+    if (!user?.id) return;
+    const interval = setInterval(() => {
+      fetchFreshProfile();
+    }, 8000);
+    return () => clearInterval(interval);
+  }, [user?.id, fetchFreshProfile]);
+
   // ─── Realtime subscription for profile changes ───
   useEffect(() => {
     if (!user?.id) return;
 
+    const uid = user.id;
     const channel = supabase
-      .channel(`profile-${user.id}`)
+      .channel(`profile-${uid}`)
       .on(
         'postgres_changes',
         {
           event: 'UPDATE',
           schema: 'public',
           table: 'profiles',
-          filter: `id=eq.${user.id}`,
+          filter: `id=eq.${uid}`,
         },
         (payload) => {
           const p = payload.new as any;
@@ -125,13 +138,14 @@ export function ProfilePage() {
             setProfileStatus(p.verification_status || 'unverified');
             if (p.role) setProfileRole(p.role);
 
-            // Update global user
-            if (user) {
+            // Update global user with FRESH user (avoid stale closure)
+            const freshUser = useStore.getState().user;
+            if (freshUser) {
               setUser({
-                ...user,
+                ...freshUser,
                 is_verified: p.is_verified === true,
                 verification_status: p.verification_status || 'unverified',
-                role: (p.role || user.role) as 'passenger' | 'driver' | 'admin',
+                role: (p.role || freshUser.role) as 'passenger' | 'driver' | 'admin',
               });
             }
 

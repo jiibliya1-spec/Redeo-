@@ -54,13 +54,16 @@ export function VerificationPage() {
 
   // Load verifications and refresh profile status
   const loadVerifications = useCallback(async () => {
-    if (!user?.id) return;
+    // Use current user from store to avoid stale closure
+    const currentUser = useStore.getState().user;
+    if (!currentUser?.id) return;
+    const uid = currentUser.id;
     try {
       const headers = await getHeaders();
 
       // 1. Fetch user's verifications
       const res = await fetch(
-        `${SUPABASE_URL}/rest/v1/verifications?select=*&user_id=eq.${user.id}&order=created_at.desc`,
+        `${SUPABASE_URL}/rest/v1/verifications?select=*&user_id=eq.${uid}&order=created_at.desc`,
         { headers }
       );
       if (!res.ok) throw new Error(await res.text());
@@ -77,18 +80,20 @@ export function VerificationPage() {
 
       // 2. Fetch fresh profile to get latest is_verified / verification_status
       const profileRes = await fetch(
-        `${SUPABASE_URL}/rest/v1/profiles?select=is_verified,verification_status&id=eq.${user.id}&limit=1`,
+        `${SUPABASE_URL}/rest/v1/profiles?select=is_verified,verification_status,role&id=eq.${uid}&limit=1`,
         { headers }
       );
       if (profileRes.ok) {
         const profileData = await profileRes.json();
         if (profileData && profileData.length > 0) {
           const p = profileData[0];
-          if (user) {
+          const freshUser = useStore.getState().user;
+          if (freshUser) {
             const updatedUser: User = {
-              ...user,
+              ...freshUser,
               is_verified: p.is_verified === true,
               verification_status: p.verification_status || 'unverified',
+              role: (p.role as any) || freshUser.role,
             };
             setUser(updatedUser);
           }
@@ -97,7 +102,7 @@ export function VerificationPage() {
     } catch (err: any) {
       console.log('[Verification] Load error:', err.message);
     }
-  }, [user?.id, getHeaders, setUser]);
+  }, [getHeaders, setUser]);
 
   useEffect(() => {
     if (user?.id) loadVerifications();
@@ -107,25 +112,29 @@ export function VerificationPage() {
   useEffect(() => {
     if (!user?.id) return;
 
+    const uid = user.id;
+
     const channel = supabase
-      .channel(`verifications:${user.id}`)
+      .channel(`verifications:${uid}`)
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'verifications', filter: `user_id=eq.${user.id}` },
+        { event: '*', schema: 'public', table: 'verifications', filter: `user_id=eq.${uid}` },
         async () => {
           await loadVerifications();
         }
       )
       .on(
         'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${user.id}` },
+        { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${uid}` },
         async (payload) => {
           const p = payload.new as any;
-          if (p && user) {
+          const freshUser = useStore.getState().user;
+          if (p && freshUser) {
             const updatedUser: User = {
-              ...user,
+              ...freshUser,
               is_verified: p.is_verified === true,
               verification_status: p.verification_status || 'unverified',
+              role: (p.role as any) || freshUser.role,
             };
             setUser(updatedUser);
             if (p.is_verified) {
@@ -140,6 +149,15 @@ export function VerificationPage() {
 
     return () => { supabase.removeChannel(channel); };
   }, [user?.id]);
+
+  // Polling fallback: refresh every 8 seconds (in case realtime is disabled)
+  useEffect(() => {
+    if (!user?.id) return;
+    const interval = setInterval(() => {
+      loadVerifications();
+    }, 8000);
+    return () => clearInterval(interval);
+  }, [user?.id, loadVerifications]);
 
   const fileToDataUrl = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -222,7 +240,11 @@ export function VerificationPage() {
   };
 
   const handleSubmitForReview = async () => {
-    if (!user?.id) return;
+    // Always read fresh user from store
+    const currentUser = useStore.getState().user;
+    if (!currentUser?.id) return;
+    const uid = currentUser.id;
+
     const uploaded = steps.filter(s => s.status === 'uploaded');
     if (uploaded.length === 0) {
       toast.error('Please upload at least one document');
@@ -235,7 +257,7 @@ export function VerificationPage() {
 
       for (const doc of uploaded) {
         await fetch(
-          `${SUPABASE_URL}/rest/v1/verifications?user_id=eq.${user.id}&doc_type=eq.${doc.id}`,
+          `${SUPABASE_URL}/rest/v1/verifications?user_id=eq.${uid}&doc_type=eq.${doc.id}`,
           {
             method: 'PATCH',
             headers,
@@ -245,7 +267,7 @@ export function VerificationPage() {
       }
 
       await fetch(
-        `${SUPABASE_URL}/rest/v1/profiles?id=eq.${user.id}`,
+        `${SUPABASE_URL}/rest/v1/profiles?id=eq.${uid}`,
         {
           method: 'PATCH',
           headers,
@@ -254,7 +276,9 @@ export function VerificationPage() {
       );
 
       setSteps(prev => prev.map(s => s.status === 'uploaded' ? { ...s, status: 'pending' as const } : s));
-      if (user) setUser({ ...user, verification_status: 'submitted', is_verified: false });
+      // Refresh user from store before updating
+      const freshUser = useStore.getState().user;
+      if (freshUser) setUser({ ...freshUser, verification_status: 'submitted', is_verified: false });
 
       toast.success('Documents submitted for review! Admin will verify them soon.');
     } catch (err: any) {

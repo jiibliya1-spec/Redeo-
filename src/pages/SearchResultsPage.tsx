@@ -15,15 +15,6 @@ import {
 const SUPABASE_URL = 'https://qhbiafoyhvmvyyzwdzhd.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoYmlhZm95aHZtdnl5endkemhkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3OTIwNDcsImV4cCI6MjA5NDM2ODA0N30.04MftiDjQUrnGegTeaL88WyES9ydDKxRrrmVua0rVbM';
 
-const LOCAL_TRIPS_KEY = 'wansniauto_trips';
-
-function getLocalTrips(): Trip[] {
-  try {
-    const raw = localStorage.getItem(LOCAL_TRIPS_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch { return []; }
-}
-
 function TripCard({ trip, index }: { trip: Trip; index: number }) {
   const navigate = useNavigate();
   const { t } = useI18n();
@@ -182,19 +173,14 @@ export function SearchResultsPage() {
     const loadResults = async () => {
       let allTrips: Trip[] = [];
 
-      // 1. Try Supabase
+      // 1. Fetch from Supabase
       try {
         const data = await apiGet('trips');
         if (data && data.length > 0) {
           allTrips = data as Trip[];
         }
-      } catch {
-        console.log('[SearchResults] REST API failed, using localStorage');
-      }
-
-      // 2. Fallback: localStorage
-      if (allTrips.length === 0) {
-        allTrips = getLocalTrips();
+      } catch (e) {
+        console.error('[SearchResults] Failed to fetch trips:', e);
       }
 
       // 3. Filter

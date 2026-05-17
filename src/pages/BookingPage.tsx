@@ -86,7 +86,7 @@ export function BookingPage() {
         created_at: new Date().toISOString(),
       };
 
-      // Try Supabase
+      // Save to Supabase
       const res = await fetch(`${SUPABASE_URL}/rest/v1/bookings`, {
         method: 'POST',
         headers: {
@@ -98,13 +98,9 @@ export function BookingPage() {
       });
 
       if (!res.ok) {
-        console.warn('Supabase booking failed, using localStorage');
+        const errText = await res.text();
+        throw new Error(`Supabase error: ${res.status} - ${errText}`);
       }
-
-      // Always save locally
-      const localBookings = JSON.parse(localStorage.getItem('wansniauto_bookings') || '[]');
-      localBookings.push({ ...bookingData, id: `local-${Date.now()}` });
-      localStorage.setItem('wansniauto_bookings', JSON.stringify(localBookings));
 
       toast.success(`Booking request sent for ${seats} seat(s)!`);
       setBooked(true);

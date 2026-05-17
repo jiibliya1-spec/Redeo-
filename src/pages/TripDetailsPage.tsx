@@ -76,22 +76,14 @@ export function TripDetailsPage() {
     const loadTrip = async () => {
       let foundTrip: Trip | null = null;
 
-      // 1. Try Supabase REST API
+      // 1. Fetch from Supabase REST API
       try {
         const data = await apiGet('trips', { eq: { id } });
         if (data && data[0]) {
           foundTrip = data[0] as Trip;
         }
-      } catch {
-        console.log('REST API failed, trying localStorage');
-      }
-
-      // 2. Fallback: search localStorage
-      if (!foundTrip) {
-        try {
-          const localTrips = JSON.parse(localStorage.getItem('wansniauto_trips') || '[]') as Trip[];
-          foundTrip = localTrips.find((t: Trip) => t.id === id) || null;
-        } catch { /* silent */ }
+      } catch (e) {
+        console.error('Failed to fetch trip:', e);
       }
 
       if (foundTrip) {

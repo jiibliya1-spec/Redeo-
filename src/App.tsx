@@ -8,6 +8,7 @@ import { LandingPage } from '@/pages/LandingPage';
 import { SearchResultsPage } from '@/pages/SearchResultsPage';
 import { TripDetailsPage } from '@/pages/TripDetailsPage';
 import { BookingPage } from '@/pages/BookingPage';
+import { MyTripsPage } from '@/pages/MyTripsPage';
 import { LoginPage } from '@/pages/LoginPage';
 import { RegisterPage } from '@/pages/RegisterPage';
 import { PassengerDashboard } from '@/pages/PassengerDashboard';
@@ -129,6 +130,7 @@ function AppContent() {
           <Route path="/search" element={<SearchResultsPage />} />
           <Route path="/trip/:id" element={<TripDetailsPage />} />
           <Route path="/booking/:id" element={<BookingPage />} />
+          <Route path="/my-trips" element={isAuthenticated ? <MyTripsPage /> : <Navigate to="/login" />} />
           <Route path="/login" element={<ProtectedLogin />} />
           <Route path="/register" element={<ProtectedRegister />} />
           <Route path="/dashboard" element={<DashboardRouter />} />

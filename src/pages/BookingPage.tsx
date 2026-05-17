@@ -2,65 +2,122 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useStore } from '@/store/useStore';
-import { apiGet, apiPost } from '@/lib/supabase';
-import type { Trip } from '@/types';
+import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { ArrowLeft, CreditCard, Wallet, Banknote, Check, Minus, Plus, Lock, Loader2 } from 'lucide-react';
+import type { Trip, User } from '@/types';
+import {
+  ArrowLeft, CheckCircle, Loader2, CreditCard,
+  MapPin, Clock, Calendar, Star, ShieldCheck, Leaf,
+} from 'lucide-react';
 
-type PaymentMethod = 'card' | 'wallet' | 'cash';
+const SUPABASE_URL = 'https://qhbiafoyhvmvyyzwdzhd.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoYmlhZm95aHZtdnl5endkemhkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3OTIwNDcsImV4cCI6MjA5NDM2ODA0N30.04MftiDjQUrnGegTeaL88WyES9ydDKxRrrmVua0rVbM';
 
 export function BookingPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useStore();
-  const [trip, setTrip] = useState<Trip | null>(null);
-  const [seats, setSeats] = useState(1);
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('card');
-  const [step, setStep] = useState(1);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [bookingId, setBookingId] = useState('');
-  // Card fields
-  const [cardNumber, setCardNumber] = useState('');
-  const [expiry, setExpiry] = useState('');
-  const [cvv, setCvv] = useState('');
 
+  const [trip, setTrip] = useState<Trip | null>(null);
+  const [driver, setDriver] = useState<User | null>(null);
+  const [seats, setSeats] = useState(1);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isBooking, setIsBooking] = useState(false);
+  const [booked, setBooked] = useState(false);
+
+  /* ─── Load trip + driver ─── */
   useEffect(() => {
     if (!id) return;
-    setIsLoading(true);
-
-    const loadTrip = async () => {
+    const load = async () => {
       try {
-        // Try REST API first
-        const data = await apiGet('trips', { eq: { id } });
-        if (data && data[0]) {
-          setTrip(data[0] as Trip);
-        } else {
-          // Fallback: search localStorage
-          const localTrips = JSON.parse(localStorage.getItem('wansniauto_trips') || '[]');
-          const found = localTrips.find((t: Trip) => t.id === id);
-          if (found) setTrip(found);
-        }
-      } catch {
-        // Fallback: search localStorage
-        const localTrips = JSON.parse(localStorage.getItem('wansniauto_trips') || '[]');
-        const found = localTrips.find((t: Trip) => t.id === id);
-        if (found) setTrip(found);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+        const { data: sessionData } = await supabase.auth.getSession();
+        const jwt = sessionData.session?.access_token || '';
 
-    loadTrip();
+        // Fetch trip
+        const tripRes = await fetch(
+          `${SUPABASE_URL}/rest/v1/trips?select=*&id=eq.${id}&limit=1`,
+          { headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${jwt}` } }
+        );
+        if (tripRes.ok) {
+          const trips = await tripRes.json();
+          if (trips?.[0]) {
+            const t = trips[0];
+            setTrip(t);
+            // Fetch driver
+            const driverRes = await fetch(
+              `${SUPABASE_URL}/rest/v1/profiles?select=*&id=eq.${t.driver_id}&limit=1`,
+              { headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${jwt}` } }
+            );
+            if (driverRes.ok) {
+              const drivers = await driverRes.json();
+              if (drivers?.[0]) {
+                setDriver(drivers[0]);
+                setTrip(prev => prev ? { ...prev, driver: drivers[0] } : null);
+              }
+            }
+          }
+        }
+      } catch (e) { console.error('load error:', e); }
+      setIsLoading(false);
+    };
+    load();
   }, [id]);
+
+  /* ─── Handle booking ─── */
+  const handleBook = async () => {
+    if (!trip || !user) { toast.error('Login required'); return; }
+    if (seats > (trip.available_seats || 0)) { toast.error('Not enough seats'); return; }
+
+    setIsBooking(true);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const jwt = sessionData.session?.access_token || '';
+
+      const bookingData = {
+        trip_id: trip.id,
+        passenger_id: user.id,
+        driver_id: trip.driver_id,
+        seats,
+        status: 'pending',
+        total_price: trip.price * seats,
+        passenger_name: user.name,
+        passenger_phone: user.phone,
+        created_at: new Date().toISOString(),
+      };
+
+      // Try Supabase
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/bookings`, {
+        method: 'POST',
+        headers: {
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${jwt}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(bookingData),
+      });
+
+      if (!res.ok) {
+        console.warn('Supabase booking failed, using localStorage');
+      }
+
+      // Always save locally
+      const localBookings = JSON.parse(localStorage.getItem('wansniauto_bookings') || '[]');
+      localBookings.push({ ...bookingData, id: `local-${Date.now()}` });
+      localStorage.setItem('wansniauto_bookings', JSON.stringify(localBookings));
+
+      toast.success(`Booking request sent for ${seats} seat(s)!`);
+      setBooked(true);
+    } catch (e) {
+      toast.error('Booking failed');
+    }
+    setIsBooking(false);
+  };
 
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[#0F1115] pt-20 flex items-center justify-center">
-        <div className="animate-spin w-8 h-8 border-2 border-[#FF6B00] border-t-transparent rounded-full" />
+        <Loader2 className="w-8 h-8 text-[#FF6B00] animate-spin" />
       </div>
     );
   }
@@ -68,92 +125,39 @@ export function BookingPage() {
   if (!trip) {
     return (
       <div className="min-h-screen bg-[#0F1115] pt-20 flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-xl text-white mb-4">Trip not found</h2>
-          <Button onClick={() => navigate('/search')} variant="outline" className="border-[#FF6B00]/30 text-[#FF6B00] rounded-xl">Back</Button>
-        </div>
+        <p className="text-[#A0A0A0]">Trip not found</p>
       </div>
     );
   }
 
-  const totalPrice = trip.price * seats;
-  const serviceFee = Math.round(totalPrice * 0.05);
-  const finalTotal = totalPrice + serviceFee;
-
-  const handleConfirm = async () => {
-    if (!user?.id) {
-      toast.error('Please sign in to book');
-      navigate('/login');
-      return;
-    }
-    setIsProcessing(true);
-
-    const bookingData = {
-      trip_id: trip.id,
-      passenger_id: user.id,
-      driver_id: trip.driver_id || 'unknown',
-      seats,
-      status: 'confirmed',
-      total_price: finalTotal,
-    };
-
-    let newBookingId = `booking-${Date.now()}`;
-
-    try {
-      // 1. Try REST API first
-      const result = await apiPost('bookings', bookingData);
-      if (result && result[0]?.id) {
-        newBookingId = result[0].id;
-      }
-
-      // 2. Update available seats via REST API
-      await apiPost('trips', { ...trip, available_seats: trip.available_seats - seats });
-    } catch {
-      // REST API failed - save to localStorage
-      console.log('REST API booking failed, saving locally');
-    }
-
-    // Always save to localStorage as backup
-    try {
-      const existingBookings = JSON.parse(localStorage.getItem('wansniauto_bookings') || '[]');
-      localStorage.setItem('wansniauto_bookings', JSON.stringify([
-        ...existingBookings,
-        { ...bookingData, id: newBookingId, created_at: new Date().toISOString() }
-      ]));
-
-      // Update trip seats in localStorage too
-      const existingTrips = JSON.parse(localStorage.getItem('wansniauto_trips') || '[]');
-      const updatedTrips = existingTrips.map((t: Trip) =>
-        t.id === trip.id ? { ...t, available_seats: t.available_seats - seats } : t
-      );
-      localStorage.setItem('wansniauto_trips', JSON.stringify(updatedTrips));
-    } catch { /* silent */ }
-
-    setBookingId(newBookingId);
-    setIsProcessing(false);
-    setStep(3);
-    toast.success('Booking confirmed!');
-  };
-
-  // Confirmation screen
-  if (step === 3) {
+  /* ─── Success view ─── */
+  if (booked) {
     return (
-      <div className="min-h-screen bg-[#0F1115] pt-20">
-        <div className="max-w-lg mx-auto px-4 py-16 text-center">
-          <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring' }} className="w-20 h-20 bg-[#FF6B00]/20 rounded-full flex items-center justify-center mx-auto mb-6">
-            <Check className="w-10 h-10 text-[#FF6B00]" />
+      <div className="min-h-screen bg-[#0F1115] pt-20 pb-8">
+        <div className="max-w-lg mx-auto px-4 py-12 text-center">
+          <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="w-20 h-20 rounded-full bg-green-500/10 flex items-center justify-center mx-auto mb-6">
+            <CheckCircle className="w-10 h-10 text-green-400" />
           </motion.div>
-          <h2 className="text-2xl font-bold text-white mb-2">Booking Confirmed!</h2>
-          <p className="text-[#A0A0A0] mb-8">{trip.from_location} &rarr; {trip.to_location}</p>
-          <div className="bg-[#1B1F27] rounded-2xl border border-[#FF6B00]/20 p-6 mb-8 text-left space-y-3">
-            <div className="flex justify-between"><span className="text-sm text-[#A0A0A0]">Booking ID</span><span className="text-sm text-white font-mono">{bookingId.slice(0, 8)}</span></div>
-            <div className="flex justify-between"><span className="text-sm text-[#A0A0A0]">Date</span><span className="text-sm text-white">{trip.departure_date} at {trip.departure_time}</span></div>
-            <div className="flex justify-between"><span className="text-sm text-[#A0A0A0]">Seats</span><span className="text-sm text-white">{seats}</span></div>
-            <div className="flex justify-between"><span className="text-sm text-[#A0A0A0]">Payment</span><span className="text-sm text-white capitalize">{paymentMethod}</span></div>
-            <div className="flex justify-between pt-3 border-t border-white/5"><span className="font-semibold text-white">Total</span><span className="font-bold text-[#FF6B00]">{finalTotal} MAD</span></div>
+          <h2 className="text-2xl font-bold text-white mb-2">Booking Request Sent!</h2>
+          <p className="text-sm text-[#A0A0A0] mb-2">Your driver will review and confirm your booking.</p>
+          <div className="bg-[#1B1F27] rounded-xl p-4 border border-white/5 mb-6 text-left">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm text-[#A0A0A0]">Trip</span>
+              <span className="text-sm text-white font-medium">{trip.from_location} → {trip.to_location}</span>
+            </div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm text-[#A0A0A0]">Seats</span>
+              <span className="text-sm text-white font-medium">{seats}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-[#A0A0A0]">Total</span>
+              <span className="text-sm text-[#FF6B00] font-bold">{trip.price * seats} MAD</span>
+            </div>
           </div>
-          <Button onClick={() => navigate('/dashboard')} className="w-full bg-[#FF6B00] text-white rounded-xl py-6 font-semibold mb-3">View My Trips</Button>
-          <Button onClick={() => navigate('/')} variant="outline" className="w-full border-white/10 text-[#A0A0A0] rounded-xl py-6">Back to Home</Button>
+          <div className="space-y-3">
+            <Button onClick={() => navigate(`/trip/${trip.id}`)} className="w-full bg-[#FF6B00] hover:bg-[#E56000] text-white rounded-xl h-12">Back to Trip</Button>
+            <Button onClick={() => navigate('/my-trips')} variant="outline" className="w-full border-white/10 text-white hover:bg-white/5 rounded-xl h-12">My Bookings</Button>
+          </div>
         </div>
       </div>
     );
@@ -161,81 +165,96 @@ export function BookingPage() {
 
   return (
     <div className="min-h-screen bg-[#0F1115] pt-20 pb-8">
-      <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex items-center gap-4 mb-8">
-          <button onClick={() => step === 1 ? navigate(`/trip/${trip.id}`) : setStep(1)} className="p-2 rounded-xl hover:bg-white/5 transition-colors"><ArrowLeft className="w-5 h-5 text-[#A0A0A0]" /></button>
-          <h1 className="text-xl font-bold text-white">{step === 1 ? 'Select Seats' : 'Payment'}</h1>
+      <div className="max-w-lg mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="flex items-center gap-4 mb-6">
+          <button onClick={() => navigate(`/trip/${id}`)} className="p-2 rounded-xl hover:bg-white/5"><ArrowLeft className="w-5 h-5 text-[#A0A0A0]" /></button>
+          <h1 className="text-xl font-bold text-white">Book This Ride</h1>
         </div>
 
         {/* Trip Summary */}
-        <div className="bg-[#1B1F27] rounded-2xl border border-white/5 p-5 mb-6">
-          <div className="flex items-center justify-between">
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-[#1B1F27] rounded-2xl border border-white/5 p-5 mb-5">
+          <div className="flex items-center justify-between mb-4">
             <div>
-              <p className="text-sm text-[#A0A0A0]">{trip.departure_date} &middot; {trip.departure_time}</p>
-              <p className="text-white font-medium">{trip.from_location} &rarr; {trip.to_location}</p>
-            </div>
-            <div className="text-right">
-              <p className="text-lg font-bold text-[#FF6B00]">{trip.price} MAD</p>
-              <p className="text-xs text-[#A0A0A0]">per seat</p>
+              <div className="flex items-center gap-2 mb-1"><MapPin className="w-4 h-4 text-[#FF6B00]" /><span className="text-sm text-white font-medium">{trip.from_location} → {trip.to_location}</span></div>
+              <div className="flex items-center gap-3 text-xs text-[#A0A0A0]">
+                <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{trip.departure_date}</span>
+                <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{trip.departure_time}</span>
+              </div>
             </div>
           </div>
-        </div>
-
-        {step === 1 && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-            <div className="bg-[#1B1F27] rounded-2xl border border-white/5 p-6 mb-6">
-              <h3 className="text-xs font-medium text-[#A0A0A0] uppercase tracking-wider mb-4">Number of seats</h3>
-              <div className="flex items-center justify-between">
-                <button onClick={() => setSeats(Math.max(1, seats - 1))} className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center hover:bg-[#FF6B00]/20 transition-colors"><Minus className="w-5 h-5 text-white" /></button>
-                <span className="text-4xl font-bold text-white">{seats}</span>
-                <button onClick={() => setSeats(Math.min(trip.available_seats, seats + 1))} className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center hover:bg-[#FF6B00]/20 transition-colors"><Plus className="w-5 h-5 text-white" /></button>
+          <div className="flex items-center gap-3">
+            <img src={driver?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${driver?.name}`} alt="" className="w-10 h-10 rounded-full ring-2 ring-[#FF6B00]/20" />
+            <div>
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-medium text-white">{driver?.name || 'Driver'}</p>
+                {driver?.is_verified && <span className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full bg-green-500/10 text-green-400"><ShieldCheck className="w-3 h-3" /> Verified</span>}
               </div>
-              <p className="text-xs text-[#A0A0A0] mt-4 text-center">{trip.available_seats} seats available</p>
+              <div className="flex items-center gap-1"><Star className="w-3 h-3 text-[#FF6B00] fill-[#FF6B00]" /><span className="text-xs text-[#A0A0A0]">{driver?.rating || 5} ({driver?.trips_count || 0} trips)</span></div>
             </div>
-            <div className="bg-[#1B1F27] rounded-2xl border border-white/5 p-6 mb-6 space-y-3">
-              <div className="flex justify-between"><span className="text-sm text-[#A0A0A0]">{trip.price} MAD &times; {seats}</span><span className="text-sm text-white">{totalPrice} MAD</span></div>
-              <div className="flex justify-between"><span className="text-sm text-[#A0A0A0]">Service fee (5%)</span><span className="text-sm text-white">{serviceFee} MAD</span></div>
-              <div className="flex justify-between pt-3 border-t border-white/5"><span className="font-semibold text-white">Total</span><span className="font-bold text-[#FF6B00]">{finalTotal} MAD</span></div>
-            </div>
-            <Button onClick={() => setStep(2)} className="w-full bg-[#FF6B00] text-white hover:bg-[#E56000] rounded-xl py-6 text-base font-semibold">Continue to Payment</Button>
-          </motion.div>
-        )}
+          </div>
+        </motion.div>
 
-        {step === 2 && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-            <div className="bg-[#1B1F27] rounded-2xl border border-white/5 p-6 mb-6">
-              <h3 className="text-xs font-medium text-[#A0A0A0] uppercase tracking-wider mb-4">Payment Method</h3>
-              <div className="space-y-3">
-                {[
-                  { id: 'card' as PaymentMethod, icon: CreditCard, title: 'Credit/Debit Card', desc: 'Visa, Mastercard' },
-                  { id: 'wallet' as PaymentMethod, icon: Wallet, title: 'Wansni Wallet', desc: 'Balance: 450 MAD' },
-                  { id: 'cash' as PaymentMethod, icon: Banknote, title: 'Cash', desc: 'Pay directly to driver' },
-                ].map(m => (
-                  <button key={m.id} onClick={() => setPaymentMethod(m.id)} className={`w-full flex items-center gap-4 p-4 rounded-xl border transition-all ${paymentMethod === m.id ? 'border-[#FF6B00]/50 bg-[#FF6B00]/5' : 'border-white/5 hover:border-white/10'}`}>
-                    <m.icon className="w-5 h-5 text-[#FF6B00]" />
-                    <div className="flex-1 text-left"><p className="text-sm text-white font-medium">{m.title}</p><p className="text-xs text-[#A0A0A0]">{m.desc}</p></div>
-                    {paymentMethod === m.id && <Check className="w-5 h-5 text-[#FF6B00]" />}
-                  </button>
-                ))}
-              </div>
-            </div>
+        {/* Seats Selector */}
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} className="bg-[#1B1F27] rounded-2xl border border-white/5 p-5 mb-5">
+          <p className="text-sm font-medium text-white mb-3">How many seats?</p>
+          <div className="flex items-center gap-3">
+            {[1,2,3,4].map(n => (
+              <button
+                key={n}
+                onClick={() => setSeats(n)}
+                disabled={n > (trip.available_seats || 0)}
+                className={`flex-1 py-3 rounded-xl border text-center transition-all ${
+                  seats === n ? 'border-[#FF6B00] bg-[#FF6B00]/10 text-[#FF6B00] font-bold' :
+                  n > (trip.available_seats || 0) ? 'border-white/5 text-[#A0A0A0]/30 cursor-not-allowed' :
+                  'border-white/10 text-white hover:border-white/20'
+                }`}
+              >
+                {n}
+              </button>
+            ))}
+          </div>
+          <p className="text-xs text-[#A0A0A0] mt-2">{trip.available_seats || 0} seats available</p>
+        </motion.div>
 
-            {paymentMethod === 'card' && (
-              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-[#1B1F27] rounded-2xl border border-white/5 p-6 mb-6 space-y-4">
-                <div><Label className="text-sm text-[#A0A0A0] mb-2 block">Card Number</Label><Input placeholder="4242 4242 4242 4242" value={cardNumber} onChange={e => setCardNumber(e.target.value)} className="bg-[#0F1115] border-white/10 text-white rounded-xl" /></div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div><Label className="text-sm text-[#A0A0A0] mb-2 block">Expiry</Label><Input placeholder="MM/YY" value={expiry} onChange={e => setExpiry(e.target.value)} className="bg-[#0F1115] border-white/10 text-white rounded-xl" /></div>
-                  <div><Label className="text-sm text-[#A0A0A0] mb-2 block">CVV</Label><Input placeholder="123" value={cvv} onChange={e => setCvv(e.target.value)} className="bg-[#0F1115] border-white/10 text-white rounded-xl" /></div>
-                </div>
-              </motion.div>
-            )}
+        {/* CO2 Saving */}
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="bg-green-500/5 rounded-2xl border border-green-500/10 p-4 mb-5 flex items-center gap-3">
+          <Leaf className="w-6 h-6 text-green-400" />
+          <div>
+            <p className="text-sm text-green-400 font-medium">Save ~{(seats * 12)}kg CO2</p>
+            <p className="text-xs text-[#A0A0A0]">By sharing this ride, you reduce your carbon footprint.</p>
+          </div>
+        </motion.div>
 
-            <div className="flex items-center gap-2 mb-6 text-sm text-[#A0A0A0]"><Lock className="w-4 h-4 text-[#FF6B00]" /><span>Secured with SSL encryption</span></div>
-            <Button onClick={handleConfirm} disabled={isProcessing} className="w-full bg-[#FF6B00] text-white hover:bg-[#E56000] rounded-xl py-6 text-base font-semibold disabled:opacity-50">
-              {isProcessing ? <Loader2 className="w-5 h-5 animate-spin" /> : `Pay ${finalTotal} MAD`}
-            </Button>
-          </motion.div>
-        )}
+        {/* Price Summary */}
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="bg-[#1B1F27] rounded-2xl border border-white/5 p-5 mb-5 space-y-3">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-[#A0A0A0]">{seats} seat(s) × {trip.price} MAD</span>
+            <span className="text-white">{seats * trip.price} MAD</span>
+          </div>
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-[#A0A0A0]">Service fee</span>
+            <span className="text-white">{Math.round(seats * trip.price * 0.05)} MAD</span>
+          </div>
+          <div className="h-px bg-white/5" />
+          <div className="flex items-center justify-between">
+            <span className="text-white font-medium">Total</span>
+            <span className="text-xl font-bold text-[#FF6B00]">{seats * trip.price + Math.round(seats * trip.price * 0.05)} MAD</span>
+          </div>
+        </motion.div>
+
+        {/* Book Button */}
+        <Button
+          onClick={handleBook}
+          disabled={isBooking || seats > (trip.available_seats || 0)}
+          className="w-full bg-[#FF6B00] hover:bg-[#E56000] text-white rounded-xl h-13 text-base font-semibold shadow-lg shadow-[#FF6B00]/20 disabled:opacity-50 mb-3"
+        >
+          {isBooking ? <Loader2 className="w-5 h-5 animate-spin" /> : <><CreditCard className="w-5 h-5 mr-2" /> Request Booking</>}
+        </Button>
+
+        <Button onClick={() => navigate(`/trip/${id}`)} variant="outline" className="w-full border-white/10 text-[#A0A0A0] hover:bg-white/5 rounded-xl h-12">
+          Cancel
+        </Button>
       </div>
     </div>
   );

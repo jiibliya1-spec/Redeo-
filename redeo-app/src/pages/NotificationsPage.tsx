@@ -16,7 +16,7 @@ import { toast } from 'sonner';
 export function NotificationsPage() {
   const navigate = useNavigate();
   const { t, dir } = useI18n();
-  const { user, setUnreadCount } = useStore();
+  const { user, setUnreadCount, incrementUnread, unreadCount: storeUnreadCount } = useStore();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'info' | 'success' | 'error'>('all');
@@ -45,7 +45,7 @@ export function NotificationsPage() {
     if (!user?.id) return;
     const channel = subscribeToNotifications(user.id, (newNotif) => {
       setNotifications(prev => [newNotif, ...prev]);
-      setUnreadCount(prev => prev + 1);
+      incrementUnread();
     });
     return () => { supabase.removeChannel(channel); };
   }, [user?.id]);
@@ -80,7 +80,7 @@ export function NotificationsPage() {
       try {
         await markNotificationRead(n.id);
         setNotifications(prev => prev.map(item => item.id === n.id ? { ...item, read: true } : item));
-        setUnreadCount(prev => Math.max(0, prev - 1));
+        setUnreadCount(Math.max(0, storeUnreadCount - 1));
       } catch { /* silent */ }
     }
     if (n.link) navigate(n.link);

@@ -75,6 +75,7 @@ export interface Notification {
   message: string;
   type: 'info' | 'success' | 'warning' | 'error';
   read: boolean;
+  link?: string;
   created_at?: string;
 }
 

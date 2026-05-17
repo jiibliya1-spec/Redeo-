@@ -43,41 +43,42 @@ export function ProfilePage() {
     if (!user?.id) return;
     setIsRefreshing(true);
     try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const jwt = sessionData.session?.access_token || '';
+      // Fetch profile and verifications in parallel
+      const [profileResult, verifsResult] = await Promise.all([
+        supabase
+          .from('profiles')
+          .select('is_verified, verification_status, role')
+          .eq('id', user.id)
+          .single(),
+        supabase
+          .from('verifications')
+          .select('status, doc_type')
+          .eq('user_id', user.id),
+      ]);
 
-      const res = await fetch(
-        `${SUPABASE_URL}/rest/v1/profiles?select=is_verified,verification_status,role&id=eq.${user.id}&limit=1`,
-        {
-          headers: {
-            'apikey': SUPABASE_ANON_KEY,
-            'Authorization': `Bearer ${jwt}`,
-          },
-        }
-      );
+      const p = profileResult.data;
+      const verifs = verifsResult.data || [];
 
-      if (res.ok) {
-        const data = await res.json();
-        if (data && data.length > 0) {
-          const p = data[0];
-          console.log('[ProfilePage] Fresh fetch:', p);
-          setProfileVerified(p.is_verified === true);
-          setProfileStatus(p.verification_status || 'unverified');
-          setProfileRole(p.role || 'passenger');
+      // Fallback: if any doc is 'verified', user is verified regardless of profile field
+      const hasVerifiedDoc = verifs.some((v: any) => v.status === 'verified');
 
-          // Also update the global user state
-          if (user) {
-            setUser({
-              ...user,
-              is_verified: p.is_verified === true,
-              verification_status: p.verification_status || 'unverified',
-              role: (p.role || 'passenger') as 'passenger' | 'driver' | 'admin',
-            });
-          }
-        }
-      } else {
-        console.error('[ProfilePage] Fetch failed:', res.status);
-      }
+      const isVerified = (p?.is_verified === true) || hasVerifiedDoc;
+      const verificationStatus = isVerified
+        ? 'verified'
+        : (p?.verification_status || 'unverified');
+
+      console.log('[ProfilePage] Fresh fetch — profile:', p, '| verifiedDoc:', hasVerifiedDoc);
+
+      setProfileVerified(isVerified);
+      setProfileStatus(verificationStatus);
+      setProfileRole(p?.role || 'passenger');
+
+      setUser({
+        ...user,
+        is_verified: isVerified,
+        verification_status: verificationStatus as any,
+        role: ((p?.role || 'passenger') as 'passenger' | 'driver' | 'admin'),
+      });
     } catch (err: any) {
       console.error('[ProfilePage] Error:', err.message);
     }
@@ -103,50 +104,47 @@ export function ProfilePage() {
     fetchFreshProfile();
   }, [fetchFreshProfile]);
 
-  // ─── Realtime subscription for profile changes ───
+  // ─── Realtime: watch profiles AND verifications for admin approval ───
   useEffect(() => {
     if (!user?.id) return;
 
     const channel = supabase
-      .channel(`profile-${user.id}`)
+      .channel(`profile-watch-${user.id}`)
+      // Watch profile row
       .on(
         'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'profiles',
-          filter: `id=eq.${user.id}`,
-        },
+        { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${user.id}` },
         (payload) => {
           const p = payload.new as any;
-          console.log('[ProfilePage] Realtime update:', p);
-          if (p) {
-            setProfileVerified(p.is_verified === true);
-            setProfileStatus(p.verification_status || 'unverified');
-            if (p.role) setProfileRole(p.role);
-
-            // Update global user
-            if (user) {
-              setUser({
-                ...user,
-                is_verified: p.is_verified === true,
-                verification_status: p.verification_status || 'unverified',
-                role: (p.role || user.role) as 'passenger' | 'driver' | 'admin',
-              });
-            }
-
-            if (p.is_verified && !profileVerified) {
-              toast.success('Your account has been verified!');
-            }
+          if (!p) return;
+          console.log('[ProfilePage] Profile realtime:', p);
+          if (p.is_verified === true) {
+            setProfileVerified(true);
+            setProfileStatus('verified');
+            if (user) setUser({ ...user, is_verified: true, verification_status: 'verified' as any });
+            toast.success('🎉 Your account has been verified!');
+          }
+          if (p.role) setProfileRole(p.role);
+        }
+      )
+      // Watch verifications — fires when admin approves any doc
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'verifications', filter: `user_id=eq.${user.id}` },
+        (payload) => {
+          const v = payload.new as any;
+          if (!v) return;
+          console.log('[ProfilePage] Verification realtime:', v);
+          if (v.status === 'verified') {
+            // Refresh full profile to recalculate badge
+            fetchFreshProfile();
           }
         }
       )
       .subscribe();
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [user?.id, profileVerified, setUser]);
+    return () => { supabase.removeChannel(channel); };
+  }, [user?.id, setUser, fetchFreshProfile]);
 
   const processAvatarFile = async (file: File) => {
     if (!user?.id) return;

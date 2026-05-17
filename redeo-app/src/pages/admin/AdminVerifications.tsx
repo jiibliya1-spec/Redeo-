@@ -138,29 +138,40 @@ export function AdminVerifications() {
   const handleApprove = async (id: string, userId: string) => {
     setProcessingId(id);
     try {
-      const headers = await getHeaders();
+      // 1. Update verification to 'verified'
+      const { error: verifErr } = await supabase
+        .from('verifications')
+        .update({ status: 'verified', admin_notes: 'Approved by admin', updated_at: new Date().toISOString() })
+        .eq('id', id);
+      if (verifErr) throw verifErr;
 
-      // 1. Update this verification to 'verified'
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/verifications?id=eq.${id}`, {
-        method: 'PATCH',
-        headers,
-        body: JSON.stringify({ status: 'verified', admin_notes: 'Approved by admin', updated_at: new Date().toISOString() }),
-      });
-      if (!res.ok) throw new Error(await res.text());
+      // 2. Update profile — mark user as verified
+      const { error: profileErr } = await supabase
+        .from('profiles')
+        .update({ is_verified: true, verification_status: 'verified' })
+        .eq('id', userId);
 
-      // 2. Mark user as verified on ANY doc approval (simplified)
-      const profileRes = await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${userId}`, {
-        method: 'PATCH',
-        headers,
-        body: JSON.stringify({ is_verified: true, verification_status: 'approved' }),
-      });
-      if (!profileRes.ok) {
-        console.error('[Admin] Profile update failed:', await profileRes.text());
-        toast.success('Doc approved but profile update failed');
-      } else {
-        toast.success('Document approved! User is now verified.');
+      if (profileErr) {
+        console.warn('[Admin] Profile update via client failed:', profileErr.message);
+        // Fallback: try raw fetch with admin headers
+        const headers = await getHeaders();
+        await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${userId}`, {
+          method: 'PATCH',
+          headers: { ...headers, 'Prefer': 'return=minimal' },
+          body: JSON.stringify({ is_verified: true, verification_status: 'verified' }),
+        });
       }
 
+      // 3. Send notification to the user
+      await supabase.from('notifications').insert({
+        user_id: userId,
+        title: 'Document Approved ✅',
+        message: 'Your document has been verified by admin. Your account is now verified!',
+        type: 'success',
+        read: false,
+      });
+
+      toast.success('Document approved! User is now verified.');
       await loadVerifications();
     } catch (err: any) {
       toast.error('Approval failed: ' + err.message);
@@ -186,11 +197,19 @@ export function AdminVerifications() {
       });
       if (!res.ok) throw new Error(await res.text());
 
-      // 2. Update user profile verification_status to 'rejected'
-      await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${userId}`, {
-        method: 'PATCH',
-        headers,
-        body: JSON.stringify({ verification_status: 'rejected', is_verified: false }),
+      // 2. Update profile status
+      await supabase
+        .from('profiles')
+        .update({ verification_status: 'rejected', is_verified: false })
+        .eq('id', userId);
+
+      // 3. Notify the user
+      await supabase.from('notifications').insert({
+        user_id: userId,
+        title: 'Document Rejected ❌',
+        message: `Your document was rejected: ${rejectReason}. Please re-upload a clear copy.`,
+        type: 'error',
+        read: false,
       });
 
       toast.success('Document rejected. User has been notified.');

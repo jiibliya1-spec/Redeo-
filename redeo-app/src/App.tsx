@@ -1,9 +1,10 @@
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useStore } from '@/store/useStore';
 import { Navbar } from '@/components/Navbar';
 import { BottomNav } from '@/components/BottomNav';
 import { AdminRouteGuard } from '@/components/admin/AdminRouteGuard';
+import { SplashScreen } from '@/components/SplashScreen';
 import { LandingPage } from '@/pages/LandingPage';
 import { SearchResultsPage } from '@/pages/SearchResultsPage';
 import { TripDetailsPage } from '@/pages/TripDetailsPage';
@@ -93,6 +94,7 @@ function AdminRoutes() {
 /* ─── App content with conditional navbar ─── */
 function AppContent() {
   const { isAuthenticated, user, isLoading, initAuth, refreshProfile } = useStore();
+  const [showSplash, setShowSplash] = useState(true);
 
   useEffect(() => {
     const boot = async () => {
@@ -102,6 +104,11 @@ function AppContent() {
     };
     boot();
   }, []);
+
+  // Show splash screen on first load (independent of auth state)
+  if (showSplash) {
+    return <SplashScreen onComplete={() => setShowSplash(false)} />;
+  }
 
   if (isLoading) {
     return (

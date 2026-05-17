@@ -5,18 +5,26 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIU
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-// ─── Supabase REST API helper (works even if tables don't exist in schema cache) ───
+// ─── Supabase REST API helpers with AUTH (JWT token) ───
+// These use the user's JWT token so RLS policies work correctly
 
 const REST_API = `${supabaseUrl}/rest/v1`;
-const HEADERS = {
-  'apikey': supabaseAnonKey,
-  'Authorization': `Bearer ${supabaseAnonKey}`,
-  'Content-Type': 'application/json',
-  'Prefer': 'return=representation',
-};
+
+/** Get headers with the CURRENT USER's JWT token */
+async function getAuthHeaders() {
+  const { data } = await supabase.auth.getSession();
+  const jwt = data.session?.access_token || supabaseAnonKey;
+  return {
+    'apikey': supabaseAnonKey,
+    'Authorization': `Bearer ${jwt}`,
+    'Content-Type': 'application/json',
+    'Prefer': 'return=representation',
+  };
+}
 
 /** Generic GET from Supabase REST API */
 export async function apiGet(table: string, options?: { eq?: Record<string, any>; order?: string; ascending?: boolean }) {
+  const headers = await getAuthHeaders();
   const url = new URL(`${REST_API}/${table}`);
   url.searchParams.set('select', '*');
 
@@ -30,7 +38,7 @@ export async function apiGet(table: string, options?: { eq?: Record<string, any>
     url.searchParams.set('order', `${options.order}.${options.ascending !== false ? 'asc' : 'desc'}`);
   }
 
-  const res = await fetch(url.toString(), { headers: HEADERS });
+  const res = await fetch(url.toString(), { headers });
   if (!res.ok) {
     const err = await res.text();
     throw new Error(err || `HTTP ${res.status}`);
@@ -40,9 +48,10 @@ export async function apiGet(table: string, options?: { eq?: Record<string, any>
 
 /** Generic POST to Supabase REST API */
 export async function apiPost(table: string, data: any) {
+  const headers = await getAuthHeaders();
   const res = await fetch(`${REST_API}/${table}`, {
     method: 'POST',
-    headers: HEADERS,
+    headers,
     body: JSON.stringify(data),
   });
   if (!res.ok) {
@@ -54,12 +63,13 @@ export async function apiPost(table: string, data: any) {
 
 /** Generic PATCH to Supabase REST API */
 export async function apiPatch(table: string, column: string, value: any, data: any) {
+  const headers = await getAuthHeaders();
   const url = new URL(`${REST_API}/${table}`);
   url.searchParams.set(`${column}`, `eq.${value}`);
 
   const res = await fetch(url.toString(), {
     method: 'PATCH',
-    headers: HEADERS,
+    headers,
     body: JSON.stringify(data),
   });
   if (!res.ok) {
@@ -71,12 +81,13 @@ export async function apiPatch(table: string, column: string, value: any, data: 
 
 /** Generic DELETE from Supabase REST API */
 export async function apiDelete(table: string, column: string, value: any) {
+  const headers = await getAuthHeaders();
   const url = new URL(`${REST_API}/${table}`);
   url.searchParams.set(`${column}`, `eq.${value}`);
 
   const res = await fetch(url.toString(), {
     method: 'DELETE',
-    headers: HEADERS,
+    headers,
   });
   if (!res.ok) {
     const err = await res.text();

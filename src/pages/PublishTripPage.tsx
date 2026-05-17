@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useStore } from '@/store/useStore';
 import { useI18n } from '@/lib/i18n';
-import { apiPost, supabase } from '@/lib/supabase';
+import { apiPost, apiGet, supabase } from '@/lib/supabase';
 import { MOROCCAN_CITIES } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,20 +19,7 @@ import {
 const SUPABASE_URL = 'https://qhbiafoyhvmvyyzwdzhd.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoYmlhZm95aHZtdnl5endkemhkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3OTIwNDcsImV4cCI6MjA5NDM2ODA0N30.04MftiDjQUrnGegTeaL88WyES9ydDKxRrrmVua0rVbM';
 
-const LOCAL_TRIPS_KEY = 'wansniauto_trips';
-
-function getLocalTrips(): Trip[] {
-  try {
-    const raw = localStorage.getItem(LOCAL_TRIPS_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch { return []; }
-}
-
-function saveLocalTrips(trips: Trip[]) {
-  try {
-    localStorage.setItem(LOCAL_TRIPS_KEY, JSON.stringify(trips));
-  } catch { /* silent */ }
-}
+// All trips are stored in Supabase only - no localStorage
 
 export function PublishTripPage() {
   const navigate = useNavigate();
@@ -138,11 +125,16 @@ export function PublishTripPage() {
     checkVerification();
   }, [checkVerification]);
 
-  // Load recent trips
+  // Load recent trips from Supabase
   useEffect(() => {
     if (!user?.id) return;
-    const localTrips = getLocalTrips();
-    setRecentTrips(localTrips.filter((t: Trip) => t.driver_id === user.id).slice(0, 5));
+    const loadTrips = async () => {
+      try {
+        const data = await apiGet('trips', { eq: { driver_id: user.id }, order: 'created_at', ascending: false });
+        setRecentTrips((data || []).slice(0, 5));
+      } catch (e) { console.error('Failed to load trips:', e); }
+    };
+    loadTrips();
   }, [user?.id]);
 
   const handlePublish = async (e: React.FormEvent) => {
@@ -181,30 +173,14 @@ export function PublishTripPage() {
         amenities: ['Air Conditioning'],
       };
 
-      let savedId = `local-${Date.now()}`;
-
-      try {
-        const result = await apiPost('trips', tripData);
-        if (result && result[0]?.id) savedId = result[0].id;
-      } catch {
-        console.log('REST API post failed, using localStorage');
+      // Save to Supabase via REST API with JWT
+      const result = await apiPost('trips', tripData);
+      if (!result || !result[0]?.id) {
+        throw new Error('Failed to save trip to database');
       }
-
-      const newTrip: Trip = {
-        ...tripData,
-        id: savedId,
-        status: 'upcoming' as const,
-        driver: { id: user.id, name: user.name || '', email: user.email || '', avatar: user.avatar || '', role: 'driver' as const, rating: user.rating || 5, trips_count: 0 },
-      };
-
-      const existingTrips = getLocalTrips();
-      saveLocalTrips([...existingTrips, newTrip]);
 
       toast.success('Trip published!');
       setFrom(''); setTo(''); setDate(''); setTime(''); setPrice(''); setSeats('3'); setDistance(''); setDuration('');
-
-      // Refresh
-      setRecentTrips(prev => [newTrip, ...prev].slice(0, 5));
     } catch (err: any) {
       toast.error(err.message || 'Failed to publish');
     }

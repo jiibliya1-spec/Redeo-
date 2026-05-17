@@ -28,29 +28,6 @@ import {
   Shield,
 } from 'lucide-react';
 
-const LOCAL_TRIPS_KEY = 'wansniauto_trips';
-const LOCAL_BOOKINGS_KEY = 'wansniauto_bookings';
-
-function getLocalTrips(): Trip[] {
-  try {
-    const raw = localStorage.getItem(LOCAL_TRIPS_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch { return []; }
-}
-
-function saveLocalTrips(trips: Trip[]) {
-  try {
-    localStorage.setItem(LOCAL_TRIPS_KEY, JSON.stringify(trips));
-  } catch { /* silent */ }
-}
-
-function getLocalBookings(): any[] {
-  try {
-    const raw = localStorage.getItem(LOCAL_BOOKINGS_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch { return []; }
-}
-
 // ─── Vehicle Manager ───
 interface Vehicle {
   id: string;
@@ -202,24 +179,21 @@ export function DriverDashboard() {
             driver: { id: user?.id || '', name: user?.name || '', email: user?.email || '', avatar: user?.avatar || '', role: 'driver' as const, rating: user?.rating || 5, trips_count: 0 },
           })) as Trip[];
         }
-      } catch {
-        console.log('REST API trips not available, using localStorage');
-      }
-
-      if (allTrips.length === 0) {
-        const localTrips = getLocalTrips();
-        allTrips = localTrips.filter((t: Trip) => t.driver_id === user!.id);
+      } catch (e) {
+        console.error('Failed to load trips from Supabase:', e);
       }
 
       setTrips(allTrips);
       setTotalTrips(allTrips.length);
       setAvgRating(user?.rating || 0);
 
-      const localBookings = getLocalBookings();
-      const driverBookings = localBookings.filter((b: any) => {
-        const trip = allTrips.find((t: Trip) => t.id === b.trip_id);
-        return trip && b.status === 'confirmed';
-      });
+      // Load bookings from Supabase
+      let driverBookings: any[] = [];
+      try {
+        const bookingsData = await apiGet('bookings', { eq: { driver_id: user!.id } });
+        driverBookings = (bookingsData || []).filter((b: any) => b.status === 'confirmed');
+      } catch { /* silent */ }
+
       const earnings = driverBookings.reduce((sum: number, b: any) => sum + (b.total_price || 0), 0);
       const passengers = driverBookings.reduce((sum: number, b: any) => sum + (b.seats || 0), 0);
 
@@ -271,24 +245,17 @@ export function DriverDashboard() {
         amenities: ['Air Conditioning'],
       };
 
-      let savedId = `local-${Date.now()}`;
-
-      try {
-        const result = await apiPost('trips', tripData);
-        if (result && result[0]?.id) savedId = result[0].id;
-      } catch {
-        console.log('REST API post failed, using localStorage');
+      const result = await apiPost('trips', tripData);
+      if (!result || !result[0]?.id) {
+        throw new Error('Failed to save trip to database');
       }
 
       const newTrip: Trip = {
         ...tripData,
-        id: savedId,
+        id: result[0].id,
         status: 'upcoming' as const,
         driver: { id: user.id, name: user.name || '', email: user.email || '', avatar: user.avatar || '', role: 'driver' as const, rating: user.rating || 5, trips_count: 0 },
       };
-
-      const existingTrips = getLocalTrips();
-      saveLocalTrips([...existingTrips, newTrip]);
 
       setTrips(prev => [...prev, newTrip]);
       setTotalTrips(prev => prev + 1);

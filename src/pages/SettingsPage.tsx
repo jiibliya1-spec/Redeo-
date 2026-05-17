@@ -13,7 +13,7 @@ import {
   ArrowLeft, Star, Users, MessageSquare, Moon, Lock, MapPin, Wallet,
   CreditCard, RefreshCcw, ThumbsUp, HelpCircle, FileText, Shield,
   LogOut, Trash2, ChevronRight, Loader2, X, Bell, Mail, Phone,
-  Check, ToggleLeft, ToggleRight, Send, Heart,
+  Check, ToggleLeft, ToggleRight, Send, Heart, MessageCircle,
 } from 'lucide-react';
 
 const SUPABASE_URL = 'https://qhbiafoyhvmvyyzwdzhd.supabase.co';
@@ -127,9 +127,7 @@ export function SettingsPage() {
   /* ─── Refunds ─── */
   const [refunds, setRefunds] = useState<any[]>([]);
 
-  /* ─── Help Center ─── */
-  const [helpSubject, setHelpSubject] = useState('');
-  const [helpMessage, setHelpMessage] = useState('');
+  /* ─── Help Center ─── (navigates to /support page) */
 
   /* ─── Delete Account ─── */
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
@@ -362,40 +360,6 @@ export function SettingsPage() {
       localStorage.setItem(`wansniauto_payment_methods_${user.id}`, JSON.stringify(updated));
     }
     toast.success('Payment method removed');
-  };
-
-  /* ─── Send Help Message ─── */
-  const handleSendHelp = async () => {
-    if (!helpSubject.trim() || !helpMessage.trim()) {
-      toast.error('Subject and message are required');
-      return;
-    }
-    setLoadingSections(prev => ({ ...prev, help: true }));
-    try {
-      const headers = await apiHeaders();
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/messages`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          sender_id: user?.id,
-          receiver_id: 'support',
-          content: `[Support] ${helpSubject}: ${helpMessage}`,
-        }),
-      });
-      if (!res.ok) throw new Error('Failed to send');
-      toast.success('Message sent! We will reply soon.');
-      setHelpSubject('');
-      setHelpMessage('');
-    } catch (e) {
-      // Fallback: save to localStorage
-      const supportMsgs = JSON.parse(localStorage.getItem('wansniauto_support_msgs') || '[]');
-      supportMsgs.push({ subject: helpSubject, message: helpMessage, from: user?.email, date: new Date().toISOString() });
-      localStorage.setItem('wansniauto_support_msgs', JSON.stringify(supportMsgs));
-      toast.success('Message saved! We will review it.');
-      setHelpSubject('');
-      setHelpMessage('');
-    }
-    setLoadingSections(prev => ({ ...prev, help: false }));
   };
 
   /* ─── Rate App ─── */
@@ -745,10 +709,11 @@ export function SettingsPage() {
             {/* FAQ */}
             <div className="space-y-2">
               {[
-                { q: 'How do I book a ride?', a: 'Search for your route, select a driver, and book your seat.' },
-                { q: 'How do I become a driver?', a: 'Register as a driver, complete verification, and start publishing trips.' },
-                { q: 'Is my payment secure?', a: 'Yes, all payments are processed securely through our platform.' },
-                { q: 'How do I contact support?', a: 'Use the form below to send us a message.' },
+                { q: 'How do I book a ride?', a: 'Search for your route, select a driver, and book your seat in seconds.' },
+                { q: 'How do I become a driver?', a: 'Register as a driver, complete verification with your documents, and start publishing trips.' },
+                { q: 'Is my payment secure?', a: 'Yes, all payments are processed securely through our encrypted platform.' },
+                { q: 'How do I cancel a booking?', a: 'Go to My Trips, find your booking, and tap Cancel. Refunds are processed within 5-7 days.' },
+                { q: 'How does driver verification work?', a: 'Upload your CIN, license, registration, insurance, and selfie. Our team reviews within 24-48 hours.' },
               ].map((faq, i) => (
                 <div key={i} className="bg-[#1B1F27] rounded-xl p-4 border border-white/5">
                   <p className="text-sm font-medium text-white mb-1">{faq.q}</p>
@@ -756,13 +721,16 @@ export function SettingsPage() {
                 </div>
               ))}
             </div>
-            {/* Contact Form */}
-            <div className="bg-[#1B1F27] rounded-xl p-4 border border-white/5 space-y-3">
-              <h3 className="text-sm font-medium text-white">Contact Support</h3>
-              <Input value={helpSubject} onChange={e => setHelpSubject(e.target.value)} placeholder="Subject" className="bg-[#0F1115] border-white/10 text-white rounded-xl" />
-              <Textarea value={helpMessage} onChange={e => setHelpMessage(e.target.value)} placeholder="Describe your issue..." className="bg-[#0F1115] border-white/10 text-white rounded-xl min-h-[100px]" />
-              <Button onClick={handleSendHelp} disabled={loadingSections.help} className="w-full bg-[#FF6B00] hover:bg-[#E56000] text-white rounded-xl">
-                {loadingSections.help ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Send className="w-4 h-4 mr-2" /> Send Message</>}
+            {/* Contact Support Button - navigates to full support page */}
+            <div className="bg-gradient-to-r from-[#FF6B00]/10 to-transparent rounded-xl p-5 border border-[#FF6B00]/20 text-center space-y-3">
+              <MessageCircle className="w-8 h-8 text-[#FF6B00] mx-auto" />
+              <p className="text-sm text-white font-medium">Need more help?</p>
+              <p className="text-xs text-[#A0A0A0]">Our support team is ready to assist you.</p>
+              <Button
+                onClick={() => { setActiveDrawer(null); setTimeout(() => navigate('/support'), 300); }}
+                className="w-full bg-[#FF6B00] hover:bg-[#E56000] text-white rounded-xl"
+              >
+                <Send className="w-4 h-4 mr-2" /> Contact Support
               </Button>
             </div>
           </div>

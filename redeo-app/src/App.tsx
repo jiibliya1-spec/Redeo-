@@ -29,6 +29,12 @@ import { PublishTripPage } from '@/pages/PublishTripPage';
 import { SettingsPage } from '@/pages/SettingsPage';
 import { ContactSupportPage } from '@/pages/ContactSupportPage';
 import { DriverProfilePage } from '@/pages/DriverProfilePage';
+import AboutPage from '@/pages/AboutPage';
+import HowItWorksPage from '@/pages/HowItWorksPage';
+import CareersPage from '@/pages/CareersPage';
+import SafetyPage from '@/pages/SafetyPage';
+import FAQPage from '@/pages/FAQPage';
+import LegalPage from '@/pages/LegalPage';
 import { Toaster } from '@/components/ui/sonner';
 import { Spinner } from '@/components/ui/spinner';
 
@@ -150,7 +156,20 @@ function AppContent() {
           <Route path="/notifications" element={isAuthenticated ? <NotificationsPage /> : <Navigate to="/login" />} />
           <Route path="/settings" element={isAuthenticated ? <SettingsPage /> : <Navigate to="/login" />} />
           <Route path="/support" element={<ContactSupportPage />} />
+          <Route path="/contact" element={<ContactSupportPage />} />
           <Route path="/profile/:id" element={<DriverProfilePage />} />
+
+          {/* Static pages - footer links */}
+          <Route path="/about" element={<AboutPage />} />
+          <Route path="/how-it-works" element={<HowItWorksPage />} />
+          <Route path="/careers" element={<CareersPage />} />
+          <Route path="/safety" element={<SafetyPage />} />
+          <Route path="/faq" element={<FAQPage />} />
+          <Route path="/terms" element={<LegalPage />} />
+          <Route path="/privacy" element={<LegalPage />} />
+          <Route path="/cookies" element={<LegalPage />} />
+          <Route path="/driver-agreement" element={<LegalPage />} />
+
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </main>

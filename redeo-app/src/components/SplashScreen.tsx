@@ -29,9 +29,12 @@ function MercedesStar({ size = 24 }: { size?: number }) {
 function MercedesCar({ isDriving = true }: { isDriving?: boolean }) {
   return (
     <motion.div
-      initial={{ x: 350, opacity: 0 }}
-      animate={{ x: 0, opacity: 1 }}
-      transition={{ type: 'spring', stiffness: 45, damping: 14, duration: 1.8 }}
+      initial={{ x: '50vw', opacity: 0 }}
+      animate={{ x: '-120vw', opacity: [0, 1, 1, 1, 0] }}
+      transition={{
+        x: { duration: 4.5, ease: 'linear' },
+        opacity: { duration: 4.5, times: [0, 0.08, 0.85, 0.95, 1] },
+      }}
       className="relative"
     >
       <motion.div
@@ -223,12 +226,12 @@ function AnimatedRoad() {
           {[...Array(12)].map((_, i) => (
             <motion.div
               key={i}
-              initial={{ x: 600 + i * 70 }}
-              animate={{ x: -150 }}
+              initial={{ x: 800 + i * 60 }}
+              animate={{ x: -300 }}
               transition={{
-                duration: 2.8,
+                duration: 1.8,
                 repeat: Infinity,
-                delay: i * 0.2,
+                delay: i * 0.15,
                 ease: 'linear',
               }}
               className="w-8 h-0.5 bg-white/[0.08] rounded-full shrink-0"
@@ -248,12 +251,12 @@ function SpeedLines() {
       {[...Array(10)].map((_, i) => (
         <motion.div
           key={i}
-          initial={{ x: 400, opacity: 0 }}
-          animate={{ x: -200, opacity: [0, 0.15, 0] }}
+          initial={{ x: 500, opacity: 0 }}
+          animate={{ x: -300, opacity: [0, 0.2, 0] }}
           transition={{
-            duration: 1,
+            duration: 0.7,
             repeat: Infinity,
-            delay: i * 0.35 + 0.3,
+            delay: i * 0.25 + 0.2,
             ease: 'linear',
           }}
           className="absolute h-px bg-gradient-to-r from-transparent via-white/15 to-transparent"
@@ -274,15 +277,17 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
 
   useEffect(() => {
     const t1 = setTimeout(() => setPhase('driving'), 100);
-    const t2 = setTimeout(() => setPhase('exit'), 3200);
-    const t3 = setTimeout(() => onComplete(), 4000);
+    // Start exit fade just before car finishes
+    const t2 = setTimeout(() => setPhase('exit'), 4200);
+    // Complete after car has fully exited
+    const t3 = setTimeout(() => onComplete(), 5000);
     return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
   }, [onComplete]);
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setProgress((p) => (p >= 100 ? 100 : p + 2.5));
-    }, 80);
+      setProgress((p) => (p >= 100 ? 100 : p + 2));
+    }, 90);
     return () => clearInterval(interval);
   }, []);
 

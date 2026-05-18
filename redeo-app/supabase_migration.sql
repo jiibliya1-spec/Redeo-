@@ -31,32 +31,31 @@ UPDATE profiles SET
 WHERE verification_status IS NULL;
 
 -- ============================================================
--- 2. VERIFICATION DOCUMENTS TABLE
+-- 2. VERIFICATIONS TABLE (keep existing, add columns)
 -- ============================================================
 
-CREATE TABLE IF NOT EXISTS verification_documents (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
-  doc_type TEXT NOT NULL CHECK (doc_type IN (
-    'cin_front', 'cin_back', 'selfie', 
-    'driver_license', 'vehicle_registration', 
-    'insurance', 'car_photo_front', 'car_photo_back', 'car_photo_side'
-  )),
-  doc_category TEXT NOT NULL DEFAULT 'driver' 
-    CHECK (doc_category IN ('identity', 'driver', 'vehicle')),
-  status TEXT DEFAULT 'pending' 
-    CHECK (status IN ('pending', 'approved', 'rejected')),
-  storage_path TEXT NOT NULL,
-  public_url TEXT,
-  admin_notes TEXT DEFAULT '',
-  rejection_reason TEXT DEFAULT '',
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW(),
-  UNIQUE(user_id, doc_type)
-);
+-- Add columns to existing verifications table
+ALTER TABLE verifications 
+  ADD COLUMN IF NOT EXISTS public_url TEXT,
+  ADD COLUMN IF NOT EXISTS storage_path TEXT,
+  ADD COLUMN IF NOT EXISTS rejection_reason TEXT DEFAULT '',
+  ADD COLUMN IF NOT EXISTS doc_category TEXT DEFAULT 'identity';
 
--- Enable RLS
-ALTER TABLE verification_documents ENABLE ROW LEVEL SECURITY;
+-- Update doc_type constraint to include new types
+ALTER TABLE verifications 
+  DROP CONSTRAINT IF EXISTS verifications_doc_type_check;
+
+ALTER TABLE verifications 
+  ADD CONSTRAINT verifications_doc_type_check 
+  CHECK (doc_type IN (
+    'cin', 'cin_front', 'cin_back', 'selfie', 
+    'license', 'driver_license', 
+    'registration', 'vehicle_registration',
+    'insurance', 
+    'car_photo_front', 'car_photo_back', 'car_photo_side'
+  ));
+
+-- Enable RLS (already enabled but ensure)
 
 -- User can see own documents
 DROP POLICY IF EXISTS vdocs_select_own ON verification_documents;

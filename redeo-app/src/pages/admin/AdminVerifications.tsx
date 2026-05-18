@@ -155,11 +155,24 @@ export function AdminVerifications() {
         body: JSON.stringify({ is_verified: true, verification_status: 'approved' }),
       });
       if (!profileRes.ok) {
-        console.error('[Admin] Profile update failed:', await profileRes.text());
-        toast.success('Doc approved but profile update failed');
+        toast.error('Profile update failed');
       } else {
         toast.success('Document approved! User is now verified.');
       }
+
+      // 3. Send notification to user
+      await fetch(`${SUPABASE_URL}/rest/v1/notifications`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          user_id: userId,
+          type: 'verification_approved',
+          title: 'Documents Approved',
+          message: 'Your verification documents have been approved. You can now publish trips and use all features.',
+          data: { doc_id: id, status: 'approved' },
+          read: false,
+        }),
+      });
 
       await loadVerifications();
     } catch (err: any) {
@@ -191,6 +204,20 @@ export function AdminVerifications() {
         method: 'PATCH',
         headers,
         body: JSON.stringify({ verification_status: 'rejected', is_verified: false }),
+      });
+
+      // 3. Send notification to user
+      await fetch(`${SUPABASE_URL}/rest/v1/notifications`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          user_id: userId,
+          type: 'verification_rejected',
+          title: 'Documents Rejected',
+          message: `Your verification was rejected. Reason: ${rejectReason}. Please re-upload your documents.`,
+          data: { doc_id: id, status: 'rejected', reason: rejectReason },
+          read: false,
+        }),
       });
 
       toast.success('Document rejected. User has been notified.');

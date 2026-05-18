@@ -2,473 +2,409 @@ import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
-  ArrowLeft, Upload, CheckCircle, Clock, XCircle, FileText,
-  User, CreditCard, Car, Shield, AlertCircle
+  ArrowLeft, Upload, CheckCircle, Clock, XCircle,
+  User, CreditCard, Car, Shield, Eye, Trash2
 } from 'lucide-react';
 import { useStore } from '@/store/useStore';
-import type { User as UserType } from '@/types';
 import { useI18n } from '@/lib/i18n';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 
 const SUPABASE_URL = 'https://qhbiafoyhvmvyyzwdzhd.supabase.co';
 
+/* ─── Types ─── */
 interface DocStep {
   id: string;
   label: string;
   labelAr: string;
   labelFr: string;
+  desc: string;
+  descAr: string;
+  descFr: string;
   icon: any;
-  category: 'identity' | 'driver' | 'vehicle';
-  status: 'pending' | 'uploaded' | 'approved' | 'rejected' | 'not_uploaded';
+  status: 'not_uploaded' | 'uploading' | 'uploaded' | 'pending' | 'approved' | 'rejected';
   url?: string;
+  fileName?: string;
   rejectionReason?: string;
 }
 
-const DRIVER_DOCS: DocStep[] = [
-  { id: 'cin_front', label: 'CIN (Front)', labelAr: 'البطاقة الوطنية (أمام)', labelFr: 'CIN (Recto)', icon: CreditCard, category: 'identity', status: 'not_uploaded' },
-  { id: 'cin_back', label: 'CIN (Back)', labelAr: 'البطاقة الوطنية (خلف)', labelFr: 'CIN (Verso)', icon: CreditCard, category: 'identity', status: 'not_uploaded' },
-  { id: 'selfie', label: 'Selfie with CIN', labelAr: 'صورة شخصية مع البطاقة', labelFr: 'Selfie avec CIN', icon: User, category: 'identity', status: 'not_uploaded' },
-  { id: 'driver_license', label: 'Driver License', labelAr: 'رخصة السياقة', labelFr: 'Permis de conduire', icon: FileText, category: 'driver', status: 'not_uploaded' },
-  { id: 'vehicle_registration', label: 'Vehicle Registration', labelAr: 'البطاقة الرمادية', labelFr: 'Carte grise', icon: Car, category: 'vehicle', status: 'not_uploaded' },
-  { id: 'insurance', label: 'Insurance Certificate', labelAr: 'شهادة التأمين', labelFr: 'Attestation d\'assurance', icon: Shield, category: 'vehicle', status: 'not_uploaded' },
-  { id: 'car_photo_front', label: 'Car Photo (Front)', labelAr: 'صورة السيارة (أمام)', labelFr: 'Photo voiture (Avant)', icon: Car, category: 'vehicle', status: 'not_uploaded' },
-  { id: 'car_photo_back', label: 'Car Photo (Back)', labelAr: 'صورة السيارة (خلف)', labelFr: 'Photo voiture (Arrière)', icon: Car, category: 'vehicle', status: 'not_uploaded' },
-];
-
-const PASSENGER_DOCS: DocStep[] = [
-  { id: 'cin_front', label: 'CIN (Front)', labelAr: 'البطاقة الوطنية (أمام)', labelFr: 'CIN (Recto)', icon: CreditCard, category: 'identity', status: 'not_uploaded' },
-  { id: 'cin_back', label: 'CIN (Back)', labelAr: 'البطاقة الوطنية (خلف)', labelFr: 'CIN (Verso)', icon: CreditCard, category: 'identity', status: 'not_uploaded' },
-  { id: 'selfie', label: 'Selfie with CIN', labelAr: 'صورة شخصية مع البطاقة', labelFr: 'Selfie avec CIN', icon: User, category: 'identity', status: 'not_uploaded' },
+/* ─── Required documents ─── */
+const ALL_DOCS: DocStep[] = [
+  {
+    id: 'cin_front',
+    label: 'National ID (Front)', labelAr: 'البطاقة الوطنية (أمام)', labelFr: 'CIN (Recto)',
+    desc: 'Clear photo of your National ID card front side',
+    descAr: 'صورة واضحة للجهة الأمامية للبطاقة الوطنية',
+    descFr: 'Photo claire du recto de votre CIN',
+    icon: CreditCard, status: 'not_uploaded',
+  },
+  {
+    id: 'cin_back',
+    label: 'National ID (Back)', labelAr: 'البطاقة الوطنية (خلف)', labelFr: 'CIN (Verso)',
+    desc: 'Clear photo of your National ID card back side',
+    descAr: 'صورة واضحة للجهة الخلفية للبطاقة الوطنية',
+    descFr: 'Photo claire du verso de votre CIN',
+    icon: CreditCard, status: 'not_uploaded',
+  },
+  {
+    id: 'selfie',
+    label: 'Selfie with ID', labelAr: 'صورة شخصية مع البطاقة', labelFr: 'Selfie avec CIN',
+    desc: 'Photo of yourself holding your ID next to your face',
+    descAr: 'صورة شخصية وانت كاتمسك البطاقة بجانب وجهك',
+    descFr: 'Photo de vous tenant votre CIN à côté de votre visage',
+    icon: User, status: 'not_uploaded',
+  },
+  {
+    id: 'driver_license',
+    label: 'Driver License', labelAr: 'رخصة السياقة', labelFr: 'Permis de conduire',
+    desc: 'Clear photo of your valid driver license',
+    descAr: 'صورة واضحة لرخصة السياقة الصالحة',
+    descFr: 'Photo claire de votre permis de conduire valide',
+    icon: Shield, status: 'not_uploaded',
+  },
+  {
+    id: 'insurance',
+    label: 'Insurance Certificate', labelAr: 'وثيقة التأمين', labelFr: 'Attestation d\'assurance',
+    desc: 'Vehicle insurance certificate',
+    descAr: 'شهادة التأمين للسيارة',
+    descFr: 'Attestation d\'assurance du véhicule',
+    icon: Shield, status: 'not_uploaded',
+  },
+  {
+    id: 'car_photo_front',
+    label: 'Car Photo (Front)', labelAr: 'صورة السيارة (أمام)', labelFr: 'Photo voiture (Avant)',
+    desc: 'Front view of your vehicle',
+    descAr: 'صورة السيارة من القدام',
+    descFr: 'Vue de face de votre véhicule',
+    icon: Car, status: 'not_uploaded',
+  },
+  {
+    id: 'car_photo_back',
+    label: 'Car Photo (Back)', labelAr: 'صورة السيارة (خلف)', labelFr: 'Photo voiture (Arrière)',
+    desc: 'Back view of your vehicle',
+    descAr: 'صورة السيارة من الخلف',
+    descFr: 'Vue de derrière de votre véhicule',
+    icon: Car, status: 'not_uploaded',
+  },
 ];
 
 export default function VerificationPage() {
-  const { user, setUser, mode } = useStore();
+  const { user, setUser } = useStore();
   const { t, lang } = useI18n();
-  const [steps, setSteps] = useState<DocStep[]>(mode === 'driver' ? [...DRIVER_DOCS] : [...PASSENGER_DOCS]);
-  const [, setLoading] = useState(false);
+  const [steps, setSteps] = useState<DocStep[]>([...ALL_DOCS]);
   const [submitting, setSubmitting] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
 
+  /* ─── Get JWT token ─── */
+  const getJwt = useCallback(async () => {
+    const { data } = await supabase.auth.getSession();
+    return data.session?.access_token || '';
+  }, []);
+
   const getHeaders = useCallback(async () => {
-    const { data: sessionData } = await supabase.auth.getSession();
-    const jwt = sessionData.session?.access_token || '';
+    const jwt = await getJwt();
     return {
-      'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoYmlhZm95aHZtdnl5endkemhkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3OTIwNDcsImV4cCI6MjA5NDM2ODA0N30.04MftiDjQUrnGegTeaL88WyES9ydDKxRrrmVua0rVbM',
+      'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoYmlhZm95aHZtdnl5endkemhkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg3OTIwNDcsImV4cCI6MjA5NDM2ODA0N30.04MftiDjQUrnGegTeaL88WyES9ydDKxRrrmVua0rVbM',
       'Authorization': `Bearer ${jwt}`,
       'Content-Type': 'application/json',
       'Prefer': 'return=representation',
     };
-  }, []);
+  }, [getJwt]);
 
-  // Load documents from Supabase
+  /* ─── Load existing docs from DB ─── */
   const loadDocuments = useCallback(async () => {
     if (!user?.id) return;
     try {
-      const headers = await getHeaders();
+      const jwt = await getJwt();
       const res = await fetch(
         `${SUPABASE_URL}/rest/v1/verification_documents?select=*&user_id=eq.${user.id}&order=created_at.desc`,
-        { headers }
+        {
+          headers: {
+            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoYmlhZm95aHZtdnl5endkemhkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg3OTIwNDcsImV4cCI6MjA5NDM2ODA0N30.04MftiDjQUrnGegTeaL88WyES9ydDKxRrrmVua0rVbM',
+            'Authorization': `Bearer ${jwt}`,
+          },
+        }
       );
-      if (!res.ok) return;
+      if (!res.ok) { console.warn('[Verify] load docs failed', res.status); return; }
       const docs = await res.json();
-      if (!docs || !Array.isArray(docs)) return;
+      if (!docs?.length) return;
 
-      setSteps((prev) =>
-        prev.map((s) => {
-          const found = docs.find((d: any) => d.doc_type === s.id);
-          return found
-            ? {
-                ...s,
-                status: found.status === 'pending' ? 'uploaded' as const : found.status,
-                url: found.public_url || '',
-                rejectionReason: found.rejection_reason || '',
-              }
-            : s;
-        })
-      );
+      setSteps((prev) => prev.map((s) => {
+        const d = docs.find((doc: any) => doc.doc_type === s.id);
+        return d ? { ...s, status: d.status, url: d.public_url, fileName: d.storage_path, rejectionReason: d.rejection_reason } : s;
+      }));
 
-      // Check for rejection
       const rejected = docs.find((d: any) => d.rejection_reason);
       if (rejected) setRejectionReason(rejected.rejection_reason);
-    } catch (e) {
-      console.log('[Verification] Load docs error:', e);
-    }
-  }, [user?.id, getHeaders]);
+    } catch (e) { console.warn('[Verify] load docs error', e); }
+  }, [user?.id, getJwt]);
 
-  // Load on mount
-  useEffect(() => {
-    loadDocuments();
-  }, [loadDocuments]);
+  useEffect(() => { loadDocuments(); }, [loadDocuments]);
 
-  // Realtime subscription for verification changes
+  /* ─── Realtime subscription ─── */
   useEffect(() => {
     if (!user?.id) return;
     const uid = user.id;
-
     const channel = supabase
-      .channel(`verification-${uid}`)
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'verification_documents', filter: `user_id=eq.${uid}` },
-        () => {
-          loadDocuments();
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${uid}` },
-        async (payload) => {
-          const p = payload.new as any;
-          const freshUser = { ...user };
-          if (freshUser) {
-            const updatedUser = {
-              ...freshUser,
-              is_verified: p.is_verified === true,
-              verification_status: p.verification_status || 'unverified',
-            };
-            setUser(updatedUser);
-
-            if (p.is_verified && p.verification_status === 'verified') {
-              toast.success(t('verify.approved_toast') || 'Your documents have been verified!');
-            } else if (p.verification_status === 'rejected') {
-              toast.error(t('verify.rejected_toast') || 'Your verification was rejected. Please re-upload.');
-            }
-          }
-        }
-      )
+      .channel(`vd-${uid}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'verification_documents', filter: `user_id=eq.${uid}` }, () => loadDocuments())
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${uid}` }, (payload) => {
+        const p = payload.new as any;
+        setUser({ ...user, is_verified: p.is_verified === true, verification_status: p.verification_status });
+        if (p.is_verified) toast.success(t('verify.approved_toast'));
+        else if (p.verification_status === 'rejected') toast.error(t('verify.rejected_toast'));
+      })
       .subscribe();
-
     return () => { supabase.removeChannel(channel); };
   }, [user?.id]);
 
-  // Polling fallback
+  /* ─── Polling fallback ─── */
   useEffect(() => {
     if (!user?.id) return;
-    const interval = setInterval(loadDocuments, 10000);
-    return () => clearInterval(interval);
+    const iv = setInterval(loadDocuments, 12000);
+    return () => clearInterval(iv);
   }, [user?.id, loadDocuments]);
 
-  // Upload document
+  /* ─── Upload document (via REST API with JWT) ─── */
   const handleUpload = async (docId: string, file: File) => {
-    if (!user?.id) return;
+    if (!user?.id) { toast.error('Please login first'); return; }
     const uid = user.id;
 
-    setLoading(true);
+    setSteps((prev) => prev.map((s) => s.id === docId ? { ...s, status: 'uploading' } : s));
+
     try {
-      // 1. Upload to Supabase Storage
-      const fileExt = file.name.split('.').pop();
+      const jwt = await getJwt();
+      const fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg';
       const fileName = `${uid}/${docId}_${Date.now()}.${fileExt}`;
-      const filePath = `documents/${fileName}`;
 
-      const { error: uploadError } = await supabase.storage
-        .from('documents')
-        .upload(fileName, file, { upsert: true });
+      /* 1. Upload to Supabase Storage via REST API */
+      const formData = new FormData();
+      formData.append('', file); // Supabase expects file directly
 
-      if (uploadError) throw new Error(uploadError.message);
-
-      // 2. Get public URL
-      const { data: urlData } = supabase.storage.from('documents').getPublicUrl(fileName);
-      const publicUrl = urlData.publicUrl;
-
-      // 3. Upsert into verification_documents
-      const headers = await getHeaders();
-      const docInfo = steps.find((s) => s.id === docId);
-
-      // Try to insert; if conflict, update instead
-      const postRes = await fetch(
-        `${SUPABASE_URL}/rest/v1/verification_documents`,
+      const uploadRes = await fetch(
+        `${SUPABASE_URL}/storage/v1/object/documents/${fileName}`,
         {
           method: 'POST',
-          headers: { ...headers, 'Prefer': 'resolution=merge-duplicates' },
-          body: JSON.stringify({
-            user_id: uid,
-            doc_type: docId,
-            doc_category: docInfo?.category || 'identity',
-            status: 'pending',
-            storage_path: filePath,
-            public_url: publicUrl,
-          }),
+          headers: { 'Authorization': `Bearer ${jwt}` },
+          body: file, // Send file directly
         }
       );
 
-      if (!postRes.ok && postRes.status !== 409) {
+      if (!uploadRes.ok) {
+        const errText = await uploadRes.text().catch(() => 'Upload failed');
+        throw new Error(errText);
+      }
+
+      /* 2. Get public URL */
+      const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/documents/${fileName}`;
+
+      /* 3. Save to database */
+      const headers = await getHeaders();
+      const dbRes = await fetch(`${SUPABASE_URL}/rest/v1/verification_documents`, {
+        method: 'POST',
+        headers: { ...headers, 'Prefer': 'resolution=merge-duplicates' },
+        body: JSON.stringify({
+          user_id: uid, doc_type: docId,
+          doc_category: 'identity', status: 'pending',
+          storage_path: `documents/${fileName}`, public_url: publicUrl,
+        }),
+      });
+
+      if (!dbRes.ok && dbRes.status !== 409) {
         throw new Error('Failed to save document record');
       }
 
-      setSteps((prev) =>
-        prev.map((s) => (s.id === docId ? { ...s, status: 'uploaded', url: publicUrl } : s))
-      );
-      toast.success(t('verify.upload_success') || 'Document uploaded!');
+      setSteps((prev) => prev.map((s) => s.id === docId ? { ...s, status: 'uploaded', url: publicUrl, fileName } : s));
+      toast.success(t('verify.upload_success'));
     } catch (err: any) {
-      toast.error(t('verify.upload_error') || 'Upload failed: ' + err.message);
+      setSteps((prev) => prev.map((s) => s.id === docId ? { ...s, status: 'not_uploaded' } : s));
+      toast.error(`${t('verify.upload_error')}: ${err.message}`);
     }
-    setLoading(false);
   };
 
-  // Submit all for review
-  const handleSubmitForReview = async () => {
+  /* ─── Delete uploaded doc ─── */
+  const handleDelete = async (docId: string) => {
     if (!user?.id) return;
-    const uid = user.id;
+    const step = steps.find((s) => s.id === docId);
+    if (!step?.fileName) return;
 
-    const uploaded = steps.filter((s) => s.status === 'uploaded');
-    if (uploaded.length === 0) {
-      toast.error(t('verify.no_docs') || 'Please upload at least one document');
-      return;
+    try {
+      const jwt = await getJwt();
+      // Delete from storage
+      await fetch(`${SUPABASE_URL}/storage/v1/object/documents/${step.fileName}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${jwt}` },
+      });
+      // Delete from DB
+      const headers = await getHeaders();
+      await fetch(`${SUPABASE_URL}/rest/v1/verification_documents?user_id=eq.${user.id}&doc_type=eq.${docId}`, {
+        method: 'DELETE',
+        headers,
+      });
+
+      setSteps((prev) => prev.map((s) => s.id === docId ? { ...s, status: 'not_uploaded', url: undefined, fileName: undefined } : s));
+      toast.success('Document removed');
+    } catch (e: any) {
+      toast.error('Failed to remove: ' + e.message);
     }
+  };
+
+  /* ─── Submit for review ─── */
+  const handleSubmit = async () => {
+    if (!user?.id) return;
+    const uploaded = steps.filter((s) => s.status === 'uploaded');
+    if (uploaded.length === 0) { toast.error(t('verify.no_docs')); return; }
 
     setSubmitting(true);
     try {
       const headers = await getHeaders();
 
-      // Update all uploaded docs to pending
+      // Update all to pending
       for (const doc of uploaded) {
-        await fetch(
-          `${SUPABASE_URL}/rest/v1/verification_documents?user_id=eq.${uid}&doc_type=eq.${doc.id}`,
-          {
-            method: 'PATCH',
-            headers,
-            body: JSON.stringify({ status: 'pending', updated_at: new Date().toISOString() }),
-          }
-        );
+        await fetch(`${SUPABASE_URL}/rest/v1/verification_documents?user_id=eq.${user.id}&doc_type=eq.${doc.id}`, {
+          method: 'PATCH', headers,
+          body: JSON.stringify({ status: 'pending', updated_at: new Date().toISOString() }),
+        });
       }
 
-      // Update profile status
-      await fetch(
-        `${SUPABASE_URL}/rest/v1/profiles?id=eq.${uid}`,
-        {
-          method: 'PATCH',
-          headers,
-          body: JSON.stringify({
-            verification_status: 'submitted',
-            is_verified: false,
-            updated_at: new Date().toISOString(),
-          }),
-        }
-      );
+      // Update profile
+      await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${user.id}`, {
+        method: 'PATCH', headers,
+        body: JSON.stringify({ verification_status: 'submitted', is_verified: false, updated_at: new Date().toISOString() }),
+      });
 
-      setSteps((prev) =>
-        prev.map((s) => (s.status === 'uploaded' ? { ...s, status: 'pending' as const } : s))
-      );
-
-      const freshUser: UserType = { ...user!, verification_status: 'submitted', is_verified: false };
-      setUser(freshUser);
-      toast.success(t('verify.submitted') || 'Documents submitted for review!');
+      setSteps((prev) => prev.map((s) => s.status === 'uploaded' ? { ...s, status: 'pending' } : s));
+      setUser({ ...user, verification_status: 'submitted', is_verified: false });
+      toast.success(t('verify.submitted'));
     } catch {
-      toast.error(t('verify.submit_error') || 'Submit failed');
+      toast.error(t('verify.submit_error'));
     }
     setSubmitting(false);
   };
 
-  // Status helpers
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'approved': return <CheckCircle className="w-5 h-5 text-green-500" />;
-      case 'pending': return <Clock className="w-5 h-5 text-yellow-500" />;
-      case 'uploaded': return <Upload className="w-5 h-5 text-blue-500" />;
-      case 'rejected': return <XCircle className="w-5 h-5 text-red-500" />;
-      default: return <div className="w-5 h-5 rounded-full border-2 border-white/20" />;
+  /* ─── Helpers ─── */
+  const getStatus = (s: DocStep['status']) => {
+    switch (s) {
+      case 'approved': return { icon: <CheckCircle className="w-5 h-5 text-green-500" />, label: lang === 'ar' ? 'مقبول' : lang === 'fr' ? 'Approuvé' : 'Approved', color: 'text-green-500' };
+      case 'pending': return { icon: <Clock className="w-5 h-5 text-yellow-500" />, label: lang === 'ar' ? 'قيد المراجعة' : lang === 'fr' ? 'En attente' : 'Pending', color: 'text-yellow-500' };
+      case 'uploaded': return { icon: <CheckCircle className="w-5 h-5 text-blue-500" />, label: lang === 'ar' ? 'محمل' : lang === 'fr' ? 'Téléchargé' : 'Uploaded', color: 'text-blue-500' };
+      case 'uploading': return { icon: <div className="w-5 h-5 border-2 border-[#FF6B00] border-t-transparent rounded-full animate-spin" />, label: lang === 'ar' ? 'جاري التحميل' : lang === 'fr' ? 'Téléchargement...' : 'Uploading...', color: 'text-[#FF6B00]' };
+      case 'rejected': return { icon: <XCircle className="w-5 h-5 text-red-500" />, label: lang === 'ar' ? 'مرفوض' : lang === 'fr' ? 'Rejeté' : 'Rejected', color: 'text-red-500' };
+      default: return { icon: <div className="w-5 h-5 rounded-full border-2 border-white/20" />, label: lang === 'ar' ? 'لم يُحمّل' : lang === 'fr' ? 'Non téléchargé' : 'Not Uploaded', color: 'text-[#A0A0A0]' };
     }
   };
 
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'approved': return lang === 'ar' ? 'مقبول' : lang === 'fr' ? 'Approuvé' : 'Approved';
-      case 'pending': return lang === 'ar' ? 'قيد المراجعة' : lang === 'fr' ? 'En attente' : 'Pending Review';
-      case 'uploaded': return lang === 'ar' ? 'محمل' : lang === 'fr' ? 'Téléchargé' : 'Uploaded';
-      case 'rejected': return lang === 'ar' ? 'مرفوض' : lang === 'fr' ? 'Rejeté' : 'Rejected';
-      default: return lang === 'ar' ? 'لم يُحمّل' : lang === 'fr' ? 'Non téléchargé' : 'Not Uploaded';
-    }
-  };
-
-  const getLabel = (step: DocStep) => {
-    if (lang === 'ar') return step.labelAr;
-    if (lang === 'fr') return step.labelFr;
-    return step.label;
-  };
+  const getLabel = (step: DocStep) => lang === 'ar' ? step.labelAr : lang === 'fr' ? step.labelFr : step.label;
+  const getDesc = (step: DocStep) => lang === 'ar' ? step.descAr : lang === 'fr' ? step.descFr : step.desc;
 
   const uploadedCount = steps.filter((s) => s.status === 'uploaded' || s.status === 'pending' || s.status === 'approved').length;
-  const totalCount = steps.length;
-  const allUploaded = uploadedCount === totalCount;
+  const allUploaded = uploadedCount === steps.length;
 
   return (
     <div className="min-h-screen bg-[#0F1115] pt-16 pb-8">
       <div className="max-w-lg mx-auto px-4">
         {/* Header */}
         <div className="flex items-center gap-3 mb-6">
-          <Link to="/profile" className="p-2 rounded-xl hover:bg-white/5 transition-colors">
-            <ArrowLeft className="w-5 h-5 text-[#A0A0A0]" />
-          </Link>
-          <h1 className="text-lg font-semibold text-white">
-            {mode === 'driver'
-              ? (lang === 'ar' ? 'التحقق من السائق' : lang === 'fr' ? 'Vérification Conducteur' : 'Driver Verification')
-              : (lang === 'ar' ? 'التحقق من الهوية' : lang === 'fr' ? 'Vérification Identité' : 'Identity Verification')}
-          </h1>
+          <Link to="/profile" className="p-2 rounded-xl hover:bg-white/5 transition-colors"><ArrowLeft className="w-5 h-5 text-[#A0A0A0]" /></Link>
+          <h1 className="text-lg font-semibold text-white">{t('verify.title')}</h1>
         </div>
 
-        {/* Status Banner */}
+        {/* Status banners */}
         {user?.verification_status === 'verified' && (
-          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
-            className="bg-green-500/10 border border-green-500/20 rounded-xl p-4 mb-6 flex items-center gap-3">
+          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="bg-green-500/10 border border-green-500/20 rounded-xl p-4 mb-6 flex items-center gap-3">
             <CheckCircle className="w-6 h-6 text-green-500 shrink-0" />
-            <div>
-              <p className="text-sm font-medium text-green-400">
-                {lang === 'ar' ? 'تم التحقق!' : lang === 'fr' ? 'Vérifié!' : 'Verified!'}
-              </p>
-              <p className="text-xs text-[#A0A0A0]">
-                {lang === 'ar' ? 'وثائقك مقبولة. يمكنك استخدام التطبيق.' : lang === 'fr' ? 'Documents approuvés. Vous pouvez utiliser l\'app.' : 'Your documents are approved. You can now use the app.'}
-              </p>
-            </div>
+            <div><p className="text-sm font-medium text-green-400">{t('profile.verified')}</p><p className="text-xs text-[#A0A0A0]">{t('verify.approved_toast')}</p></div>
           </motion.div>
         )}
-
         {user?.verification_status === 'submitted' && (
-          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
-            className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4 mb-6 flex items-center gap-3">
+          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4 mb-6 flex items-center gap-3">
             <Clock className="w-6 h-6 text-yellow-500 shrink-0" />
-            <div>
-              <p className="text-sm font-medium text-yellow-400">
-                {lang === 'ar' ? 'قيد المراجعة' : lang === 'fr' ? 'En cours de révision' : 'Under Review'}
-              </p>
-              <p className="text-xs text-[#A0A0A0]">
-                {lang === 'ar' ? 'وثائقك قيد المراجعة. سيتم إشعارك قريباً.' : lang === 'fr' ? 'Documents en révision. Notification prochainement.' : 'Your documents are being reviewed. You will be notified soon.'}
-              </p>
-            </div>
+            <div><p className="text-sm font-medium text-yellow-400">{t('profile.pending')}</p><p className="text-xs text-[#A0A0A0]">{lang === 'ar' ? 'وثائقك قيد المراجعة' : lang === 'fr' ? 'Documents en révision' : 'Documents under review'}</p></div>
           </motion.div>
         )}
-
         {user?.verification_status === 'rejected' && (
-          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
-            className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 mb-6">
-            <div className="flex items-center gap-3">
-              <XCircle className="w-6 h-6 text-red-500 shrink-0" />
-              <div>
-                <p className="text-sm font-medium text-red-400">
-                  {lang === 'ar' ? 'مرفوض' : lang === 'fr' ? 'Rejeté' : 'Rejected'}
-                </p>
-                <p className="text-xs text-[#A0A0A0]">
-                  {lang === 'ar' ? 'السبب: ' : lang === 'fr' ? 'Raison: ' : 'Reason: '}
-                  {rejectionReason || (lang === 'ar' ? 'غير محدد' : lang === 'fr' ? 'Non spécifié' : 'Not specified')}
-                </p>
-              </div>
+          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 mb-6">
+            <div className="flex items-center gap-3"><XCircle className="w-6 h-6 text-red-500 shrink-0" />
+              <div><p className="text-sm font-medium text-red-400">{t('profile.rejected')}</p><p className="text-xs text-[#A0A0A0]">{rejectionReason}</p></div>
             </div>
-            <p className="text-xs text-[#A0A0A0] mt-2">
-              {lang === 'ar' ? 'يرجى إعادة تحميل الوثائق الصحيحة.' : lang === 'fr' ? 'Veuillez re-télécharger les documents corrects.' : 'Please re-upload the correct documents below.'}
-            </p>
           </motion.div>
         )}
 
         {/* Progress */}
         <div className="bg-[#1B1F27] rounded-xl p-4 border border-white/5 mb-6">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-[#A0A0A0]">
-              {lang === 'ar' ? `${uploadedCount}/${totalCount} وثائق` : lang === 'fr' ? `${uploadedCount}/${totalCount} documents` : `${uploadedCount}/${totalCount} documents`}
-            </span>
-            <span className="text-sm font-medium text-[#FF6B00]">
-              {Math.round((uploadedCount / totalCount) * 100)}%
-            </span>
+            <span className="text-sm text-[#A0A0A0]">{uploadedCount}/{steps.length} {lang === 'ar' ? 'وثائق' : lang === 'fr' ? 'documents' : 'documents'}</span>
+            <span className="text-sm font-medium text-[#FF6B00]">{Math.round((uploadedCount / steps.length) * 100)}%</span>
           </div>
           <div className="h-2 bg-white/5 rounded-full overflow-hidden">
-            <div className="h-full bg-gradient-to-r from-[#FF6B00] to-[#FF8533] rounded-full transition-all duration-300"
-              style={{ width: `${(uploadedCount / totalCount) * 100}%` }} />
+            <div className="h-full bg-gradient-to-r from-[#FF6B00] to-[#FF8533] rounded-full transition-all" style={{ width: `${(uploadedCount / steps.length) * 100}%` }} />
           </div>
         </div>
 
-        {/* Document Steps */}
+        {/* Document cards */}
         <div className="space-y-3">
-          {steps.map((step, i) => (
-            <motion.div
-              key={step.id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.05 }}
-              className="bg-[#1B1F27] rounded-xl border border-white/5 overflow-hidden"
-            >
-              <div className="p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-[#FF6B00]/10 flex items-center justify-center">
-                      <step.icon className="w-5 h-5 text-[#FF6B00]" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-white">{getLabel(step)}</p>
-                      <div className="flex items-center gap-1.5 mt-0.5">
-                        {getStatusIcon(step.status)}
-                        <span className={`text-xs ${
-                          step.status === 'approved' ? 'text-green-500' :
-                          step.status === 'rejected' ? 'text-red-500' :
-                          step.status === 'pending' ? 'text-yellow-500' :
-                          step.status === 'uploaded' ? 'text-blue-500' : 'text-[#A0A0A0]'
-                        }`}>{getStatusLabel(step.status)}</span>
+          {steps.map((step, i) => {
+            const status = getStatus(step.status);
+            return (
+              <motion.div key={step.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
+                className="bg-[#1B1F27] rounded-xl border border-white/5 overflow-hidden">
+                <div className="p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-[#FF6B00]/10 flex items-center justify-center shrink-0"><step.icon className="w-5 h-5 text-[#FF6B00]" /></div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-medium text-white">{getLabel(step)}</p>
+                        <div className="flex items-center gap-1.5">{status.icon}<span className={`text-xs ${status.color}`}>{status.label}</span></div>
                       </div>
+                      <p className="text-xs text-[#A0A0A0] mt-0.5">{getDesc(step)}</p>
+
+                      {/* Preview */}
+                      {step.url && (
+                        <div className="mt-3 relative">
+                          <img src={step.url} alt={step.label} className="w-full h-32 object-cover rounded-lg" />
+                          <div className="absolute top-2 right-2 flex gap-2">
+                            <button onClick={() => setPreviewUrl(step.url || null)} className="w-8 h-8 bg-black/60 rounded-lg flex items-center justify-center hover:bg-black/80"><Eye className="w-4 h-4 text-white" /></button>
+                            {step.status !== 'approved' && step.status !== 'pending' && (
+                              <button onClick={() => handleDelete(step.id)} className="w-8 h-8 bg-black/60 rounded-lg flex items-center justify-center hover:bg-red-500/80"><Trash2 className="w-4 h-4 text-white" /></button>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Upload / Re-upload */}
+                      {(step.status === 'not_uploaded' || step.status === 'rejected') && (
+                        <label className="mt-3 flex items-center gap-2 cursor-pointer">
+                          <input type="file" accept="image/jpeg,image/png,image/jpg" className="hidden"
+                            onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUpload(step.id, f); e.target.value = ''; }} />
+                          <div className="flex-1 h-10 rounded-lg border border-dashed border-white/10 flex items-center justify-center gap-2 hover:border-[#FF6B00]/50 hover:bg-[#FF6B00]/5 transition-all">
+                            <Upload className="w-4 h-4 text-[#A0A0A0]" />
+                            <span className="text-xs text-[#A0A0A0]">{lang === 'ar' ? 'اضغط لتحميل الصورة' : lang === 'fr' ? 'Cliquez pour télécharger' : 'Click to upload image'}</span>
+                          </div>
+                        </label>
+                      )}
                     </div>
                   </div>
-
-                  {step.status === 'not_uploaded' || step.status === 'rejected' ? (
-                    <label className="cursor-pointer">
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) handleUpload(step.id, file);
-                          e.target.value = '';
-                        }}
-                      />
-                      <div className="w-9 h-9 rounded-xl bg-[#FF6B00] hover:bg-[#E56000] flex items-center justify-center transition-colors">
-                        <Upload className="w-4 h-4 text-white" />
-                      </div>
-                    </label>
-                  ) : step.url ? (
-                    <button onClick={() => window.open(step.url, '_blank')}
-                      className="text-xs text-[#FF6B00] hover:underline">
-                      {lang === 'ar' ? 'شوف' : lang === 'fr' ? 'Voir' : 'View'}
-                    </button>
-                  ) : null}
                 </div>
-
-                {/* Rejection reason per doc */}
-                {step.rejectionReason && (
-                  <div className="mt-2 p-2 bg-red-500/5 rounded-lg border border-red-500/10">
-                    <p className="text-xs text-red-400 flex items-center gap-1">
-                      <AlertCircle className="w-3 h-3" />
-                      {step.rejectionReason}
-                    </p>
-                  </div>
-                )}
-              </div>
-            </motion.div>
-          ))}
+              </motion.div>
+            );
+          })}
         </div>
 
-        {/* Submit Button */}
+        {/* Submit */}
         {user?.verification_status !== 'verified' && user?.verification_status !== 'submitted' && (
-          <button
-            onClick={handleSubmitForReview}
-            disabled={!allUploaded || submitting}
-            className={`w-full mt-6 py-3 rounded-xl font-medium text-sm transition-all ${
-              allUploaded && !submitting
-                ? 'bg-[#FF6B00] hover:bg-[#E56000] text-white'
-                : 'bg-white/5 text-white/30 cursor-not-allowed'
-            }`}
-          >
-            {submitting
-              ? (lang === 'ar' ? 'جاري الإرسال...' : lang === 'fr' ? 'Envoi en cours...' : 'Submitting...')
-              : allUploaded
-                ? (lang === 'ar' ? 'أرسل للمراجعة' : lang === 'fr' ? 'Soumettre pour révision' : 'Submit for Review')
-                : (lang === 'ar' ? 'حمّل كل الوثائق أولاً' : lang === 'fr' ? 'Téléchargez tous les documents' : 'Upload all documents first')}
+          <button onClick={handleSubmit} disabled={!allUploaded || submitting}
+            className={`w-full mt-6 py-3 rounded-xl font-medium text-sm transition-all ${allUploaded && !submitting ? 'bg-[#FF6B00] hover:bg-[#E56000] text-white' : 'bg-white/5 text-white/30 cursor-not-allowed'}`}>
+            {submitting ? '...' : allUploaded ? t('verify.submitted') : t('verify.no_docs')}
           </button>
         )}
 
-        {/* Info */}
-        <div className="mt-6 text-center">
-          <p className="text-xs text-[#A0A0A0]/50">
-            {mode === 'driver'
-              ? (lang === 'ar' ? 'كل الوثائق ضرورية باش تولي سائق مفحوص.' : lang === 'fr' ? 'Tous les documents sont requis pour être conducteur vérifié.' : 'All documents are required to become a verified driver.')
-              : (lang === 'ar' ? 'تحقق الهوية اختياري للمسافرين.' : lang === 'fr' ? 'La vérification d\'identité est facultative pour les passagers.' : 'Identity verification is optional for passengers.')}
-          </p>
-        </div>
+        {/* Preview Modal */}
+        {previewUrl && (
+          <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4" onClick={() => setPreviewUrl(null)}>
+            <img src={previewUrl} alt="Preview" className="max-w-full max-h-[80vh] rounded-xl object-contain" />
+          </div>
+        )}
       </div>
     </div>
   );

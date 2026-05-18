@@ -4,7 +4,7 @@ import { useI18n } from '@/lib/i18n';
 import { Search, Plus, Car, MessageCircle, User, LayoutDashboard } from 'lucide-react';
 
 export function BottomNav() {
-  const { isAuthenticated, user, unreadCount } = useStore();
+  const { isAuthenticated, unreadCount, mode } = useStore();
   const { t } = useI18n();
   const location = useLocation();
 
@@ -12,8 +12,8 @@ export function BottomNav() {
 
   const isActive = (path: string) => location.pathname === path;
 
-  // Role detection
-  const isDriver = user?.role === 'driver';
+  // Mode-based navigation (mode switcher)
+  const isDriver = mode === 'driver';
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 bg-[#0F1115]/95 backdrop-blur-xl border-t border-white/5 safe-area-pb md:hidden">

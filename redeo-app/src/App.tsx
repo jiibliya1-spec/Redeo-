@@ -22,7 +22,7 @@ import { AdminMessages } from '@/pages/admin/AdminMessages';
 import { AdminSettings } from '@/pages/admin/AdminSettings';
 import { AdminSupportTickets } from '@/pages/admin/AdminSupportTickets';
 import { ProfilePage } from '@/pages/ProfilePage';
-import { VerificationPage } from '@/pages/VerificationPage';
+import VerificationPage from '@/pages/VerificationPage';
 import { MessagesPage } from '@/pages/MessagesPage';
 import { NotificationsPage } from '@/pages/NotificationsPage';
 import { PublishTripPage } from '@/pages/PublishTripPage';

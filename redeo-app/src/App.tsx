@@ -35,6 +35,7 @@ import CareersPage from '@/pages/CareersPage';
 import SafetyPage from '@/pages/SafetyPage';
 import FAQPage from '@/pages/FAQPage';
 import LegalPage from '@/pages/LegalPage';
+import { NotificationListener } from '@/components/NotificationListener';
 import { Toaster } from '@/components/ui/sonner';
 import { Spinner } from '@/components/ui/spinner';
 
@@ -174,6 +175,7 @@ function AppContent() {
       {/* Show bottomnav only for non-admin users */}
       {!isAdmin && <BottomNav />}
 
+      <NotificationListener />
       <Toaster
         position="top-right"
         toastOptions={{

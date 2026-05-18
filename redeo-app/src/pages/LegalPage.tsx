@@ -1,179 +1,101 @@
-// LegalPage - no local state needed, uses URL params
 import { Link, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, FileText, Shield, Cookie, Car } from 'lucide-react';
-
-const TABS = [
-  { id: 'terms', label: 'Terms', icon: FileText },
-  { id: 'privacy', label: 'Privacy', icon: Shield },
-  { id: 'cookies', label: 'Cookies', icon: Cookie },
-  { id: 'driver', label: 'Drivers', icon: Car },
-];
-
-const CONTENT: Record<string, { title: string; body: React.ReactNode }> = {
-  terms: {
-    title: 'Terms & Conditions',
-    body: (
-      <div className="space-y-4 text-sm text-[#A0A0A0] leading-relaxed">
-        <p>Welcome to WansniAuto. By using our platform, you agree to these Terms & Conditions. Please read them carefully before booking or publishing trips.</p>
-
-        <h3 className="text-white font-medium mt-4">1. Definitions</h3>
-        <p>"Platform" refers to the WansniAuto website and mobile applications. "User" means any person who accesses the Platform, whether as a passenger or driver. "Trip" means a shared ride published by a driver and booked by a passenger(s).</p>
-
-        <h3 className="text-white font-medium mt-4">2. Eligibility</h3>
-        <p>You must be at least 18 years old to use WansniAuto. Drivers must hold a valid Moroccan driving license, valid vehicle registration, and valid insurance. All users must provide accurate, current, and complete information during registration.</p>
-
-        <h3 className="text-white font-medium mt-4">3. User Responsibilities</h3>
-        <ul className="list-disc list-inside space-y-1">
-          <li>Provide accurate personal information and keep it updated</li>
-          <li>Respect other users and maintain appropriate behavior during trips</li>
-          <li>Arrive on time at the agreed pickup location</li>
-          <li>Comply with all Moroccan traffic laws and regulations</li>
-          <li>Not use the platform for illegal activities or commercial transportation without authorization</li>
-        </ul>
-
-        <h3 className="text-white font-medium mt-4">4. Driver Requirements</h3>
-        <p>Drivers must: (a) have a valid driving license, (b) own or have authorization to use the registered vehicle, (c) maintain valid insurance, (d) ensure the vehicle is roadworthy and safe, (e) undergo and pass our verification process, (f) not exceed vehicle capacity limits.</p>
-
-        <h3 className="text-white font-medium mt-4">5. Payments & Fees</h3>
-        <p>Trip prices are set by drivers. WansniAuto charges a 5% service fee on each booking. All payments are processed securely. Refunds are issued based on our cancellation policy: full refund for cancellations 2+ hours before departure; partial refund for late cancellations; no refund for no-shows.</p>
-
-        <h3 className="text-white font-medium mt-4">6. Cancellations</h3>
-        <p>Passengers may cancel through the app. Drivers may cancel emergencies only — frequent cancellations result in account penalties. If a driver cancels, the passenger receives a full refund automatically.</p>
-
-        <h3 className="text-white font-medium mt-4">7. Liability</h3>
-        <p>WansniAuto is a platform connecting independent drivers and passengers. We do not own vehicles or employ drivers. Users acknowledge that travel involves risks and agree that WansniAuto is not liable for incidents arising during trips, except where caused by our gross negligence.</p>
-
-        <h3 className="text-white font-medium mt-4">8. Account Termination</h3>
-        <p>We may suspend or terminate accounts for: fraud, abuse, safety violations, repeated cancellations, providing false information, or illegal activity. Users may delete their account at any time through Settings.</p>
-
-        <h3 className="text-white font-medium mt-4">9. Changes to Terms</h3>
-        <p>We may update these terms periodically. Continued use after changes constitutes acceptance. Last updated: May 2026.</p>
-
-        <p className="text-xs text-[#A0A0A0]/50 mt-6">If you have questions, contact us at support@wansniauto.ma</p>
-      </div>
-    ),
-  },
-  privacy: {
-    title: 'Privacy Policy',
-    body: (
-      <div className="space-y-4 text-sm text-[#A0A0A0] leading-relaxed">
-        <p>WansniAuto is committed to protecting your privacy. This policy explains how we collect, use, and safeguard your personal data in compliance with Moroccan Law 09-08 on the Protection of Personal Data.</p>
-
-        <h3 className="text-white font-medium mt-4">1. Data We Collect</h3>
-        <p>We collect: (a) Identity data — name, email, phone, profile photo; (b) Verification data (drivers only) — CIN, license, registration, insurance, selfie; (c) Trip data — routes, bookings, cancellations; (d) Payment data — processed securely by our payment partners; (e) Technical data — IP address, device info, app usage; (f) Communication data — in-app messages.</p>
-
-        <h3 className="text-white font-medium mt-4">2. How We Use Your Data</h3>
-        <ul className="list-disc list-inside space-y-1">
-          <li>Provide and improve our ride-sharing services</li>
-          <li>Verify driver identities and vehicle documentation</li>
-          <li>Process payments and handle refunds</li>
-          <li>Send booking confirmations and trip updates</li>
-          <li>Ensure platform safety and investigate disputes</li>
-          <li>Comply with legal obligations</li>
-        </ul>
-
-        <h3 className="text-white font-medium mt-4">3. Data Sharing</h3>
-        <p>We share limited data between users for trip coordination (name, phone upon booking confirmation, vehicle details). We share data with: payment processors (for transactions), verification services (for identity checks), and authorities (when legally required). We never sell your personal data to advertisers.</p>
-
-        <h3 className="text-white font-medium mt-4">4. Data Security</h3>
-        <p>We use industry-standard encryption (TLS 1.3), secure servers, and regular security audits. Access to personal data is restricted to authorized personnel only. However, no internet transmission is 100% secure.</p>
-
-        <h3 className="text-white font-medium mt-4">5. Your Rights</h3>
-        <p>Under Moroccan law, you have the right to: access your data, correct inaccurate data, request deletion (with limitations for legal compliance), object to processing, and withdraw consent. Contact us to exercise these rights.</p>
-
-        <h3 className="text-white font-medium mt-4">6. Data Retention</h3>
-        <p>We retain account data while your account is active. Trip and payment data are retained for 5 years for legal and tax purposes. Deleted accounts are anonymized within 30 days, except where retention is legally required.</p>
-
-        <h3 className="text-white font-medium mt-4">7. Cookies</h3>
-        <p>We use essential cookies for platform functionality and analytics cookies to improve user experience. You can manage cookie preferences through your browser settings. See our Cookie Policy for details.</p>
-
-        <h3 className="text-white font-medium mt-4">8. Contact</h3>
-        <p>For privacy questions or data requests, email us at privacy@wansniauto.ma or through our <Link to="/support" className="text-[#FF6B00] hover:underline">support page</Link>.</p>
-
-        <p className="text-xs text-[#A0A0A0]/50 mt-6">Last updated: May 2026</p>
-      </div>
-    ),
-  },
-  cookies: {
-    title: 'Cookie Policy',
-    body: (
-      <div className="space-y-4 text-sm text-[#A0A0A0] leading-relaxed">
-        <p>This Cookie Policy explains how WansniAuto uses cookies and similar technologies when you visit our website and use our services.</p>
-
-        <h3 className="text-white font-medium mt-4">1. What Are Cookies</h3>
-        <p>Cookies are small text files stored on your device when you visit a website. They help websites function properly, improve user experience, and provide analytical information.</p>
-
-        <h3 className="text-white font-medium mt-4">2. Types of Cookies We Use</h3>
-        <p><strong className="text-white">Essential Cookies:</strong> Required for basic platform functionality — login sessions, security, booking processes. These cannot be disabled.</p>
-        <p><strong className="text-white">Analytics Cookies:</strong> Help us understand how users interact with our platform (Google Analytics). These are anonymized and help us improve features.</p>
-        <p><strong className="text-white">Preference Cookies:</strong> Remember your settings such as language preference, display options, and saved passenger information.</p>
-
-        <h3 className="text-white font-medium mt-4">3. How to Manage Cookies</h3>
-        <p>You can control cookies through your browser settings. Most browsers allow you to block or delete cookies. Note that disabling essential cookies may prevent the platform from functioning correctly.</p>
-
-        <h3 className="text-white font-medium mt-4">4. Third-Party Services</h3>
-        <p>We use Google Analytics for usage statistics. Their cookies collect anonymized data about page visits and feature usage. We do not use cookies for advertising or tracking across other websites.</p>
-
-        <h3 className="text-white font-medium mt-4">5. Changes to This Policy</h3>
-        <p>We may update this Cookie Policy as our services evolve. We will notify users of significant changes via email or platform notifications.</p>
-
-        <p className="text-xs text-[#A0A0A0]/50 mt-6">Last updated: May 2026</p>
-      </div>
-    ),
-  },
-  driver: {
-    title: 'Driver Agreement',
-    body: (
-      <div className="space-y-4 text-sm text-[#A0A0A0] leading-relaxed">
-        <p>This Driver Agreement outlines the terms specific to drivers using the WansniAuto platform. By publishing trips and accepting bookings, you agree to these terms.</p>
-
-        <h3 className="text-white font-medium mt-4">1. Independent Contractor Status</h3>
-        <p>You are an independent contractor, not an employee of WansniAuto. You control your schedule, routes, and pricing. You are responsible for your own taxes, insurance, and vehicle maintenance.</p>
-
-        <h3 className="text-white font-medium mt-4">2. Vehicle Requirements</h3>
-        <ul className="list-disc list-inside space-y-1">
-          <li>Vehicle must be registered in Morocco and roadworthy</li>
-          <li>Valid insurance covering passenger transport</li>
-          <li>Vehicle age not exceeding 15 years for standard cars</li>
-          <li>Clean, safe, and well-maintained condition</li>
-          <li>Air conditioning recommended for long-distance trips</li>
-        </ul>
-
-        <h3 className="text-white font-medium mt-4">3. Driver Conduct</h3>
-        <p>Drivers must: (a) arrive on time at pickup locations, (b) communicate clearly with passengers, (c) drive safely and obey traffic laws, (d) maintain a respectful environment, (e) not discriminate against passengers, (f) not use the platform for commercial taxi services.</p>
-
-        <h3 className="text-white font-medium mt-4">4. Pricing & Payments</h3>
-        <p>You set your own trip prices. WansniAuto deducts a 5% service fee from each booking. Payments are transferred to your registered bank account within 3-5 business days after trip completion. You are responsible for declaring income according to Moroccan tax laws.</p>
-
-        <h3 className="text-white font-medium mt-4">5. Cancellation Policy</h3>
-        <p>Drivers should avoid cancellations. Emergency cancellations must be reported immediately. Frequent cancellations result in: warning → temporary suspension → permanent account ban. Drivers who cancel less than 2 hours before departure may face penalties.</p>
-
-        <h3 className="text-white font-medium mt-4">6. Passenger Safety</h3>
-        <p>You are responsible for passenger safety during the trip. This includes: safe driving, working seatbelts for all passengers, respecting traffic laws, and maintaining appropriate behavior. Any accident must be reported to WansniAuto within 24 hours.</p>
-
-        <h3 className="text-white font-medium mt-4">7. Document Verification</h3>
-        <p>You must keep all uploaded documents current. Expired documents result in account suspension until renewal. We conduct random re-verification checks to ensure continued compliance.</p>
-
-        <h3 className="text-white font-medium mt-4">8. Rating System</h3>
-        <p>Maintaining a rating above 4.0 is required to remain active. Consistently low ratings trigger a review process. Drivers may appeal unfair ratings through support.</p>
-
-        <h3 className="text-white font-medium mt-4">9. Termination</h3>
-        <p>Either party may terminate this agreement at any time. WansniAuto may terminate for: fraud, safety violations, document expiry, illegal activity, or repeated policy violations. You may delete your driver account through Settings.</p>
-
-        <p className="text-xs text-[#A0A0A0]/50 mt-6">Last updated: May 2026</p>
-      </div>
-    ),
-  },
-};
+import { useI18n } from '@/lib/i18n';
 
 export default function LegalPage() {
+  const { t, dir } = useI18n();
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = searchParams.get('tab') || 'terms';
-  const content = CONTENT[activeTab] || CONTENT.terms;
+
+  const TABS = [
+    { id: 'terms', labelKey: 'legal.terms_tab', icon: FileText },
+    { id: 'privacy', labelKey: 'legal.privacy_tab', icon: Shield },
+    { id: 'cookies', labelKey: 'legal.cookies_tab', icon: Cookie },
+    { id: 'driver', labelKey: 'legal.driver_tab', icon: Car },
+  ];
+
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'terms':
+        return (
+          <div className="space-y-4 text-sm text-[#A0A0A0] leading-relaxed">
+            <p>{t('legal.terms_intro')}</p>
+            <h3 className="text-white font-medium mt-4">{t('legal.terms_defs')}</h3>
+            <p>{t('legal.terms_defs_text')}</p>
+            <h3 className="text-white font-medium mt-4">{t('legal.terms_elig')}</h3>
+            <p>{t('legal.terms_elig_text')}</p>
+            <h3 className="text-white font-medium mt-4">{t('legal.terms_resp')}</h3>
+            <p>{t('legal.terms_resp_text')}</p>
+            <h3 className="text-white font-medium mt-4">{t('legal.terms_pay')}</h3>
+            <p>{t('legal.terms_pay_text')}</p>
+            <h3 className="text-white font-medium mt-4">{t('legal.terms_cancel')}</h3>
+            <p>{t('legal.terms_cancel_text')}</p>
+            <h3 className="text-white font-medium mt-4">{t('legal.terms_liability')}</h3>
+            <p>{t('legal.terms_liability_text')}</p>
+            <h3 className="text-white font-medium mt-4">{t('legal.terms_term')}</h3>
+            <p>{t('legal.terms_term_text')}</p>
+            <h3 className="text-white font-medium mt-4">{t('legal.terms_changes')}</h3>
+            <p>{t('legal.terms_changes_text')}</p>
+            <p className="text-xs text-[#A0A0A0]/50 mt-6">{t('legal.last_updated')}</p>
+          </div>
+        );
+      case 'privacy':
+        return (
+          <div className="space-y-4 text-sm text-[#A0A0A0] leading-relaxed">
+            <p>{t('legal.privacy_intro')}</p>
+            <h3 className="text-white font-medium mt-4">1. Données Collectées</h3>
+            <p>Nous collectons: données d'identité, données de vérification (conducteurs), données de trajet, données de paiement (traitées par nos partenaires), données techniques, et communications.</p>
+            <h3 className="text-white font-medium mt-4">2. Utilisation des Données</h3>
+            <p>Fournir nos services, vérifier les identités, traiter les paiements, envoyer des confirmations, assurer la sécurité, respecter les obligations légales.</p>
+            <h3 className="text-white font-medium mt-4">3. Partage des Données</h3>
+            <p>Données limitées entre utilisateurs pour la coordination des trajets. Partage avec: processeurs de paiement, services de vérification, autorités (lorsque requis par la loi). Nous ne vendons jamais vos données.</p>
+            <h3 className="text-white font-medium mt-4">4. Sécurité</h3>
+            <p>Chiffrement TLS 1.3, serveurs sécurisés, audits réguliers. Accès restreint au personnel autorisé uniquement.</p>
+            <h3 className="text-white font-medium mt-4">5. Vos Droits</h3>
+            <p>Droit d'accès, de rectification, de suppression (avec limitations), d'opposition et de retrait du consentement.</p>
+            <p className="text-xs text-[#A0A0A0]/50 mt-6">{t('legal.last_updated')}</p>
+          </div>
+        );
+      case 'cookies':
+        return (
+          <div className="space-y-4 text-sm text-[#A0A0A0] leading-relaxed">
+            <h3 className="text-white font-medium mt-4">1. Cookies Essentiels</h3>
+            <p>Nécessaires au fonctionnement de la plateforme: sessions de connexion, sécurité, processus de réservation. Ne peuvent pas être désactivés.</p>
+            <h3 className="text-white font-medium mt-4">2. Cookies Analytiques</h3>
+            <p>Nous aident à comprendre comment les utilisateurs interagissent avec notre plateforme (Google Analytics). Données anonymisées.</p>
+            <h3 className="text-white font-medium mt-4">3. Cookies de Préférences</h3>
+            <p>Mémorisent vos paramètres: préférence linguistique, options d'affichage, informations de passagers sauvegardées.</p>
+            <h3 className="text-white font-medium mt-4">4. Gestion des Cookies</h3>
+            <p>Vous pouvez contrôler les cookies via les paramètres de votre navigateur. La désactivation des cookies essentiels peut empêcher la plateforme de fonctionner correctement.</p>
+            <p className="text-xs text-[#A0A0A0]/50 mt-6">{t('legal.last_updated')}</p>
+          </div>
+        );
+      case 'driver':
+        return (
+          <div className="space-y-4 text-sm text-[#A0A0A0] leading-relaxed">
+            <h3 className="text-white font-medium mt-4">1. Statut d'Indépendant</h3>
+            <p>Vous êtes un entrepreneur indépendant, pas un employé de WansniAuto. Vous contrôlez votre emploi du temps, itinéraires et tarification.</p>
+            <h3 className="text-white font-medium mt-4">2. Exigences du Véhicule</h3>
+            <p>Véhicule immatriculé au Maroc, assurance valide couvrant le transport de passagers, âge du véhicule ≤ 15 ans, état propre et sûr.</p>
+            <h3 className="text-white font-medium mt-4">3. Conduite du Conducteur</h3>
+            <p>Arriver à l'heure, communiquer clairement, conduire en sécurité, respecter les lois, ne pas discriminer, ne pas utiliser la plateforme pour du taxi commercial.</p>
+            <h3 className="text-white font-medium mt-4">4. Tarification et Paiements</h3>
+            <p>Vous fixez vos prix. WansniAuto déduit 5% de frais de service. Paiements transférés sous 3-5 jours ouvrables après le trajet. Vous êtes responsable de vos déclarations fiscales.</p>
+            <h3 className="text-white font-medium mt-4">5. Politique d'Annulation</h3>
+            <p>Évitez les annulations. Annulations d'urgence uniquement — annulations fréquentes = pénalités. Annulation &lt; 2h avant le départ = pénalités.</p>
+            <h3 className="text-white font-medium mt-4">6. Sécurité des Passagers</h3>
+            <p>Conduite sûre, ceintures fonctionnelles, respect du code de la route, comportement approprié. Tout accident doit être signalé sous 24h.</p>
+            <p className="text-xs text-[#A0A0A0]/50 mt-6">{t('legal.last_updated')}</p>
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-[#0F1115] pt-20 pb-12">
+    <div className="min-h-screen bg-[#0F1115] pt-20 pb-12" dir={dir}>
       <div className="max-w-3xl mx-auto px-4 sm:px-6">
         <div className="flex items-center gap-3 mb-8">
           <Link to="/" className="p-2 rounded-xl hover:bg-white/5 transition-colors">
@@ -198,7 +120,7 @@ export default function LegalPage() {
                 }`}
               >
                 <Icon className="w-4 h-4" />
-                {tab.label}
+                {t(tab.labelKey)}
               </button>
             );
           })}
@@ -212,8 +134,13 @@ export default function LegalPage() {
           transition={{ duration: 0.2 }}
           className="bg-[#1B1F27] rounded-2xl border border-white/5 p-6"
         >
-          <h2 className="text-lg font-semibold text-white mb-4">{content.title}</h2>
-          {content.body}
+          <h2 className="text-lg font-semibold text-white mb-4">
+            {activeTab === 'terms' && t('legal.terms_title')}
+            {activeTab === 'privacy' && t('legal.privacy_title')}
+            {activeTab === 'cookies' && t('legal.cookies_title')}
+            {activeTab === 'driver' && t('legal.driver_title')}
+          </h2>
+          {renderContent()}
         </motion.div>
       </div>
     </div>

@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Briefcase, MapPin } from 'lucide-react';
+import { useI18n } from '@/lib/i18n';
 
 const POSITIONS = [
   { title: 'Backend Developer', location: 'Casablanca / Remote', type: 'Full-time', desc: 'Build and maintain our core APIs, real-time systems, and payment infrastructure using Node.js and PostgreSQL.' },
@@ -10,22 +11,22 @@ const POSITIONS = [
 ];
 
 export default function CareersPage() {
+  const { t, dir } = useI18n();
+
   return (
-    <div className="min-h-screen bg-[#0F1115] pt-20 pb-12">
+    <div className="min-h-screen bg-[#0F1115] pt-20 pb-12" dir={dir}>
       <div className="max-w-3xl mx-auto px-4 sm:px-6">
         <div className="flex items-center gap-3 mb-8">
           <Link to="/" className="p-2 rounded-xl hover:bg-white/5 transition-colors">
             <ArrowLeft className="w-5 h-5 text-[#A0A0A0]" />
           </Link>
-          <h1 className="text-2xl font-bold text-white">Careers</h1>
+          <h1 className="text-2xl font-bold text-white">{t('careers.title')}</h1>
         </div>
 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-10">
           <Briefcase className="w-12 h-12 text-[#FF6B00] mx-auto mb-3" />
-          <h2 className="text-xl font-semibold text-white mb-2">Join the WansniAuto Team</h2>
-          <p className="text-sm text-[#A0A0A0] max-w-md mx-auto">
-            We're building the future of transportation in Morocco. Come shape it with us.
-          </p>
+          <h2 className="text-xl font-semibold text-white mb-2">{t('careers.join')}</h2>
+          <p className="text-sm text-[#A0A0A0] max-w-md mx-auto">{t('careers.desc')}</p>
         </motion.div>
 
         <div className="space-y-3">
@@ -46,10 +47,10 @@ export default function CareersPage() {
               </div>
               <p className="text-xs text-[#A0A0A0] leading-relaxed">{job.desc}</p>
               <a
-                href="mailto:careers@wansniauto.ma?subject=Application for {job.title}"
+                href={`mailto:careers@wansniauto.ma?subject=Application for ${job.title}`}
                 className="inline-block mt-3 text-xs text-[#FF6B00] hover:underline"
               >
-                Apply now →
+                {t('careers.apply')}
               </a>
             </motion.div>
           ))}
@@ -57,7 +58,7 @@ export default function CareersPage() {
 
         <div className="mt-8 text-center">
           <p className="text-xs text-[#A0A0A0]/50">
-            Don't see your role? Send us your CV at <a href="mailto:careers@wansniauto.ma" className="text-[#FF6B00]">careers@wansniauto.ma</a>
+            {t('careers.send_cv')} <a href="mailto:careers@wansniauto.ma" className="text-[#FF6B00]">careers@wansniauto.ma</a>
           </p>
         </div>
       </div>

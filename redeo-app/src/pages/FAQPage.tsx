@@ -2,38 +2,40 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, ChevronDown } from 'lucide-react';
-
-const FAQS = [
-  { q: 'How do I book a ride?', a: 'Search for your route by entering departure city, destination, and travel date. Browse available drivers, compare prices and ratings, then tap "Book" to reserve your seat. Payment is processed securely through the app.' },
-  { q: 'How do I become a driver?', a: 'Register as a driver, complete verification by uploading your CIN, driving license, vehicle registration, insurance, and a selfie. Our team reviews documents within 24-48 hours. Once verified, you can publish trips and start earning.' },
-  { q: 'Is my payment secure?', a: 'Yes. All payments are processed through encrypted channels compliant with PCI-DSS standards. Your money is held securely and only released to the driver after the trip is completed successfully.' },
-  { q: 'How do I cancel a booking?', a: 'Go to "My Trips", find your upcoming booking, and tap "Cancel". Cancellations made more than 2 hours before departure receive a full refund. Late cancellations may incur a small fee.' },
-  { q: 'What happens if my driver cancels?', a: 'If your driver cancels, you receive an immediate full refund and a notification. You can then book another available ride for the same route. We also track driver cancellation rates to maintain platform quality.' },
-  { q: 'How does driver verification work?', a: 'Drivers must upload: (1) Valid National ID (CIN), (2) Driving license, (3) Vehicle registration, (4) Insurance certificate, (5) Real-time selfie. Our admin team verifies each document manually within 24-48 hours.' },
-  { q: 'Can I bring luggage?', a: 'Yes, standard luggage is included. During booking, you can specify if you have large luggage. Drivers see this information and can confirm if their vehicle has space. Extra-large items may require booking an additional seat.' },
-  { q: 'What cities does WansniAuto cover?', a: 'We currently operate across 13+ major Moroccan cities including Casablanca, Rabat, Marrakech, Fes, Tangier, Agadir, Meknes, Oujda, Kenitra, Tetouan, Safi, El Jadida, and Beni Mellal.' },
-  { q: 'How are prices determined?', a: 'Drivers set their own prices based on distance, fuel costs, and demand. WansniAuto adds a small 5% service fee. You see the total price before booking — no hidden fees, no surprises.' },
-  { q: 'How do I contact my driver?', a: 'Once your booking is confirmed, you can chat with your driver through the in-app messaging system. This keeps your phone number private until you choose to share it.' },
-  { q: 'What if I am late to the pickup?', a: 'We recommend arriving 5 minutes early. If you are running late, message your driver immediately through the app. Drivers typically wait up to 15 minutes before marking a no-show, which may result in forfeiting your booking.' },
-  { q: 'Are pets allowed?', a: 'Pet policy varies by driver. During booking, you can add a note about traveling with a pet. The driver will confirm if they are comfortable with it. We recommend bringing a carrier for small pets.' },
-];
+import { useI18n } from '@/lib/i18n';
 
 export default function FAQPage() {
+  const { t, dir } = useI18n();
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
+  const FAQS = [
+    { qKey: 'faq.q1', aKey: 'faq.a1' },
+    { qKey: 'faq.q2', aKey: 'faq.a2' },
+    { qKey: 'faq.q3', aKey: 'faq.a3' },
+    { qKey: 'faq.q4', aKey: 'faq.a4' },
+    { qKey: 'faq.q5', aKey: 'faq.a5' },
+    { qKey: 'faq.q6', aKey: 'faq.a6' },
+    { qKey: 'faq.q7', aKey: 'faq.a7' },
+    { qKey: 'faq.q8', aKey: 'faq.a8' },
+    { qKey: 'faq.q9', aKey: 'faq.a9' },
+    { qKey: 'faq.q10', aKey: 'faq.a10' },
+    { qKey: 'faq.q11', aKey: 'faq.a11' },
+    { qKey: 'faq.q12', aKey: 'faq.a12' },
+  ];
+
   return (
-    <div className="min-h-screen bg-[#0F1115] pt-20 pb-12">
+    <div className="min-h-screen bg-[#0F1115] pt-20 pb-12" dir={dir}>
       <div className="max-w-3xl mx-auto px-4 sm:px-6">
         <div className="flex items-center gap-3 mb-8">
           <Link to="/" className="p-2 rounded-xl hover:bg-white/5 transition-colors">
             <ArrowLeft className="w-5 h-5 text-[#A0A0A0]" />
           </Link>
-          <h1 className="text-2xl font-bold text-white">FAQs</h1>
+          <h1 className="text-2xl font-bold text-white">{t('faq.title')}</h1>
         </div>
 
         <p className="text-sm text-[#A0A0A0] mb-6">
-          Find answers to the most common questions about WansniAuto. Can't find what you're looking for? 
-          <Link to="/support" className="text-[#FF6B00] hover:underline"> Contact us.</Link>
+          {t('faq.subtitle')}{' '}
+          <Link to="/support" className="text-[#FF6B00] hover:underline">{t('faq.contact_us')}</Link>
         </p>
 
         <div className="space-y-2">
@@ -49,7 +51,7 @@ export default function FAQPage() {
                 onClick={() => setOpenIndex(openIndex === i ? null : i)}
                 className="w-full flex items-center justify-between p-4 text-left"
               >
-                <span className="text-sm text-white font-medium pr-4">{faq.q}</span>
+                <span className="text-sm text-white font-medium pr-4">{t(faq.qKey)}</span>
                 <ChevronDown className={`w-4 h-4 text-[#A0A0A0] shrink-0 transition-transform ${openIndex === i ? 'rotate-180' : ''}`} />
               </button>
               <AnimatePresence>
@@ -61,7 +63,7 @@ export default function FAQPage() {
                     transition={{ duration: 0.2 }}
                     className="overflow-hidden"
                   >
-                    <p className="text-sm text-[#A0A0A0] px-4 pb-4 leading-relaxed">{faq.a}</p>
+                    <p className="text-sm text-[#A0A0A0] px-4 pb-4 leading-relaxed">{t(faq.aKey)}</p>
                   </motion.div>
                 )}
               </AnimatePresence>

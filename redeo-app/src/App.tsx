@@ -45,12 +45,9 @@ function DashboardRouter() {
 
   useEffect(() => {
     if (!isAuthenticated) return;
-    console.log('[DashboardRouter] User role:', user?.role);
     if (user?.role === 'admin') {
-      console.log('[DashboardRouter] Admin → redirecting to /admin');
       navigate('/admin', { replace: true });
     }
-    // else: render the appropriate dashboard component below
   }, [isAuthenticated, user, navigate]);
 
   if (!isAuthenticated) return <Navigate to="/login" />;

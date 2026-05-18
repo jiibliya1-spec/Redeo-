@@ -3,6 +3,9 @@ import { useMemo } from 'react';
 
 export type Lang = 'en' | 'fr' | 'ar';
 
+// ============================================================
+// COMPLETE TRANSLATIONS - All keys used across the app
+// ============================================================
 const TRANSLATIONS: Record<Lang, Record<string, string>> = {
   en: {
     // ─── App ───
@@ -13,19 +16,50 @@ const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     'app.publish_title': 'Publish a Trip',
     'app.loading': 'Loading...',
 
+    // ─── Landing ───
+    'landing.hero_title': 'Travel Between Moroccan Cities',
+    'landing.hero_subtitle': 'Safe, affordable ride-sharing with verified drivers',
+    'landing.search_from': 'From',
+    'landing.search_to': 'To',
+    'landing.search_date': 'Date',
+    'landing.search_passengers': 'Passengers',
+    'landing.search_btn': 'Search',
+    'landing.how_title': 'How It Works',
+    'landing.how_1': 'Search Your Route',
+    'landing.how_1_desc': 'Enter your departure city, destination, and travel date',
+    'landing.how_2': 'Choose & Book',
+    'landing.how_2_desc': 'Compare prices, car types, and driver ratings',
+    'landing.how_3': 'Enjoy the Ride',
+    'landing.how_3_desc': 'Meet your driver at the pickup point and travel comfortably',
+    'landing.popular_title': 'Popular Routes',
+    'landing.popular_subtitle': 'Most traveled routes across Morocco',
+    'landing.testimonials_title': 'What Travelers Say',
+    'landing.testimonials_subtitle': 'Real reviews from real passengers',
+    'landing.why_title': 'Why WansniAuto',
+    'landing.why_subtitle': 'The safest way to travel between Moroccan cities',
+    'landing.cta_title': 'Ready to Travel?',
+    'landing.cta_subtitle': 'Join thousands of Moroccans sharing rides every day',
+    'landing.cta_btn': 'Get Started',
+
     // ─── Auth ───
     'auth.login': 'Sign In',
-    'auth.register': 'Sign Up',
+    'auth.register': 'Create Account',
+    'auth.create_account': 'Create Account',
     'auth.email': 'Email',
     'auth.password': 'Password',
     'auth.name': 'Full Name',
     'auth.phone': 'Phone Number',
     'auth.role': 'I want to be a',
-    'auth.role_passenger': 'Passenger',
-    'auth.role_driver': 'Driver',
-    'auth.forgot_password': 'Forgot password?',
-    'auth.no_account': "Don't have an account?",
+    'auth.passenger': 'Passenger',
+    'auth.driver': 'Driver',
+    'auth.welcome_back': 'Welcome Back',
+    'auth.login_btn': 'Sign In',
+    'auth.register_btn': 'Create Account',
+    'auth.login_now': 'Sign In Now',
+    'auth.register_now': 'Create Account Now',
     'auth.has_account': 'Already have an account?',
+    'auth.no_account': "Don't have an account?",
+    'auth.forgot_password': 'Forgot password?',
     'auth.logout': 'Logout',
     'auth.delete_account': 'Delete Account',
 
@@ -34,43 +68,117 @@ const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     'nav.search': 'Search',
     'nav.trips': 'My Trips',
     'nav.messages': 'Messages',
+    'nav.chat': 'Chats',
     'nav.profile': 'Profile',
     'nav.settings': 'Settings',
     'nav.notifications': 'Notifications',
 
     // ─── Search ───
     'search.from': 'From',
+    'search.from_label': 'Departure city',
     'search.to': 'To',
+    'search.to_label': 'Destination city',
     'search.date': 'Date',
-    'search.passengers': 'Passengers',
+    'search.pax': 'Passengers',
     'search.find': 'Search',
     'search.results': 'Available Rides',
-    'search.no_results': 'No rides found for this route',
+    'search.no_results': 'No rides found',
+    'search.no_rides': 'No rides available',
+    'search.rides_available': 'rides available',
+    'search.sort': 'Sort by',
+    'search.lowest_price': 'Lowest Price',
+    'search.earliest': 'Earliest',
+    'search.highest_rated': 'Highest Rated',
+    'search.all_cities': 'All Cities',
+    'search.clear_filters': 'Clear Filters',
+    'search.try_adjust': 'Try adjusting your search filters',
     'search.price': 'MAD',
 
     // ─── Trip ───
     'trip.publish': 'Publish Trip',
     'trip.departure': 'Departure',
     'trip.arrival': 'Arrival',
-    'trip.price': 'Price per seat',
-    'trip.seats': 'Available seats',
+    'trip.price': 'MAD',
+    'trip.seats': 'Seats',
+    'trip.seats_left': 'seats left',
     'trip.description': 'Description',
     'trip.book': 'Book Now',
     'trip.contact': 'Contact Driver',
     'trip.driver': 'Driver',
     'trip.car': 'Vehicle',
     'trip.amenities': 'Amenities',
+    'trip.rating': 'Rating',
+    'trip.trips_done': 'trips done',
+
+    // ─── Driver ───
+    'driver.title': 'Driver Dashboard',
+    'driver.subtitle': 'Manage your trips and bookings',
+    'driver.publish': 'Publish a Trip',
+    'driver.publish_btn': 'Publish Trip',
+    'driver.publish_subtitle': 'Share your route and earn money',
+    'driver.publish_first': 'Publish your first trip',
+    'driver.my_trips': 'My Trips',
+    'driver.no_trips': 'No trips yet',
+    'driver.trips': 'Trips',
+    'driver.earnings': 'Earnings',
+    'driver.rating': 'Rating',
+    'driver.passengers': 'Passengers',
+    'driver.offer_ride': 'Offer a Ride',
+    'driver.verify_before_publish': 'You must be verified to publish trips',
+    'driver.from': 'From',
+    'driver.to': 'To',
+    'driver.date': 'Date',
+    'driver.time': 'Time',
+    'driver.price': 'Price per seat (MAD)',
+    'driver.seats': 'Available seats',
+    'driver.distance': 'Distance',
+    'driver.duration': 'Duration',
+    'driver.vehicle_info': 'Vehicle Information',
+    'driver.make': 'Make',
+    'driver.model': 'Model',
+    'driver.year': 'Year',
+    'driver.color': 'Color',
+    'driver.plate': 'License Plate',
+
+    // ─── Passenger ───
+    'passenger.title': 'Find a Ride',
+    'passenger.find_ride': 'Find a Ride',
+    'passenger.book_ride': 'Book a Ride',
+    'passenger.trips': 'My Trips',
+    'passenger.upcoming': 'Upcoming',
+    'passenger.past': 'Past',
+    'passenger.no_upcoming': 'No upcoming trips',
+    'passenger.no_past': 'No past trips',
+    'passenger.spent': 'Total Spent',
+    'passenger.favorites': 'Saved Trips',
 
     // ─── Verification ───
-    'verify.title': 'Verification',
+    'verify.title': 'Verification Center',
+    'verify.subtitle': 'Upload your documents to get verified',
+    'verify.required': 'Verification Required',
     'verify.upload': 'Upload',
     'verify.upload_success': 'Document uploaded!',
     'verify.upload_error': 'Upload failed',
-    'verify.no_docs': 'Please upload at least one document',
+    'verify.no_docs': 'Please upload all required documents',
     'verify.submitted': 'Documents submitted for review!',
     'verify.submit_error': 'Submit failed',
     'verify.approved_toast': 'Your documents have been verified!',
     'verify.rejected_toast': 'Your verification was rejected. Please re-upload.',
+
+    // ─── Chat/Messages ───
+    'chat.title': 'Chats',
+    'chat.contacts': 'Contacts',
+    'chat.no_contacts': 'No contacts yet',
+    'chat.empty_title': 'No Messages',
+    'chat.empty_desc': 'Start a conversation with a driver or passenger',
+    'chat.start_chat': 'Start Chat',
+    'chat.type': 'Type a message...',
+    'msg.title': 'Messages',
+    'msg.no_messages': 'No messages yet',
+    'msg.type_here': 'Type a message...',
+    'msg.send': 'Send',
+    'msg.cannot_self': 'You cannot message yourself',
+    'msg.driver_only': 'Only drivers and passengers can message each other',
 
     // ─── Profile ───
     'profile.title': 'Profile',
@@ -79,22 +187,26 @@ const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     'profile.unverified': 'Unverified',
     'profile.pending': 'Pending',
     'profile.rejected': 'Rejected',
-    'profile.mode_switch': 'Switch to',
-    'profile.mode_passenger': 'Passenger Mode',
-    'profile.mode_driver': 'Driver Mode',
+    'profile.logout': 'Logout',
     'profile.my_trips': 'My Trips',
+    'profile.my_reviews': 'My Reviews',
     'profile.earnings': 'Earnings',
     'profile.rating': 'Rating',
     'profile.reviews': 'Reviews',
     'profile.verification_center': 'Verification Center',
+    'profile.bio': 'Bio',
+    'profile.phone': 'Phone',
+    'profile.mode_switch': 'Switch to',
+    'profile.mode_passenger': 'Passenger Mode',
+    'profile.mode_driver': 'Driver Mode',
 
-    // ─── Messages ───
-    'msg.title': 'Messages',
-    'msg.no_messages': 'No messages yet',
-    'msg.type_here': 'Type a message...',
-    'msg.send': 'Send',
-    'msg.cannot_self': 'You cannot message yourself',
-    'msg.driver_only': 'Only drivers and passengers can message each other',
+    // ─── Notifications ───
+    'notifications.title': 'Notifications',
+    'notifications.all': 'All',
+    'notifications.messages': 'Messages',
+    'notifications.bookings': 'Bookings',
+    'notifications.empty': 'No notifications',
+    'notifications.empty_desc': 'You have no new notifications',
 
     // ─── Admin ───
     'admin.panel': 'Admin Panel',
@@ -109,11 +221,81 @@ const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     'admin.reason': 'Reason for rejection',
     'admin.no_pending': 'No pending verifications',
 
-    // ─── Mode ───
+    // ─── Mode Switcher ───
     'mode.passenger': 'Passenger',
     'mode.driver': 'Driver',
     'mode.switch_to_passenger': 'Switch to Passenger',
     'mode.switch_to_driver': 'Switch to Driver',
+
+    // ─── About ───
+    'about.title': 'About WansniAuto',
+    'about.story': 'Our Story',
+    'about.story_p1': 'WansniAuto was born in 2024 from a simple idea: traveling between Moroccan cities should be easy and affordable.',
+    'about.story_p2': 'We connect drivers with empty seats to passengers heading the same way — simple, safe, and affordable.',
+    'about.values': 'Our Values',
+    'about.mission': 'Our Mission',
+    'about.mission_desc': 'To make inter-city travel in Morocco affordable and community-driven.',
+    'about.join_team': 'Join our team',
+    'about.proudly': 'Proudly built in Morocco',
+
+    // ─── How It Works ───
+    'how.title': 'How It Works',
+    'how.subtitle': 'Get started in minutes',
+    'how.register_driver': 'Register as Driver',
+    'how.for_drivers': 'For Drivers',
+    'how.for_drivers_desc': 'Turn your empty seats into income',
+    'how.driver_step1': '1. Create account',
+    'how.driver_step2': '2. Upload documents',
+    'how.driver_step3': '3. Start earning',
+
+    // ─── Careers ───
+    'careers.title': 'Careers',
+    'careers.join': 'Join Our Team',
+    'careers.desc': 'We are building the future of transportation in Morocco',
+    'careers.apply': 'Apply Now',
+    'careers.send_cv': 'Send your CV to',
+
+    // ─── Safety ───
+    'safety.title': 'Safety',
+    'safety.priority': 'Your Safety is Our Priority',
+    'safety.desc': 'Multiple layers of protection for every trip',
+    'safety.tips': 'Safety Tips',
+    'safety.report_incident': 'Report an Incident',
+    'safety.contact_support': 'Contact Support',
+
+    // ─── FAQ ───
+    'faq.title': 'FAQs',
+    'faq.subtitle': 'Find answers to common questions',
+    'faq.contact_us': 'Contact us',
+
+    // ─── Legal ───
+    'legal.terms_tab': 'Terms',
+    'legal.privacy_tab': 'Privacy',
+    'legal.cookies_tab': 'Cookies',
+    'legal.driver_tab': 'Drivers',
+    'legal.terms_title': 'Terms & Conditions',
+    'legal.privacy_title': 'Privacy Policy',
+    'legal.cookies_title': 'Cookie Policy',
+    'legal.driver_title': 'Driver Agreement',
+    'legal.last_updated': 'Last updated: May 2026',
+    'legal.terms_intro': 'By using WansniAuto, you agree to these terms.',
+    'legal.terms_defs': '1. Definitions',
+    'legal.terms_defs_text': 'Platform means the WansniAuto website and apps.',
+    'legal.terms_elig': '2. Eligibility',
+    'legal.terms_elig_text': 'You must be at least 18 years old.',
+    'legal.terms_resp': '3. User Responsibilities',
+    'legal.terms_resp_text': 'Provide accurate information and respect other users.',
+    'legal.terms_pay': '5. Payments',
+    'legal.terms_pay_text': 'Prices set by drivers. 5% service fee. Refunds per cancellation policy.',
+    'legal.terms_cancel': '6. Cancellations',
+    'legal.terms_cancel_text': 'Full refund 2+ hours before departure.',
+    'legal.terms_liability': '7. Liability',
+    'legal.terms_liability_text': 'WansniAuto is a platform connecting independent drivers and passengers.',
+    'legal.terms_term': '8. Account Termination',
+    'legal.terms_term_text': 'Accounts may be suspended for fraud or abuse.',
+    'legal.terms_changes': '9. Changes to Terms',
+    'legal.terms_changes_text': 'We may update these terms periodically.',
+    'legal.privacy_intro': 'WansniAuto protects your privacy under Moroccan Law 09-08.',
 
     // ─── Common ───
     'common.save': 'Save',
@@ -133,6 +315,12 @@ const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     'common.info': 'Info',
     'common.see_all': 'See All',
     'common.view': 'View',
+    'common.loading': 'Loading...',
+    'common.select_city': 'Select City',
+    'common.support': 'Support',
+    'common.favorite_routes': 'Favorite Routes',
+    'common.no_bio': 'No bio yet',
+    'common.not_set': 'Not set',
 
     // ─── Footer ───
     'footer.company': 'Company',
@@ -156,8 +344,14 @@ const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     'notif.no_notifications': 'No notifications',
     'notif.verified': 'Your documents have been verified!',
     'notif.rejected': 'Your verification was rejected',
+
+    // ─── Language ───
+    'lang.select': 'Language',
   },
 
+  // ============================================================
+  // FRENCH
+  // ============================================================
   fr: {
     // ─── App ───
     'app.name': 'WansniAuto',
@@ -167,19 +361,50 @@ const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     'app.publish_title': 'Publier un Trajet',
     'app.loading': 'Chargement...',
 
+    // ─── Landing ───
+    'landing.hero_title': 'Voyagez entre les villes marocaines',
+    'landing.hero_subtitle': 'Covoiturage sûr et abordable avec des conducteurs vérifiés',
+    'landing.search_from': 'Départ',
+    'landing.search_to': 'Arrivée',
+    'landing.search_date': 'Date',
+    'landing.search_passengers': 'Passagers',
+    'landing.search_btn': 'Rechercher',
+    'landing.how_title': 'Comment ça marche',
+    'landing.how_1': 'Recherchez votre trajet',
+    'landing.how_1_desc': 'Entrez votre ville de départ, destination et date',
+    'landing.how_2': 'Choisissez et réservez',
+    'landing.how_2_desc': 'Comparez les prix, types de voitures et évaluations',
+    'landing.how_3': 'Profitez du trajet',
+    'landing.how_3_desc': 'Rencontrez votre conducteur au point de départ',
+    'landing.popular_title': 'Trajets populaires',
+    'landing.popular_subtitle': 'Les trajets les plus empruntés au Maroc',
+    'landing.testimonials_title': 'Ce que disent les voyageurs',
+    'landing.testimonials_subtitle': 'Des avis réels de passagers réels',
+    'landing.why_title': 'Pourquoi WansniAuto',
+    'landing.why_subtitle': 'La façon la plus sûre de voyager entre les villes',
+    'landing.cta_title': 'Prêt à voyager?',
+    'landing.cta_subtitle': 'Rejoignez des milliers de Marocains qui partagent des trajets',
+    'landing.cta_btn': 'Commencer',
+
     // ─── Auth ───
     'auth.login': 'Connexion',
-    'auth.register': 'Inscription',
+    'auth.register': 'Créer un compte',
+    'auth.create_account': 'Créer un compte',
     'auth.email': 'Email',
     'auth.password': 'Mot de passe',
     'auth.name': 'Nom complet',
-    'auth.phone': 'Numéro de téléphone',
+    'auth.phone': 'Téléphone',
     'auth.role': 'Je veux être',
-    'auth.role_passenger': 'Passager',
-    'auth.role_driver': 'Conducteur',
-    'auth.forgot_password': 'Mot de passe oublié?',
-    'auth.no_account': 'Pas de compte?',
+    'auth.passenger': 'Passager',
+    'auth.driver': 'Conducteur',
+    'auth.welcome_back': 'Bienvenue',
+    'auth.login_btn': 'Connexion',
+    'auth.register_btn': 'Créer un compte',
+    'auth.login_now': 'Se connecter',
+    'auth.register_now': 'Créer un compte',
     'auth.has_account': 'Déjà un compte?',
+    'auth.no_account': 'Pas de compte?',
+    'auth.forgot_password': 'Mot de passe oublié?',
     'auth.logout': 'Déconnexion',
     'auth.delete_account': 'Supprimer le compte',
 
@@ -188,43 +413,117 @@ const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     'nav.search': 'Recherche',
     'nav.trips': 'Mes Trajets',
     'nav.messages': 'Messages',
+    'nav.chat': 'Chats',
     'nav.profile': 'Profil',
     'nav.settings': 'Paramètres',
     'nav.notifications': 'Notifications',
 
     // ─── Search ───
     'search.from': 'Départ',
+    'search.from_label': 'Ville de départ',
     'search.to': 'Arrivée',
+    'search.to_label': 'Ville d\'arrivée',
     'search.date': 'Date',
-    'search.passengers': 'Passagers',
+    'search.pax': 'Passagers',
     'search.find': 'Rechercher',
     'search.results': 'Trajets disponibles',
     'search.no_results': 'Aucun trajet trouvé',
+    'search.no_rides': 'Aucun trajet disponible',
+    'search.rides_available': 'trajets disponibles',
+    'search.sort': 'Trier par',
+    'search.lowest_price': 'Prix le plus bas',
+    'search.earliest': 'Le plus tôt',
+    'search.highest_rated': 'Mieux noté',
+    'search.all_cities': 'Toutes les villes',
+    'search.clear_filters': 'Effacer les filtres',
+    'search.try_adjust': 'Essayez d\'ajuster vos filtres',
     'search.price': 'MAD',
 
     // ─── Trip ───
-    'trip.publish': 'Publier Trajet',
+    'trip.publish': 'Publier un Trajet',
     'trip.departure': 'Départ',
     'trip.arrival': 'Arrivée',
-    'trip.price': 'Prix par place',
-    'trip.seats': 'Places disponibles',
+    'trip.price': 'MAD',
+    'trip.seats': 'Places',
+    'trip.seats_left': 'places restantes',
     'trip.description': 'Description',
     'trip.book': 'Réserver',
     'trip.contact': 'Contacter',
     'trip.driver': 'Conducteur',
     'trip.car': 'Véhicule',
     'trip.amenities': 'Équipements',
+    'trip.rating': 'Note',
+    'trip.trips_done': 'trajets effectués',
+
+    // ─── Driver ───
+    'driver.title': 'Tableau de bord Conducteur',
+    'driver.subtitle': 'Gérez vos trajets et réservations',
+    'driver.publish': 'Publier un Trajet',
+    'driver.publish_btn': 'Publier',
+    'driver.publish_subtitle': 'Partagez votre trajet et gagnez',
+    'driver.publish_first': 'Publiez votre premier trajet',
+    'driver.my_trips': 'Mes Trajets',
+    'driver.no_trips': 'Aucun trajet',
+    'driver.trips': 'Trajets',
+    'driver.earnings': 'Revenus',
+    'driver.rating': 'Note',
+    'driver.passengers': 'Passagers',
+    'driver.offer_ride': 'Proposer un trajet',
+    'driver.verify_before_publish': 'Vous devez être vérifié pour publier',
+    'driver.from': 'Départ',
+    'driver.to': 'Arrivée',
+    'driver.date': 'Date',
+    'driver.time': 'Heure',
+    'driver.price': 'Prix par place (MAD)',
+    'driver.seats': 'Places disponibles',
+    'driver.distance': 'Distance',
+    'driver.duration': 'Durée',
+    'driver.vehicle_info': 'Informations véhicule',
+    'driver.make': 'Marque',
+    'driver.model': 'Modèle',
+    'driver.year': 'Année',
+    'driver.color': 'Couleur',
+    'driver.plate': 'Immatriculation',
+
+    // ─── Passenger ───
+    'passenger.title': 'Trouver un Trajet',
+    'passenger.find_ride': 'Trouver un Trajet',
+    'passenger.book_ride': 'Réserver',
+    'passenger.trips': 'Mes Trajets',
+    'passenger.upcoming': 'À venir',
+    'passenger.past': 'Passés',
+    'passenger.no_upcoming': 'Aucun trajet à venir',
+    'passenger.no_past': 'Aucun trajet passé',
+    'passenger.spent': 'Total dépensé',
+    'passenger.favorites': 'Trajets sauvegardés',
 
     // ─── Verification ───
-    'verify.title': 'Vérification',
+    'verify.title': 'Centre de Vérification',
+    'verify.subtitle': 'Téléchargez vos documents pour être vérifié',
+    'verify.required': 'Vérification Requise',
     'verify.upload': 'Télécharger',
     'verify.upload_success': 'Document téléchargé!',
     'verify.upload_error': 'Échec du téléchargement',
-    'verify.no_docs': 'Veuillez télécharger au moins un document',
+    'verify.no_docs': 'Veuillez télécharger tous les documents requis',
     'verify.submitted': 'Documents soumis pour révision!',
     'verify.submit_error': 'Échec de soumission',
     'verify.approved_toast': 'Vos documents ont été vérifiés!',
-    'verify.rejected_toast': 'Votre vérification a été rejetée. Veuillez re-télécharger.',
+    'verify.rejected_toast': 'Votre vérification a été rejetée.',
+
+    // ─── Chat/Messages ───
+    'chat.title': 'Chats',
+    'chat.contacts': 'Contacts',
+    'chat.no_contacts': 'Aucun contact',
+    'chat.empty_title': 'Aucun Message',
+    'chat.empty_desc': 'Commencez une conversation',
+    'chat.start_chat': 'Commencer',
+    'chat.type': 'Écrivez un message...',
+    'msg.title': 'Messages',
+    'msg.no_messages': 'Aucun message',
+    'msg.type_here': 'Écrivez...',
+    'msg.send': 'Envoyer',
+    'msg.cannot_self': 'Vous ne pouvez pas vous envoyer de message',
+    'msg.driver_only': 'Seuls conducteurs et passagers peuvent communiquer',
 
     // ─── Profile ───
     'profile.title': 'Profil',
@@ -233,22 +532,26 @@ const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     'profile.unverified': 'Non vérifié',
     'profile.pending': 'En attente',
     'profile.rejected': 'Rejeté',
-    'profile.mode_switch': 'Passer en',
-    'profile.mode_passenger': 'Mode Passager',
-    'profile.mode_driver': 'Mode Conducteur',
+    'profile.logout': 'Déconnexion',
     'profile.my_trips': 'Mes Trajets',
+    'profile.my_reviews': 'Mes Avis',
     'profile.earnings': 'Revenus',
     'profile.rating': 'Note',
     'profile.reviews': 'Avis',
     'profile.verification_center': 'Centre de Vérification',
+    'profile.bio': 'Bio',
+    'profile.phone': 'Téléphone',
+    'profile.mode_switch': 'Passer en',
+    'profile.mode_passenger': 'Mode Passager',
+    'profile.mode_driver': 'Mode Conducteur',
 
-    // ─── Messages ───
-    'msg.title': 'Messages',
-    'msg.no_messages': 'Aucun message',
-    'msg.type_here': 'Écrivez un message...',
-    'msg.send': 'Envoyer',
-    'msg.cannot_self': 'Vous ne pouvez pas vous envoyer de message',
-    'msg.driver_only': 'Seuls conducteurs et passagers peuvent communiquer',
+    // ─── Notifications ───
+    'notifications.title': 'Notifications',
+    'notifications.all': 'Tout',
+    'notifications.messages': 'Messages',
+    'notifications.bookings': 'Réservations',
+    'notifications.empty': 'Aucune notification',
+    'notifications.empty_desc': 'Vous n\'avez pas de nouvelles notifications',
 
     // ─── Admin ───
     'admin.panel': 'Panneau Admin',
@@ -263,11 +566,81 @@ const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     'admin.reason': 'Raison du rejet',
     'admin.no_pending': 'Aucune vérification en attente',
 
-    // ─── Mode ───
+    // ─── Mode Switcher ───
     'mode.passenger': 'Passager',
     'mode.driver': 'Conducteur',
     'mode.switch_to_passenger': 'Passer en mode Passager',
     'mode.switch_to_driver': 'Passer en mode Conducteur',
+
+    // ─── About ───
+    'about.title': 'À propos de WansniAuto',
+    'about.story': 'Notre Histoire',
+    'about.story_p1': 'WansniAuto est né en 2024 d\'une idée simple: voyager entre les villes marocaines devrait être facile et abordable.',
+    'about.story_p2': 'Nous connectons les conducteurs avec des places vides aux passagers allant dans la même direction.',
+    'about.values': 'Nos Valeurs',
+    'about.mission': 'Notre Mission',
+    'about.mission_desc': 'Rendre les voyages interurbains au Maroc abordables et communautaires.',
+    'about.join_team': 'Rejoignez notre équipe',
+    'about.proudly': 'Fièrement construit au Maroc',
+
+    // ─── How It Works ───
+    'how.title': 'Comment ça marche',
+    'how.subtitle': 'Commencez en quelques minutes',
+    'how.register_driver': 'Inscrivez-vous comme conducteur',
+    'how.for_drivers': 'Pour les Conducteurs',
+    'how.for_drivers_desc': 'Transformez vos places vides en revenus',
+    'how.driver_step1': '1. Créer un compte',
+    'how.driver_step2': '2. Télécharger les documents',
+    'how.driver_step3': '3. Commencer à gagner',
+
+    // ─── Careers ───
+    'careers.title': 'Carrières',
+    'careers.join': 'Rejoignez notre équipe',
+    'careers.desc': 'Nous construisons l\'avenir du transport au Maroc',
+    'careers.apply': 'Postuler',
+    'careers.send_cv': 'Envoyez votre CV à',
+
+    // ─── Safety ───
+    'safety.title': 'Sécurité',
+    'safety.priority': 'Votre sécurité est notre priorité',
+    'safety.desc': 'Plusieurs couches de protection pour chaque trajet',
+    'safety.tips': 'Conseils de sécurité',
+    'safety.report_incident': 'Signaler un incident',
+    'safety.contact_support': 'Contacter le support',
+
+    // ─── FAQ ───
+    'faq.title': 'FAQs',
+    'faq.subtitle': 'Trouvez les réponses aux questions fréquentes',
+    'faq.contact_us': 'Contactez-nous',
+
+    // ─── Legal ───
+    'legal.terms_tab': 'Conditions',
+    'legal.privacy_tab': 'Confidentialité',
+    'legal.cookies_tab': 'Cookies',
+    'legal.driver_tab': 'Conducteurs',
+    'legal.terms_title': 'Conditions d\'Utilisation',
+    'legal.privacy_title': 'Politique de Confidentialité',
+    'legal.cookies_title': 'Politique de Cookies',
+    'legal.driver_title': 'Accord Conducteur',
+    'legal.last_updated': 'Dernière mise à jour: Mai 2026',
+    'legal.terms_intro': 'En utilisant WansniAuto, vous acceptez ces conditions.',
+    'legal.terms_defs': '1. Définitions',
+    'legal.terms_defs_text': 'Plateforme désigne le site web et les apps WansniAuto.',
+    'legal.terms_elig': '2. Éligibilité',
+    'legal.terms_elig_text': 'Vous devez avoir au moins 18 ans.',
+    'legal.terms_resp': '3. Responsabilités',
+    'legal.terms_resp_text': 'Fournir des informations exactes et respecter les autres.',
+    'legal.terms_pay': '5. Paiements',
+    'legal.terms_pay_text': 'Prix fixés par les conducteurs. Commission 5%. Remboursement selon politique.',
+    'legal.terms_cancel': '6. Annulations',
+    'legal.terms_cancel_text': 'Remboursement intégral 2h+ avant départ.',
+    'legal.terms_liability': '7. Responsabilité',
+    'legal.terms_liability_text': 'WansniAuto est une plateforme de mise en relation.',
+    'legal.terms_term': '8. Résiliation',
+    'legal.terms_term_text': 'Les comptes peuvent être suspendus pour fraude.',
+    'legal.terms_changes': '9. Modifications',
+    'legal.terms_changes_text': 'Nous pouvons mettre à jour ces conditions.',
+    'legal.privacy_intro': 'WansniAuto protège votre vie privée selon la Loi 09-08 marocaine.',
 
     // ─── Common ───
     'common.save': 'Enregistrer',
@@ -287,6 +660,12 @@ const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     'common.info': 'Info',
     'common.see_all': 'Voir tout',
     'common.view': 'Voir',
+    'common.loading': 'Chargement...',
+    'common.select_city': 'Choisir une ville',
+    'common.support': 'Support',
+    'common.favorite_routes': 'Trajets favoris',
+    'common.no_bio': 'Pas de bio',
+    'common.not_set': 'Non défini',
 
     // ─── Footer ───
     'footer.company': 'Entreprise',
@@ -310,8 +689,14 @@ const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     'notif.no_notifications': 'Aucune notification',
     'notif.verified': 'Vos documents ont été vérifiés!',
     'notif.rejected': 'Votre vérification a été rejetée',
+
+    // ─── Language ───
+    'lang.select': 'Langue',
   },
 
+  // ============================================================
+  // ARABIC
+  // ============================================================
   ar: {
     // ─── App ───
     'app.name': 'WansniAuto',
@@ -321,19 +706,50 @@ const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     'app.publish_title': 'انشر رحلة',
     'app.loading': 'جاري التحميل...',
 
+    // ─── Landing ───
+    'landing.hero_title': 'سافر بين المدن المغربية',
+    'landing.hero_subtitle': 'كوڤويتوراج آمن وفي المتناول مع سائقين مفحوصين',
+    'landing.search_from': 'من',
+    'landing.search_to': 'الى',
+    'landing.search_date': 'التاريخ',
+    'landing.search_passengers': 'المسافرين',
+    'landing.search_btn': 'قلب',
+    'landing.how_title': 'كيفاش كايعمل',
+    'landing.how_1': 'قلب على مسارك',
+    'landing.how_1_desc': 'دخل مدينة المغادرة والوجهة والتاريخ',
+    'landing.how_2': 'اختار واحجز',
+    'landing.how_2_desc': 'قارن الأثمنة وأنواع السيارات والتقييمات',
+    'landing.how_3': 'تمتع بالرحلة',
+    'landing.how_3_desc': 'قابل السائق ديالك فنقطة الانطلاق',
+    'landing.popular_title': 'أشهر المسارات',
+    'landing.popular_subtitle': 'أكتر المسارات استعمالا فالمغرب',
+    'landing.testimonials_title': 'شنو كايقولو المسافرين',
+    'landing.testimonials_subtitle': 'آراء حقيقية من مسافرين حقيقيين',
+    'landing.why_title': 'علاش WansniAuto',
+    'landing.why_subtitle': 'أأمن طريقة للسفر بين المدن',
+    'landing.cta_title': 'جاهز تسافر?',
+    'landing.cta_subtitle': 'انضم لآلاف المغاربة اللي كايشاركو الرحلات',
+    'landing.cta_btn': 'ابدأ',
+
     // ─── Auth ───
     'auth.login': 'دخول',
     'auth.register': 'تسجيل',
+    'auth.create_account': 'فتح حساب',
     'auth.email': 'الإيميل',
     'auth.password': 'الرقم السري',
     'auth.name': 'الاسم الكامل',
     'auth.phone': 'رقم الهاتف',
     'auth.role': 'بغيت نكون',
-    'auth.role_passenger': 'مسافر',
-    'auth.role_driver': 'سائق',
-    'auth.forgot_password': 'نسيت الرقم السري؟',
-    'auth.no_account': 'م عندكش حساب؟',
-    'auth.has_account': 'عندك حساب؟',
+    'auth.passenger': 'مسافر',
+    'auth.driver': 'سائق',
+    'auth.welcome_back': 'مرحبا بيك',
+    'auth.login_btn': 'دخول',
+    'auth.register_btn': 'فتح حساب',
+    'auth.login_now': 'دخول',
+    'auth.register_now': 'فتح حساب',
+    'auth.has_account': 'عندك حساب?',
+    'auth.no_account': 'م عندكش حساب?',
+    'auth.forgot_password': 'نسيت الرقم السري?',
     'auth.logout': 'خروج',
     'auth.delete_account': 'حذف الحساب',
 
@@ -342,43 +758,117 @@ const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     'nav.search': 'البحث',
     'nav.trips': 'رحلاتي',
     'nav.messages': 'الرسائل',
+    'nav.chat': 'المحادثات',
     'nav.profile': 'البروفايل',
     'nav.settings': 'الإعدادات',
     'nav.notifications': 'الإشعارات',
 
     // ─── Search ───
     'search.from': 'من',
+    'search.from_label': 'مدينة المغادرة',
     'search.to': 'الى',
+    'search.to_label': 'مدينة الوجهة',
     'search.date': 'التاريخ',
-    'search.passengers': 'المسافرين',
+    'search.pax': 'المسافرين',
     'search.find': 'قلب',
     'search.results': 'رحلات متاحة',
     'search.no_results': 'ما لقيناش رحلات',
+    'search.no_rides': 'ماكاينش رحلات',
+    'search.rides_available': 'رحلات متاحة',
+    'search.sort': 'ترتيب حسب',
+    'search.lowest_price': 'أقل ثمن',
+    'search.earliest': 'أقرب',
+    'search.highest_rated': 'أحسن تقييم',
+    'search.all_cities': 'جميع المدن',
+    'search.clear_filters': 'مسح الفلاتر',
+    'search.try_adjust': 'جرب تبدل فلاتر البحث',
     'search.price': 'درهم',
 
     // ─── Trip ───
     'trip.publish': 'انشر رحلة',
     'trip.departure': 'المغادرة',
     'trip.arrival': 'الوصول',
-    'trip.price': 'الثمن لكل كرسي',
-    'trip.seats': 'الكراسي المتاحة',
+    'trip.price': 'درهم',
+    'trip.seats': 'الكراسي',
+    'trip.seats_left': 'كراسي باقيين',
     'trip.description': 'الوصف',
     'trip.book': 'احجز',
     'trip.contact': 'تواصل مع السائق',
     'trip.driver': 'السائق',
     'trip.car': 'السيارة',
     'trip.amenities': 'المرافق',
+    'trip.rating': 'التقييم',
+    'trip.trips_done': 'رحلات كاملين',
+
+    // ─── Driver ───
+    'driver.title': 'لوحة تحكم السائق',
+    'driver.subtitle': 'دير رحلاتك والحجوزات ديالك',
+    'driver.publish': 'انشر رحلة',
+    'driver.publish_btn': 'انشر',
+    'driver.publish_subtitle': 'شارك مسارك وربح',
+    'driver.publish_first': 'انشر رحلتك الأولى',
+    'driver.my_trips': 'رحلاتي',
+    'driver.no_trips': 'ماكاينش رحلات',
+    'driver.trips': 'الرحلات',
+    'driver.earnings': 'الدخل',
+    'driver.rating': 'التقييم',
+    'driver.passengers': 'المسافرين',
+    'driver.offer_ride': 'عرض رحلة',
+    'driver.verify_before_publish': 'خاصك تكون مفحوص باش تنشر رحلات',
+    'driver.from': 'من',
+    'driver.to': 'الى',
+    'driver.date': 'التاريخ',
+    'driver.time': 'الوقت',
+    'driver.price': 'الثمن لكل كرسي (درهم)',
+    'driver.seats': 'الكراسي المتاحة',
+    'driver.distance': 'المسافة',
+    'driver.duration': 'المدة',
+    'driver.vehicle_info': 'معلومات السيارة',
+    'driver.make': 'النوع',
+    'driver.model': 'الموديل',
+    'driver.year': 'السنة',
+    'driver.color': 'اللون',
+    'driver.plate': 'الرقم',
+
+    // ─── Passenger ───
+    'passenger.title': 'قلب على رحلة',
+    'passenger.find_ride': 'قلب على رحلة',
+    'passenger.book_ride': 'احجز',
+    'passenger.trips': 'رحلاتي',
+    'passenger.upcoming': 'القادمة',
+    'passenger.past': 'السابقة',
+    'passenger.no_upcoming': 'ماكاينش رحلات قادمة',
+    'passenger.no_past': 'ماكاينش رحلات سابقة',
+    'passenger.spent': 'المجموع',
+    'passenger.favorites': 'الرحلات المحفوظة',
 
     // ─── Verification ───
-    'verify.title': 'التحقق',
+    'verify.title': 'مركز التحقق',
+    'verify.subtitle': 'حمّل الوثائق ديالك باش تتفحص',
+    'verify.required': 'التحقق ضروري',
     'verify.upload': 'حمّل',
     'verify.upload_success': 'تم التحميل!',
     'verify.upload_error': 'فشل التحميل',
-    'verify.no_docs': 'حمّل وثيقة على الأقل',
+    'verify.no_docs': 'حمّل جميع الوثائق المطلوبة',
     'verify.submitted': 'تم إرسال الوثائق!',
     'verify.submit_error': 'فشل الإرسال',
     'verify.approved_toast': 'تم قبول وثائقك!',
-    'verify.rejected_toast': 'تم رفض التحقق ديالك. عاود التحميل.',
+    'verify.rejected_toast': 'تم رفض التحقق ديالك.',
+
+    // ─── Chat/Messages ───
+    'chat.title': 'المحادثات',
+    'chat.contacts': 'جهات الاتصال',
+    'chat.no_contacts': 'ماكاينش جهات اتصال',
+    'chat.empty_title': 'ماكاينش رسائل',
+    'chat.empty_desc': 'بدأ محادثة مع سائق ولا مسافر',
+    'chat.start_chat': 'بدأ المحادثة',
+    'chat.type': 'كتب رسالة...',
+    'msg.title': 'الرسائل',
+    'msg.no_messages': 'ماكاينش رسائل',
+    'msg.type_here': 'كتب...',
+    'msg.send': 'أرسل',
+    'msg.cannot_self': 'مايمكنش ترسل لراسك',
+    'msg.driver_only': 'غير السائق والمسافر يقدرو يتواصلو',
 
     // ─── Profile ───
     'profile.title': 'البروفايل',
@@ -387,22 +877,26 @@ const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     'profile.unverified': 'مفحوصش',
     'profile.pending': 'قيد المراجعة',
     'profile.rejected': 'مرفوض',
-    'profile.mode_switch': 'بدّل الى',
-    'profile.mode_passenger': 'وضعية المسافر',
-    'profile.mode_driver': 'وضعية السائق',
+    'profile.logout': 'خروج',
     'profile.my_trips': 'رحلاتي',
+    'profile.my_reviews': 'آراءي',
     'profile.earnings': 'الدخل',
     'profile.rating': 'التقييم',
     'profile.reviews': 'الآراء',
     'profile.verification_center': 'مركز التحقق',
+    'profile.bio': 'نبذة',
+    'profile.phone': 'الهاتف',
+    'profile.mode_switch': 'بدّل الى',
+    'profile.mode_passenger': 'وضعية المسافر',
+    'profile.mode_driver': 'وضعية السائق',
 
-    // ─── Messages ───
-    'msg.title': 'الرسائل',
-    'msg.no_messages': 'ماكاينش رسائل',
-    'msg.type_here': 'كتب رسالة...',
-    'msg.send': 'أرسل',
-    'msg.cannot_self': 'مايمكنش ترسل لراسك',
-    'msg.driver_only': 'غير السائق والمسافر يقدرو يتواصلو',
+    // ─── Notifications ───
+    'notifications.title': 'الإشعارات',
+    'notifications.all': 'الكل',
+    'notifications.messages': 'الرسائل',
+    'notifications.bookings': 'الحجوزات',
+    'notifications.empty': 'ماكاينش إشعارات',
+    'notifications.empty_desc': 'ما عندكش إشعارات جديدة',
 
     // ─── Admin ───
     'admin.panel': 'لوحة الأدمين',
@@ -417,11 +911,81 @@ const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     'admin.reason': 'سبب الرفض',
     'admin.no_pending': 'ماكاينش تحققات قيد المراجعة',
 
-    // ─── Mode ───
+    // ─── Mode Switcher ───
     'mode.passenger': 'مسافر',
     'mode.driver': 'سائق',
     'mode.switch_to_passenger': 'بدّل لوضعية المسافر',
     'mode.switch_to_driver': 'بدّل لوضعية السائق',
+
+    // ─── About ───
+    'about.title': 'على WansniAuto',
+    'about.story': 'قصتنا',
+    'about.story_p1': 'WansniAuto تولد ف2024 من فكرة بسيطة: السفر بين المدن المغربية خاص يكون سهل وفي المتناول.',
+    'about.story_p2': 'كنوصلو السائقين اللي عندهم كراسي فارغة بالمسافرين اللي كايمشو فنفس الاتجاه.',
+    'about.values': 'قيمنا',
+    'about.mission': 'مهمتنا',
+    'about.mission_desc': 'نجعل السفر بين المدن فالمغرب في المتناول ومجتمعي.',
+    'about.join_team': 'انضم لفريقنا',
+    'about.proudly': 'مصاوب فالمغرب بكل فخر',
+
+    // ─── How It Works ───
+    'how.title': 'كيفاش كايعمل',
+    'how.subtitle': 'ابدأ فدقايق',
+    'how.register_driver': 'سجل كسائق',
+    'how.for_drivers': 'للسائقين',
+    'how.for_drivers_desc': 'حوّل الكراسي الفارغة لدخل',
+    'how.driver_step1': '1. فتح حساب',
+    'how.driver_step2': '2. تحميل الوثائق',
+    'how.driver_step3': '3. بدأ الربح',
+
+    // ─── Careers ───
+    'careers.title': 'الوظائف',
+    'careers.join': 'انضم لفريقنا',
+    'careers.desc': 'كنبنيو مستقبل النقل فالمغرب',
+    'careers.apply': 'قدّم',
+    'careers.send_cv': 'بعث سيرتك الذاتية ف',
+
+    // ─── Safety ───
+    'safety.title': 'الأمان',
+    'safety.priority': 'أمانك هو الأولوية ديالنا',
+    'safety.desc': 'طبقات متعددة ديال الحماية لكل رحلة',
+    'safety.tips': 'نصائح الأمان',
+    'safety.report_incident': 'بلّغ على حادثة',
+    'safety.contact_support': 'تواصل مع الدعم',
+
+    // ─── FAQ ───
+    'faq.title': 'الأسئلة الشائعة',
+    'faq.subtitle': 'لقى إجابات على أكتر الأسئلة',
+    'faq.contact_us': 'تواصل معنا',
+
+    // ─── Legal ───
+    'legal.terms_tab': 'الشروط',
+    'legal.privacy_tab': 'الخصوصية',
+    'legal.cookies_tab': 'الكوكيز',
+    'legal.driver_tab': 'السائقين',
+    'legal.terms_title': 'شروط الاستخدام',
+    'legal.privacy_title': 'سياسة الخصوصية',
+    'legal.cookies_title': 'سياسة الكوكيز',
+    'legal.driver_title': 'اتفاقية السائق',
+    'legal.last_updated': 'آخر تحديث: ماي 2026',
+    'legal.terms_intro': 'باستعمال WansniAuto، كاتوافق على هاد الشروط.',
+    'legal.terms_defs': '1. التعريفات',
+    'legal.terms_defs_text': 'المنصة هي موقع WansniAuto والتطبيقات.',
+    'legal.terms_elig': '2. الأهلية',
+    'legal.terms_elig_text': 'خاص يكون عندك 18 سنة على الأقل.',
+    'legal.terms_resp': '3. المسؤوليات',
+    'legal.terms_resp_text': 'قدّم معلومات صحيحة واحترم المستخدمين الآخرين.',
+    'legal.terms_pay': '5. المدفوعات',
+    'legal.terms_pay_text': 'الأثمنة خاصة بالسائقين. عمولة 5%. استرجاع حسب سياسة الإلغاء.',
+    'legal.terms_cancel': '6. الإلغاء',
+    'legal.terms_cancel_text': 'استرجاع كامل قبل ساعتين من المغادرة.',
+    'legal.terms_liability': '7. المسؤولية',
+    'legal.terms_liability_text': 'WansniAuto منصة توصيل.',
+    'legal.terms_term': '8. إنهاء الحساب',
+    'legal.terms_term_text': 'الحسابات ممكن تتعلق للغش.',
+    'legal.terms_changes': '9. التغييرات',
+    'legal.terms_changes_text': 'نقدرو نحدّثو الشروط.',
+    'legal.privacy_intro': 'WansniAuto كايحمي خصوصيتك طبقاً للقانون 09-08.',
 
     // ─── Common ───
     'common.save': 'حفظ',
@@ -441,6 +1005,12 @@ const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     'common.info': 'معلومة',
     'common.see_all': 'شوف الكل',
     'common.view': 'شوف',
+    'common.loading': 'جاري التحميل...',
+    'common.select_city': 'اختار مدينة',
+    'common.support': 'الدعم',
+    'common.favorite_routes': 'المسارات المفضلة',
+    'common.no_bio': 'ماكاينش نبذة',
+    'common.not_set': 'محددش',
 
     // ─── Footer ───
     'footer.company': 'الشركة',
@@ -464,19 +1034,30 @@ const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     'notif.no_notifications': 'ماكاينش إشعارات',
     'notif.verified': 'تم قبول وثائقك!',
     'notif.rejected': 'تم رفض التحقق ديالك',
+
+    // ─── Language ───
+    'lang.select': 'اللغة',
   },
 };
 
-// ─── Hook ───
+// ============================================================
+// Hook
+// ============================================================
 export function useI18n() {
   const language = useStore((s) => s.language);
   const setLanguage = useStore((s) => s.setLanguage);
 
   const t = useMemo(() => {
     return (key: string): string => {
-      return TRANSLATIONS[language]?.[key]
-        ?? TRANSLATIONS.en[key]
-        ?? key;
+      // Try current language
+      const current = TRANSLATIONS[language]?.[key];
+      if (current) return current;
+      // Fallback to English
+      const fallback = TRANSLATIONS.en[key];
+      if (fallback) return fallback;
+      // If no fallback, return key (this should NOT happen for proper keys)
+      console.warn(`[i18n] Missing translation key: "${key}"`);
+      return key;
     };
   }, [language]);
 
@@ -486,7 +1067,6 @@ export function useI18n() {
   return { t, dir, isRTL, lang: language, setLanguage, setLang: setLanguage };
 }
 
-// ─── Direct function (for outside components) ───
 export function getTranslation(lang: Lang, key: string): string {
   return TRANSLATIONS[lang]?.[key] ?? TRANSLATIONS.en[key] ?? key;
 }

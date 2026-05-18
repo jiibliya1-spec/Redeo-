@@ -275,12 +275,7 @@ export function ProfilePage() {
     );
   };
 
-  // Debug info (shows actual values)
-  const debugInfo = () => (
-    <div className="mt-2 text-[10px] text-[#A0A0A0]/50 font-mono">
-      status: {profileStatus} | verified: {String(profileVerified)} | role: {profileRole}
-    </div>
-  );
+  // ─── (debug removed) ───
 
   const menuItems = profileRole === 'admin' ? [
     { icon: Shield, label: 'Admin Panel', desc: 'Manage platform', action: () => navigate('/admin') },
@@ -364,7 +359,7 @@ export function ProfilePage() {
                     <RefreshCw className={`w-3 h-3 text-[#A0A0A0] ${isRefreshing ? 'animate-spin' : ''}`} />
                   </button>
                 </div>
-                {debugInfo()}
+                {/* debug removed */}
               </div>
             </div>
             <button

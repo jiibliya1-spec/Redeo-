@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Briefcase, MapPin, Clock, Heart } from 'lucide-react';
+import { ArrowLeft, Briefcase, MapPin } from 'lucide-react';
 
 const POSITIONS = [
   { title: 'Backend Developer', location: 'Casablanca / Remote', type: 'Full-time', desc: 'Build and maintain our core APIs, real-time systems, and payment infrastructure using Node.js and PostgreSQL.' },

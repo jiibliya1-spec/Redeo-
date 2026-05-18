@@ -1,4 +1,4 @@
-import { useState } from 'react';
+// LegalPage - no local state needed, uses URL params
 import { Link, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, FileText, Shield, Cookie, Car } from 'lucide-react';

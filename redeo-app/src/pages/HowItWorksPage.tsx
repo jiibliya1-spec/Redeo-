@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Search, Calendar, CreditCard, MessageCircle, Car, Star } from 'lucide-react';
+import { ArrowLeft, Search, Calendar, CreditCard, Car, Star } from 'lucide-react';
 
 const STEPS = [
   { num: '01', icon: Search, title: 'Search Your Route', desc: 'Enter your departure city, destination, and travel date. Browse available rides from verified drivers instantly.' },

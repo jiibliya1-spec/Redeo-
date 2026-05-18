@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Car, Users, Shield, MapPin, CreditCard, Leaf, Heart } from 'lucide-react';
+import { ArrowLeft, Car, Shield, CreditCard, Leaf, Heart } from 'lucide-react';
 
 const VALUES = [
   { icon: Shield, title: 'Safety First', desc: 'Every driver is verified with ID, license, and background checks. Real-time trip tracking keeps you secure.' },

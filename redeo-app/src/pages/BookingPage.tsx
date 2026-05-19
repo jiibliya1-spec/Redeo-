@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useStore } from '@/store/useStore';
+import { useI18n } from '@/lib/i18n';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -18,6 +19,7 @@ export function BookingPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useStore();
+  const { t, dir } = useI18n();
 
   const [trip, setTrip] = useState<Trip | null>(null);
   const [driver, setDriver] = useState<User | null>(null);
@@ -38,18 +40,14 @@ export function BookingPage() {
           .limit(1);
 
         if (trips?.[0]) {
-          const t = trips[0] as Trip;
-          setTrip(t);
-
+          const tr = trips[0] as Trip;
+          setTrip(tr);
           const { data: profiles } = await supabase
             .from('profiles')
             .select('*')
-            .eq('id', t.driver_id)
+            .eq('id', tr.driver_id)
             .limit(1);
-
-          if (profiles?.[0]) {
-            setDriver(profiles[0] as unknown as User);
-          }
+          if (profiles?.[0]) setDriver(profiles[0] as unknown as User);
         }
       } catch (e) { console.error('load trip:', e); }
       setIsLoading(false);
@@ -71,7 +69,6 @@ export function BookingPage() {
         created_at: now,
       };
 
-      // ── PRIMARY: Supabase bookings table ──
       const { data: inserted, error } = await supabase
         .from('bookings')
         .insert(bookingData)
@@ -80,32 +77,17 @@ export function BookingPage() {
 
       const bookingId = inserted?.id || crypto.randomUUID();
 
-      // ── CACHE: localStorage (always save for offline access) ──
       try {
         const all: any[] = JSON.parse(localStorage.getItem('wansniauto_bookings') || '[]');
-        const localEntry = {
-          ...bookingData,
-          id: bookingId,
-          trip: {
-            id: trip.id,
-            from_location: trip.from_location,
-            to_location: trip.to_location,
-            departure_date: trip.departure_date,
-            departure_time: trip.departure_time,
-            price: trip.price,
-            driver_id: trip.driver_id,
-          },
+        localStorage.setItem('wansniauto_bookings', JSON.stringify([{
+          ...bookingData, id: bookingId,
+          trip: { id: trip.id, from_location: trip.from_location, to_location: trip.to_location, departure_date: trip.departure_date, departure_time: trip.departure_time, price: trip.price, driver_id: trip.driver_id },
           driver: driver ? { name: driver.name, avatar: driver.avatar } : null,
-        };
-        localStorage.setItem('wansniauto_bookings', JSON.stringify([localEntry, ...all.filter(b => b.id !== bookingId)]));
+        }, ...all.filter(b => b.id !== bookingId)]));
       } catch {}
 
-      if (error) {
-        // Supabase table missing — already saved to localStorage, continue
-        console.warn('bookings table not ready:', error.message);
-      }
+      if (error) console.warn('bookings table not ready:', error.message);
 
-      // ── Notify driver ──
       if (trip.driver_id) {
         const { data: s } = await supabase.auth.getSession();
         const jwt = s.session?.access_token || '';
@@ -123,7 +105,7 @@ export function BookingPage() {
       }
 
       setBooked(true);
-      toast.success('Booking request sent! Waiting for driver approval.');
+      toast.success(t('book.sent_title'));
     } catch (e: any) {
       toast.error(e.message || 'Booking failed');
     }
@@ -142,9 +124,9 @@ export function BookingPage() {
     return (
       <div className="min-h-screen bg-[#0F1115] pt-20 flex items-center justify-center">
         <div className="text-center">
-          <p className="text-white text-lg mb-4">Trip not found</p>
+          <p className="text-white text-lg mb-4">{t('book.not_found')}</p>
           <Button onClick={() => navigate('/search')} variant="outline" className="border-[#FF6B00]/30 text-[#FF6B00]">
-            Search
+            {t('nav.search')}
           </Button>
         </div>
       </div>
@@ -158,19 +140,20 @@ export function BookingPage() {
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           className="text-center px-8"
+          dir={dir}
         >
           <div className="w-20 h-20 rounded-full bg-green-500/10 flex items-center justify-center mx-auto mb-6">
             <CheckCircle className="w-10 h-10 text-green-400" />
           </div>
-          <h2 className="text-2xl font-bold text-white mb-2">Booking Sent!</h2>
-          <p className="text-[#A0A0A0] mb-2">Waiting for driver approval.</p>
-          <p className="text-sm text-[#FF6B00] font-medium mb-8">Cash payment: {trip.price * seats} MAD to driver</p>
+          <h2 className="text-2xl font-bold text-white mb-2">{t('book.sent_title')}</h2>
+          <p className="text-[#A0A0A0] mb-2">{t('book.sent_desc')}</p>
+          <p className="text-sm text-[#FF6B00] font-medium mb-8">{t('book.cash_label')} {trip.price * seats} MAD</p>
           <div className="flex gap-3 justify-center">
             <Button onClick={() => navigate('/my-trips')} className="bg-[#FF6B00] hover:bg-[#E56000] text-white rounded-xl px-6">
-              My Trips
+              {t('mytrips.title')}
             </Button>
             <Button onClick={() => navigate('/')} variant="outline" className="border-white/10 text-white rounded-xl px-6">
-              Home
+              {t('nav.home')}
             </Button>
           </div>
         </motion.div>
@@ -181,13 +164,12 @@ export function BookingPage() {
   const totalPrice = trip.price * seats;
 
   return (
-    <div className="min-h-screen bg-[#0F1115] pb-8">
-      {/* Header */}
+    <div className="min-h-screen bg-[#0F1115] pb-8" dir={dir}>
       <div className="sticky top-0 z-40 bg-[#0F1115]/95 backdrop-blur-md border-b border-white/5 px-4 py-3 flex items-center gap-3">
         <button onClick={() => navigate(-1)} className="p-2 rounded-full hover:bg-white/5">
           <ArrowLeft className="w-5 h-5 text-white" />
         </button>
-        <h1 className="text-base font-semibold text-white">Book Ride</h1>
+        <h1 className="text-base font-semibold text-white">{t('book.title')}</h1>
       </div>
 
       <div className="max-w-lg mx-auto px-4 py-6 space-y-4">
@@ -208,11 +190,10 @@ export function BookingPage() {
             </div>
             <div className="text-right">
               <p className="text-xl font-bold text-[#FF6B00]">{trip.price} MAD</p>
-              <p className="text-xs text-[#A0A0A0]">per seat</p>
+              <p className="text-xs text-[#A0A0A0]">{t('book.per_seat')}</p>
             </div>
           </div>
 
-          {/* Driver */}
           {driver && (
             <div className="flex items-center gap-3 pt-4 border-t border-white/5">
               <img
@@ -226,7 +207,7 @@ export function BookingPage() {
                   <Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />
                   <span>{driver.rating || 5}/5</span>
                   {driver.is_verified && (
-                    <span className="flex items-center gap-1 text-green-400"><ShieldCheck className="w-3 h-3" />Verified</span>
+                    <span className="flex items-center gap-1 text-green-400"><ShieldCheck className="w-3 h-3" />{t('profile.verified')}</span>
                   )}
                 </div>
               </div>
@@ -236,7 +217,7 @@ export function BookingPage() {
 
         {/* Seats selector */}
         <div className="bg-[#1B1F27] rounded-2xl border border-white/5 p-5">
-          <p className="text-sm font-medium text-white mb-3">Number of seats</p>
+          <p className="text-sm font-medium text-white mb-3">{t('book.seats_label')}</p>
           <div className="flex items-center gap-4">
             <button
               onClick={() => setSeats(s => Math.max(1, s - 1))}
@@ -247,7 +228,7 @@ export function BookingPage() {
               onClick={() => setSeats(s => Math.min(trip.available_seats || 4, s + 1))}
               className="w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 text-white font-bold transition-colors"
             >+</button>
-            <span className="text-xs text-[#A0A0A0] ml-2">{trip.available_seats} available</span>
+            <span className="text-xs text-[#A0A0A0] ml-2">{trip.available_seats} {t('book.available')}</span>
           </div>
         </div>
 
@@ -255,16 +236,16 @@ export function BookingPage() {
         <div className="bg-[#1B1F27] rounded-2xl border border-white/5 p-5 space-y-3">
           <div className="flex items-center gap-2 text-[#FF6B00]">
             <Banknote className="w-5 h-5" />
-            <span className="font-medium">Cash payment only</span>
+            <span className="font-medium">{t('book.cash_only')}</span>
           </div>
           <div className="flex justify-between text-sm">
-            <span className="text-[#A0A0A0]">{seats} seat(s) × {trip.price} MAD</span>
+            <span className="text-[#A0A0A0]">{seats} {t('mytrips.seats')} × {trip.price} MAD</span>
             <span className="text-white font-bold">{totalPrice} MAD</span>
           </div>
-          <p className="text-xs text-[#A0A0A0]">Pay directly to the driver on the day of travel. No online payment required.</p>
+          <p className="text-xs text-[#A0A0A0]">{t('book.cash_note')}</p>
           <div className="flex items-center gap-2 text-xs text-green-400">
             <Leaf className="w-3.5 h-3.5" />
-            <span>You save ~{(seats * 95).toFixed(0)}g of CO₂ vs driving alone</span>
+            <span>{t('book.co2_save')}</span>
           </div>
         </div>
 
@@ -274,12 +255,13 @@ export function BookingPage() {
           disabled={isBooking}
           className="w-full h-14 bg-[#FF6B00] hover:bg-[#E56000] text-white font-bold text-base rounded-2xl"
         >
-          {isBooking ? <Loader2 className="w-5 h-5 animate-spin" /> : `Request Booking — ${totalPrice} MAD cash`}
+          {isBooking
+            ? <Loader2 className="w-5 h-5 animate-spin" />
+            : `${t('book.request_btn')} — ${totalPrice} MAD`
+          }
         </Button>
 
-        <p className="text-center text-xs text-[#A0A0A0]">
-          Your booking is confirmed only after the driver accepts. You'll receive a notification.
-        </p>
+        <p className="text-center text-xs text-[#A0A0A0]">{t('book.confirm_note')}</p>
       </div>
     </div>
   );

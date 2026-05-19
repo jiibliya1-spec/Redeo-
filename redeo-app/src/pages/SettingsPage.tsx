@@ -83,7 +83,7 @@ function Drawer({ open, onClose, title, children }: { open: boolean; onClose: ()
 export function SettingsPage() {
   const navigate = useNavigate();
   const { user, signOut } = useStore();
-  const { lang, setLang, dir } = useI18n();
+  const { lang, setLang, t, dir } = useI18n();
 
   /* ─── Drawer state ─── */
   const [activeDrawer, setActiveDrawer] = useState<string | null>(null);
@@ -408,21 +408,21 @@ export function SettingsPage() {
      ════════════════════════════════════════════ */
 
   const sections: SettingsSection[] = [
-    { id: 'reviews', icon: Star, label: 'My Reviews', desc: `${reviews.length} reviews received`, badge: reviews.length || undefined },
-    { id: 'passengers', icon: Users, label: 'Saved Passengers', desc: `${savedPassengers.length} saved`, badge: savedPassengers.length || undefined },
-    { id: 'communication', icon: MessageSquare, label: 'Communication', desc: 'Notifications & preferences' },
-    { id: 'darkmode', icon: Moon, label: 'Dark Mode', desc: darkMode ? 'Enabled' : 'Disabled' },
-    { id: 'password', icon: Lock, label: 'Change Password', desc: 'Update your password' },
-    { id: 'address', icon: MapPin, label: 'Address', desc: address.city || 'Add your address' },
-    { id: 'payouts', icon: Wallet, label: 'Payout Methods', desc: 'Bank accounts & withdrawals' },
-    { id: 'payments', icon: CreditCard, label: 'Payment Methods', desc: `${paymentMethods.length} methods saved`, badge: paymentMethods.length || undefined },
-    { id: 'refunds', icon: RefreshCcw, label: 'Refunds', desc: `${refunds.length} refund requests`, badge: refunds.length || undefined },
-    { id: 'rate', icon: ThumbsUp, label: 'Rate App', desc: 'Rate your experience' },
-    { id: 'help', icon: HelpCircle, label: 'Help Center', desc: 'Support & contact' },
-    { id: 'terms', icon: FileText, label: 'Terms & Conditions', desc: 'Legal agreements' },
-    { id: 'privacy', icon: Shield, label: 'Privacy Policy', desc: 'Data protection' },
-    { id: 'logout', icon: LogOut, label: 'Logout', desc: 'Sign out of your account', danger: true },
-    { id: 'delete', icon: Trash2, label: 'Delete Account', desc: 'Permanently delete your account', danger: true },
+    { id: 'reviews',       icon: Star,        label: t('settings.reviews'),       desc: `${reviews.length} ${t('settings.reviews_count')}`,          badge: reviews.length || undefined },
+    { id: 'passengers',    icon: Users,       label: t('settings.passengers'),    desc: `${savedPassengers.length} ${t('settings.passengers_saved')}`, badge: savedPassengers.length || undefined },
+    { id: 'communication', icon: MessageSquare, label: t('settings.communication'), desc: t('settings.communication_desc') },
+    { id: 'darkmode',      icon: Moon,        label: t('settings.dark_mode'),     desc: darkMode ? t('settings.dark_mode_on') : t('settings.dark_mode_off') },
+    { id: 'password',      icon: Lock,        label: t('settings.password'),      desc: t('settings.password_desc') },
+    { id: 'address',       icon: MapPin,      label: t('settings.address'),       desc: address.city || t('settings.address_add') },
+    { id: 'payouts',       icon: Wallet,      label: t('settings.payouts'),       desc: t('settings.payouts_desc') },
+    { id: 'payments',      icon: CreditCard,  label: t('settings.payments'),      desc: `${paymentMethods.length} ${t('settings.payments_count')}`,    badge: paymentMethods.length || undefined },
+    { id: 'refunds',       icon: RefreshCcw,  label: t('settings.refunds'),       desc: `${refunds.length} ${t('settings.refunds_count')}`,            badge: refunds.length || undefined },
+    { id: 'rate',          icon: ThumbsUp,    label: t('settings.rate'),          desc: t('settings.rate_desc') },
+    { id: 'help',          icon: HelpCircle,  label: t('settings.help'),          desc: t('settings.help_desc') },
+    { id: 'terms',         icon: FileText,    label: t('settings.terms'),         desc: t('settings.terms_desc') },
+    { id: 'privacy',       icon: Shield,      label: t('settings.privacy'),       desc: t('settings.privacy_desc') },
+    { id: 'logout',        icon: LogOut,      label: t('settings.logout'),        desc: t('settings.logout_desc'),  danger: true },
+    { id: 'delete',        icon: Trash2,      label: t('settings.delete'),        desc: t('settings.delete_desc'), danger: true },
   ];
 
   /* ════════════════════════════════════════════
@@ -820,7 +820,7 @@ export function SettingsPage() {
             <ArrowLeft className="w-5 h-5 text-[#A0A0A0]" />
           </button>
           <div>
-            <h1 className="text-2xl font-bold text-white" dir={dir}>Account & Settings</h1>
+            <h1 className="text-2xl font-bold text-white" dir={dir}>{t('settings.title')}</h1>
             <p className="text-sm text-[#A0A0A0]">{user.email}</p>
           </div>
         </div>
@@ -847,7 +847,7 @@ export function SettingsPage() {
         {/* Language Selector */}
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} className="mb-6">
           <div className="bg-[#1B1F27] rounded-2xl border border-white/5 p-4">
-            <p className="text-xs text-[#A0A0A0] uppercase tracking-wider mb-3">Language</p>
+            <p className="text-xs text-[#A0A0A0] uppercase tracking-wider mb-3">{t('settings.language')}</p>
             <div className="grid grid-cols-3 gap-2">
               {(['en', 'fr', 'ar'] as const).map(l => (
                 <button

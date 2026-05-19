@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { supabase } from '@/lib/supabase';
@@ -76,16 +76,35 @@ function getDocUrl(v: VerificationRecord): string | null {
   return v.public_url || v.url || null;
 }
 
+const CACHE_KEY = 'admin_verifications_cache';
+
+function saveCache(data: VerificationRecord[]) {
+  try { localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), data })); } catch { /* silent */ }
+}
+function loadCache(): VerificationRecord[] {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    // Use cache if less than 5 minutes old
+    if (Date.now() - parsed.ts < 5 * 60 * 1000) return parsed.data as VerificationRecord[];
+  } catch { /* silent */ }
+  return [];
+}
+
 export function AdminVerifications() {
-  const [verifications, setVerifications] = useState<VerificationRecord[]>([]);
-  const [filtered, setFiltered] = useState<VerificationRecord[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cached = loadCache();
+  const [verifications, setVerifications] = useState<VerificationRecord[]>(cached);
+  const [filtered, setFiltered] = useState<VerificationRecord[]>(cached);
+  const [loading, setLoading] = useState(cached.length === 0);
+  const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [selectedDoc, setSelectedDoc] = useState<VerificationRecord | null>(null);
   const [rejectReason, setRejectReason] = useState('');
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const usersMapRef = useRef<Map<string, any>>(new Map());
 
   const getHeaders = useCallback(async () => {
     const { data: sessionData } = await supabase.auth.getSession();
@@ -97,8 +116,20 @@ export function AdminVerifications() {
     };
   }, []);
 
-  const loadVerifications = useCallback(async () => {
-    setLoading(true);
+  const buildRecord = useCallback((v: any): VerificationRecord => {
+    const u = usersMapRef.current.get(v.user_id);
+    return {
+      ...v,
+      user_name: u?.name || v.user_name || 'Unknown',
+      user_email: u?.email || v.user_email || '',
+      user_avatar: u?.avatar || v.user_avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${v.user_id}`,
+      user_role: u?.role || v.user_role || 'passenger',
+    };
+  }, []);
+
+  const loadVerifications = useCallback(async (silent = false) => {
+    if (silent) setRefreshing(true);
+    else setLoading(true);
     try {
       const headers = await getHeaders();
 
@@ -114,37 +145,65 @@ export function AdminVerifications() {
         usersRes.ok ? usersRes.json() : [],
       ]);
 
-      const usersMap = new Map<string, any>((usersData || []).map((u: any) => [u.id, u]));
+      usersMapRef.current = new Map<string, any>((usersData || []).map((u: any) => [u.id, u]));
 
-      const combined: VerificationRecord[] = (verifData || []).map((v: any) => {
-        const u = usersMap.get(v.user_id);
-        return {
-          ...v,
-          user_name: u?.name || 'Unknown',
-          user_email: u?.email || '',
-          user_avatar: u?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${v.user_id}`,
-          user_role: u?.role || 'passenger',
-        };
-      });
-
+      const combined: VerificationRecord[] = (verifData || []).map(buildRecord);
       setVerifications(combined);
+      saveCache(combined);
     } catch (err: any) {
       toast.error('Failed to load verifications: ' + err.message);
     }
     setLoading(false);
-  }, [getHeaders]);
+    setRefreshing(false);
+  }, [getHeaders, buildRecord]);
 
-  useEffect(() => { loadVerifications(); }, [loadVerifications]);
+  useEffect(() => {
+    // If we have cache, load silently in background; otherwise show spinner
+    loadVerifications(cached.length > 0);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  /* Realtime */
+  /* Realtime — update only the changed record instead of re-fetching everything */
   useEffect(() => {
     const channel = supabase
-      .channel('admin-verif-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'verifications' }, () => loadVerifications())
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles' }, () => loadVerifications())
+      .channel('admin-verif-rt-v2')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'verifications' }, (payload) => {
+        const newRecord = buildRecord(payload.new as any);
+        setVerifications((prev) => {
+          const next = [newRecord, ...prev.filter((v) => v.id !== newRecord.id)];
+          saveCache(next);
+          return next;
+        });
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'verifications' }, (payload) => {
+        const updated = buildRecord(payload.new as any);
+        setVerifications((prev) => {
+          const next = prev.map((v) => v.id === updated.id ? { ...v, ...updated } : v);
+          saveCache(next);
+          return next;
+        });
+      })
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'verifications' }, (payload) => {
+        setVerifications((prev) => {
+          const next = prev.filter((v) => v.id !== (payload.old as any)?.id);
+          saveCache(next);
+          return next;
+        });
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles' }, (payload) => {
+        const p = payload.new as any;
+        if (p?.id) {
+          usersMapRef.current.set(p.id, { ...usersMapRef.current.get(p.id), ...p });
+          setVerifications((prev) => {
+            const next = prev.map((v) => v.user_id === p.id ? buildRecord(v) : v);
+            saveCache(next);
+            return next;
+          });
+        }
+      })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [loadVerifications]);
+  }, [buildRecord]);
 
   /* Filter */
   useEffect(() => {
@@ -303,8 +362,9 @@ export function AdminVerifications() {
           <h2 className="text-xl font-bold text-white">Verification Management</h2>
           <p className="text-sm text-[#A0A0A0] mt-0.5">Review and approve driver verification documents</p>
         </div>
-        <Button onClick={loadVerifications} variant="outline" className="border-white/10 text-[#A0A0A0] rounded-xl">
-          <Clock className="w-4 h-4 mr-2" /> Refresh
+        <Button onClick={() => loadVerifications(false)} variant="outline" className="border-white/10 text-[#A0A0A0] rounded-xl" disabled={loading || refreshing}>
+          {refreshing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Clock className="w-4 h-4 mr-2" />}
+          {refreshing ? 'Refreshing...' : 'Refresh'}
         </Button>
       </div>
 

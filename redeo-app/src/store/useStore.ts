@@ -32,7 +32,7 @@ interface AppState {
 
   initAuth: () => Promise<void>;
   refreshProfile: () => Promise<void>;
-  signUp: (email: string, password: string, name: string, phone: string, role: string) => Promise<{ success: boolean; error?: string }>;
+  signUp: (email: string, password: string, name: string, phone: string, role: string) => Promise<{ success: boolean; error?: string; needsConfirmation?: boolean }>;
   signIn: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   signOut: () => Promise<void>;
 }
@@ -147,25 +147,30 @@ export const useStore = create<AppState>()(
         try {
           const { data: authData, error: authError } = await supabase.auth.signUp({
             email, password,
-            options: { data: { name, phone, role } },
+            options: {
+              data: { name, phone, role },
+              // Supabase will redirect here after email confirmation
+              emailRedirectTo: window.location.origin + '/dashboard',
+            },
           });
           if (authError) return { success: false, error: authError.message };
           if (!authData.user) return { success: false, error: 'Registration failed' };
 
-          // Profile auto-created by trigger
-          const { error: updateError } = await supabase
+          // Profile auto-created by trigger — update extra fields
+          await supabase
             .from('profiles')
             .update({ name, phone, role, is_verified: false, verification_status: 'unverified' })
             .eq('id', authData.user.id);
-          if (updateError) console.warn('[signUp]', updateError.message);
 
-          // Auto sign-in
-          const { data: signInData } = await supabase.auth.signInWithPassword({ email, password });
-          if (signInData.user) {
-            const user = buildUser(signInData.user, { name, email, phone, role: role as any, is_verified: false, verification_status: 'unverified' as any });
+          // If Supabase returned a session immediately → email confirmation is disabled
+          if (authData.session) {
+            const user = buildUser(authData.user, { name, email, phone, role: role as any, is_verified: false, verification_status: 'unverified' as any });
             set({ user, isAuthenticated: true });
+            return { success: true, needsConfirmation: false };
           }
-          return { success: true };
+
+          // No session → confirmation email was sent, user must verify first
+          return { success: true, needsConfirmation: true };
         } catch (err: any) {
           return { success: false, error: err.message || 'Registration failed' };
         }

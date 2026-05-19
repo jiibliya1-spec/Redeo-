@@ -32,6 +32,7 @@ class PageErrorBoundary extends Component<{ children: ReactNode }, { hasError: b
   }
 }
 import { useStore } from '@/store/useStore';
+import { supabase } from '@/lib/supabase';
 import { Navbar } from '@/components/Navbar';
 import { BottomNav } from '@/components/BottomNav';
 import { AdminRouteGuard } from '@/components/admin/AdminRouteGuard';
@@ -128,16 +129,35 @@ function AdminRoutes() {
 
 /* ─── App content with conditional navbar ─── */
 function AppContent() {
-  const { isAuthenticated, user, isLoading, initAuth, refreshProfile } = useStore();
+  const { isAuthenticated, user, isLoading, initAuth, refreshProfile, setUser } = useStore();
   const [showSplash, setShowSplash] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const boot = async () => {
       await initAuth();
-      // Refresh profile to ensure latest data from Supabase
       await refreshProfile();
     };
     boot();
+
+    // Listen for auth state changes — catches email confirmation redirects
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN' && session?.user) {
+        // User just confirmed email and got signed in automatically
+        await refreshProfile();
+        const freshState = useStore.getState();
+        if (freshState.user) {
+          const role = freshState.user.role;
+          if (role === 'admin') navigate('/admin', { replace: true });
+          else navigate('/dashboard', { replace: true });
+        }
+      }
+      if (event === 'SIGNED_OUT') {
+        setUser(null);
+      }
+    });
+
+    return () => { subscription.unsubscribe(); };
   }, []);
 
   // Show splash screen on first load (independent of auth state)

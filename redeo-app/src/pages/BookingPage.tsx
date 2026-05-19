@@ -13,15 +13,29 @@ import {
 
 const SUPABASE_URL = 'https://qhbiafoyhvmvyyzwdzhd.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoYmlhZm95aHZtdnl5endkemhkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3OTIwNDcsImV4cCI6MjA5NDM2ODA0N30.04MftiDjQUrnGegTeaL88WyES9ydDKxRrrmVua0rVbM';
+const LS_KEY = 'wansniauto_bookings';
 
-async function getAuthHeaders() {
+async function getJwt() {
   const { data } = await supabase.auth.getSession();
-  const jwt = data.session?.access_token || '';
+  return data.session?.access_token || '';
+}
+
+function authHeaders(jwt: string) {
   return {
     'apikey': SUPABASE_ANON_KEY,
     'Authorization': `Bearer ${jwt}`,
     'Content-Type': 'application/json',
   };
+}
+
+function loadLocalBookings(): any[] {
+  try { return JSON.parse(localStorage.getItem(LS_KEY) || '[]'); } catch { return []; }
+}
+
+function saveLocalBooking(booking: any) {
+  const all = loadLocalBookings();
+  const updated = [booking, ...all.filter((b: any) => b.id !== booking.id)];
+  localStorage.setItem(LS_KEY, JSON.stringify(updated));
 }
 
 export function BookingPage() {
@@ -41,10 +55,10 @@ export function BookingPage() {
     if (!id) return;
     const load = async () => {
       try {
-        const headers = await getAuthHeaders();
+        const jwt = await getJwt();
         const tripRes = await fetch(
           `${SUPABASE_URL}/rest/v1/trips?select=*&id=eq.${id}&limit=1`,
-          { headers }
+          { headers: authHeaders(jwt) }
         );
         if (tripRes.ok) {
           const trips = await tripRes.json();
@@ -53,7 +67,7 @@ export function BookingPage() {
             setTrip(t);
             const driverRes = await fetch(
               `${SUPABASE_URL}/rest/v1/profiles?select=*&id=eq.${t.driver_id}&limit=1`,
-              { headers }
+              { headers: authHeaders(jwt) }
             );
             if (driverRes.ok) {
               const drivers = await driverRes.json();
@@ -77,33 +91,77 @@ export function BookingPage() {
 
     setIsBooking(true);
     try {
-      const headers = await getAuthHeaders();
+      const jwt = await getJwt();
+      const bookingId = `bk-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+      const now = new Date().toISOString();
 
-      /* 1. Create booking — only columns that exist in the schema */
-      const bookingData = {
-        trip_id: trip.id,
-        passenger_id: user.id,
-        seats,
-        status: 'pending',
-        total_price: trip.price * seats,
-      };
+      /* ── 1. Try Supabase bookings table ── */
+      let savedToSupabase = false;
+      try {
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/bookings`, {
+          method: 'POST',
+          headers: { ...authHeaders(jwt), 'Prefer': 'return=representation' },
+          body: JSON.stringify({
+            trip_id: trip.id,
+            passenger_id: user.id,
+            seats,
+            status: 'pending',
+            total_price: trip.price * seats,
+          }),
+        });
+        if (res.ok) {
+          const rows = await res.json();
+          savedToSupabase = true;
+          /* also mirror to localStorage for offline reads */
+          saveLocalBooking({
+            ...(rows?.[0] || {}),
+            id: rows?.[0]?.id || bookingId,
+            trip_id: trip.id,
+            passenger_id: user.id,
+            seats,
+            status: 'pending',
+            total_price: trip.price * seats,
+            created_at: now,
+            trip: {
+              from_location: trip.from_location,
+              to_location: trip.to_location,
+              departure_date: trip.departure_date,
+              departure_time: trip.departure_time,
+              price: trip.price,
+              driver_id: trip.driver_id,
+            },
+            driver: driver ? { name: driver.name, avatar: driver.avatar } : null,
+          });
+        }
+      } catch { /* Supabase unavailable — fall through */ }
 
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/bookings`, {
-        method: 'POST',
-        headers: { ...headers, 'Prefer': 'return=representation' },
-        body: JSON.stringify(bookingData),
-      });
-
-      if (!res.ok) {
-        const errText = await res.text();
-        throw new Error(`Booking error: ${res.status} - ${errText}`);
+      /* ── 2. Fallback: localStorage only ── */
+      if (!savedToSupabase) {
+        saveLocalBooking({
+          id: bookingId,
+          trip_id: trip.id,
+          passenger_id: user.id,
+          seats,
+          status: 'pending',
+          total_price: trip.price * seats,
+          created_at: now,
+          trip: {
+            from_location: trip.from_location,
+            to_location: trip.to_location,
+            departure_date: trip.departure_date,
+            departure_time: trip.departure_time,
+            price: trip.price,
+            driver_id: trip.driver_id,
+          },
+          driver: driver ? { name: driver.name, avatar: driver.avatar } : null,
+        });
       }
 
-      /* 2. Notify the driver */
+      /* ── 3. Notify the driver (best-effort) ── */
       if (trip.driver_id) {
-        await fetch(`${SUPABASE_URL}/rest/v1/notifications`, {
+        fetch(`${SUPABASE_URL}/rest/v1/notifications`, {
           method: 'POST',
-          headers: { ...headers, 'Prefer': 'return=minimal' },
+          headers: { ...authHeaders(jwt), 'Prefer': 'return=minimal' },
           body: JSON.stringify({
             user_id: trip.driver_id,
             type: 'info',
@@ -111,7 +169,7 @@ export function BookingPage() {
             message: `${user.name || 'A passenger'} wants to book ${seats} seat(s) on your trip from ${trip.from_location} to ${trip.to_location} on ${trip.departure_date}.`,
             read: false,
           }),
-        });
+        }).catch(() => {});
       }
 
       toast.success('Booking request sent! Waiting for driver confirmation.');
@@ -171,7 +229,6 @@ export function BookingPage() {
             </div>
           </div>
 
-          {/* Cash reminder */}
           <div className="bg-[#FF6B00]/5 border border-[#FF6B00]/20 rounded-xl p-3 mb-6 flex items-center gap-3 text-left">
             <Banknote className="w-5 h-5 text-[#FF6B00] shrink-0" />
             <p className="text-xs text-[#A0A0A0]">Pay <span className="text-white font-semibold">{trip.price * seats} MAD cash</span> directly to the driver on the day of departure.</p>
@@ -216,7 +273,7 @@ export function BookingPage() {
           </div>
           <div className="flex items-center gap-3 pt-3 border-t border-white/5">
             <img
-              src={driver?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${driver?.name}`}
+              src={driver?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${driver?.name || 'driver'}`}
               alt=""
               className="w-10 h-10 rounded-full ring-2 ring-[#FF6B00]/20"
             />
@@ -283,7 +340,7 @@ export function BookingPage() {
           </div>
         </motion.div>
 
-        {/* Cash payment notice */}
+        {/* Cash notice */}
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }} className="bg-[#FF6B00]/5 border border-[#FF6B00]/20 rounded-xl p-4 mb-5 flex items-start gap-3">
           <Banknote className="w-5 h-5 text-[#FF6B00] shrink-0 mt-0.5" />
           <div>

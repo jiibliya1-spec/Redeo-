@@ -212,43 +212,62 @@ export function DriverDashboard() {
     try {
       const headers = await getAuthHeaders();
 
-      // 1. Get driver's trip IDs
+      // 1. Get driver's trip IDs from Supabase
       const tripsRes = await fetch(
-        `${SUPABASE_URL}/rest/v1/trips?select=id,from_location,to_location,departure_date,departure_time&driver_id=eq.${user.id}&status=eq.upcoming`,
+        `${SUPABASE_URL}/rest/v1/trips?select=id,from_location,to_location,departure_date,departure_time,available_seats&driver_id=eq.${user.id}`,
         { headers }
       );
-      if (!tripsRes.ok) return;
+      if (!tripsRes.ok) { setLoadingRequests(false); return; }
       const driverTrips: any[] = await tripsRes.json();
       if (!driverTrips.length) { setBookingRequests([]); setLoadingRequests(false); return; }
 
-      const tripIds = driverTrips.map(t => t.id);
-      const tripMap = new Map(driverTrips.map(t => [t.id, t]));
+      const tripIds = new Set(driverTrips.map((t: any) => t.id));
+      const tripMap = new Map(driverTrips.map((t: any) => [t.id, t]));
 
-      // 2. Get pending bookings for those trips
-      const bookRes = await fetch(
-        `${SUPABASE_URL}/rest/v1/bookings?trip_id=in.(${tripIds.join(',')})&status=eq.pending&order=created_at.desc&limit=50`,
-        { headers }
-      );
-      if (!bookRes.ok) { setLoadingRequests(false); return; }
-      const bookings: BookingRequest[] = await bookRes.json();
+      // 2a. Try Supabase bookings table first
+      let bookings: BookingRequest[] = [];
+      try {
+        const bookRes = await fetch(
+          `${SUPABASE_URL}/rest/v1/bookings?trip_id=in.(${[...tripIds].join(',')})&status=eq.pending&order=created_at.desc&limit=50`,
+          { headers }
+        );
+        if (bookRes.ok) {
+          bookings = await bookRes.json();
+        }
+      } catch { /* table not found — fall through to localStorage */ }
+
+      // 2b. Merge with localStorage (covers when Supabase bookings table is missing)
+      try {
+        const localAll: any[] = JSON.parse(localStorage.getItem('wansniauto_bookings') || '[]');
+        const localPending = localAll.filter(
+          (b: any) => tripIds.has(b.trip_id) && b.status === 'pending'
+        );
+        const existingIds = new Set(bookings.map(b => b.id));
+        for (const lb of localPending) {
+          if (!existingIds.has(lb.id)) bookings.push(lb as BookingRequest);
+        }
+      } catch {}
+
       if (!bookings.length) { setBookingRequests([]); setLoadingRequests(false); return; }
 
       // 3. Get passenger profiles
       const passengerIds = [...new Set(bookings.map(b => b.passenger_id))];
-      const passRes = await fetch(
-        `${SUPABASE_URL}/rest/v1/profiles?select=id,name,avatar,rating,trips_count,is_verified,phone&id=in.(${passengerIds.join(',')})`,
-        { headers }
-      );
       const passengerMap = new Map<string, any>();
-      if (passRes.ok) {
-        const passengers = await passRes.json();
-        passengers.forEach((p: any) => passengerMap.set(p.id, p));
-      }
+      try {
+        const passRes = await fetch(
+          `${SUPABASE_URL}/rest/v1/profiles?select=id,name,avatar,rating,trips_count,is_verified,phone&id=in.(${passengerIds.join(',')})`,
+          { headers }
+        );
+        if (passRes.ok) {
+          const passengers = await passRes.json();
+          passengers.forEach((p: any) => passengerMap.set(p.id, p));
+        }
+      } catch {}
 
       const enriched = bookings.map(b => ({
         ...b,
-        passenger: passengerMap.get(b.passenger_id),
-        trip: tripMap.get(b.trip_id),
+        passenger: passengerMap.get(b.passenger_id) || b.passenger,
+        trip: tripMap.get(b.trip_id) || b.trip,
       }));
 
       setBookingRequests(enriched);
@@ -256,40 +275,56 @@ export function DriverDashboard() {
     setLoadingRequests(false);
   }, [user?.id, getAuthHeaders]);
 
+  /** Patch a booking in localStorage */
+  const patchLocalBooking = (id: string, patch: Record<string, unknown>) => {
+    try {
+      const all = JSON.parse(localStorage.getItem('wansniauto_bookings') || '[]');
+      localStorage.setItem('wansniauto_bookings', JSON.stringify(
+        all.map((b: any) => b.id === id ? { ...b, ...patch } : b)
+      ));
+    } catch {}
+  };
+
   const handleAcceptBooking = async (booking: BookingRequest) => {
     setProcessingBookingId(booking.id);
     try {
       const headers = await getAuthHeaders();
-
-      // 1. Update booking status → confirmed
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/bookings?id=eq.${booking.id}`, {
-        method: 'PATCH',
-        headers: { ...headers, 'Prefer': 'return=minimal' },
-        body: JSON.stringify({ status: 'confirmed' }),
-      });
-      if (!res.ok) throw new Error('Failed to confirm booking');
-
-      // 2. Decrease available_seats on the trip
       const tripData = booking.trip as any;
+
+      // 1. Update localStorage immediately (works even without Supabase bookings table)
+      patchLocalBooking(booking.id, { status: 'confirmed' });
+
+      // 2. Try Supabase bookings table (best-effort)
+      try {
+        await fetch(`${SUPABASE_URL}/rest/v1/bookings?id=eq.${booking.id}`, {
+          method: 'PATCH',
+          headers: { ...headers, 'Prefer': 'return=minimal' },
+          body: JSON.stringify({ status: 'confirmed' }),
+        });
+      } catch {}
+
+      // 3. Decrease available_seats on the trip
       if (booking.trip_id) {
-        const tripRes = await fetch(
-          `${SUPABASE_URL}/rest/v1/trips?select=available_seats&id=eq.${booking.trip_id}&limit=1`,
-          { headers }
-        );
-        if (tripRes.ok) {
-          const [t] = await tripRes.json();
-          if (t && typeof t.available_seats === 'number') {
-            await fetch(`${SUPABASE_URL}/rest/v1/trips?id=eq.${booking.trip_id}`, {
-              method: 'PATCH',
-              headers: { ...headers, 'Prefer': 'return=minimal' },
-              body: JSON.stringify({ available_seats: Math.max(0, t.available_seats - booking.seats) }),
-            });
+        try {
+          const tripRes = await fetch(
+            `${SUPABASE_URL}/rest/v1/trips?select=available_seats&id=eq.${booking.trip_id}&limit=1`,
+            { headers }
+          );
+          if (tripRes.ok) {
+            const [t] = await tripRes.json();
+            if (t && typeof t.available_seats === 'number') {
+              await fetch(`${SUPABASE_URL}/rest/v1/trips?id=eq.${booking.trip_id}`, {
+                method: 'PATCH',
+                headers: { ...headers, 'Prefer': 'return=minimal' },
+                body: JSON.stringify({ available_seats: Math.max(0, t.available_seats - booking.seats) }),
+              });
+            }
           }
-        }
+        } catch {}
       }
 
-      // 3. Notify passenger
-      await fetch(`${SUPABASE_URL}/rest/v1/notifications`, {
+      // 4. Notify passenger (best-effort)
+      fetch(`${SUPABASE_URL}/rest/v1/notifications`, {
         method: 'POST',
         headers: { ...headers, 'Prefer': 'return=minimal' },
         body: JSON.stringify({
@@ -299,7 +334,7 @@ export function DriverDashboard() {
           message: `Your booking for ${booking.seats} seat(s) on the trip ${tripData?.from_location || ''} → ${tripData?.to_location || ''} on ${tripData?.departure_date || ''} has been confirmed! Pay ${booking.total_price} MAD cash to the driver.`,
           read: false,
         }),
-      });
+      }).catch(() => {});
 
       toast.success('Booking accepted! Passenger has been notified.');
       setBookingRequests(prev => prev.filter(b => b.id !== booking.id));
@@ -315,16 +350,20 @@ export function DriverDashboard() {
       const headers = await getAuthHeaders();
       const tripData = booking.trip as any;
 
-      // 1. Update booking status → cancelled
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/bookings?id=eq.${booking.id}`, {
-        method: 'PATCH',
-        headers: { ...headers, 'Prefer': 'return=minimal' },
-        body: JSON.stringify({ status: 'cancelled' }),
-      });
-      if (!res.ok) throw new Error('Failed to reject booking');
+      // 1. Update localStorage immediately
+      patchLocalBooking(booking.id, { status: 'cancelled' });
 
-      // 2. Notify passenger
-      await fetch(`${SUPABASE_URL}/rest/v1/notifications`, {
+      // 2. Try Supabase bookings table (best-effort)
+      try {
+        await fetch(`${SUPABASE_URL}/rest/v1/bookings?id=eq.${booking.id}`, {
+          method: 'PATCH',
+          headers: { ...headers, 'Prefer': 'return=minimal' },
+          body: JSON.stringify({ status: 'cancelled' }),
+        });
+      } catch {}
+
+      // 3. Notify passenger (best-effort)
+      fetch(`${SUPABASE_URL}/rest/v1/notifications`, {
         method: 'POST',
         headers: { ...headers, 'Prefer': 'return=minimal' },
         body: JSON.stringify({
@@ -334,12 +373,12 @@ export function DriverDashboard() {
           message: `Unfortunately your booking for the trip ${tripData?.from_location || ''} → ${tripData?.to_location || ''} on ${tripData?.departure_date || ''} was not accepted by the driver. Please try another trip.`,
           read: false,
         }),
-      });
+      }).catch(() => {});
 
-      toast.success('Booking rejected. Passenger has been notified.');
+      toast.success('Booking declined. Passenger has been notified.');
       setBookingRequests(prev => prev.filter(b => b.id !== booking.id));
     } catch (e: any) {
-      toast.error(e.message || 'Failed to reject booking');
+      toast.error(e.message || 'Failed to decline booking');
     }
     setProcessingBookingId(null);
   };

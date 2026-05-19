@@ -1,5 +1,36 @@
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Component, type ReactNode, type ErrorInfo } from 'react';
+
+/* ─── Error Boundary: catches component crashes, shows friendly message instead of blank screen ─── */
+class PageErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean; error: string }> {
+  constructor(props: { children: ReactNode }) {
+    super(props);
+    this.state = { hasError: false, error: '' };
+  }
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error: error.message };
+  }
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error('[PageErrorBoundary]', error, info);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen bg-[#0F1115] flex flex-col items-center justify-center px-4 gap-4">
+          <p className="text-white text-lg font-semibold">Something went wrong</p>
+          <p className="text-[#A0A0A0] text-sm text-center">{this.state.error}</p>
+          <button
+            onClick={() => { this.setState({ hasError: false, error: '' }); window.location.href = '/'; }}
+            className="mt-2 px-6 py-2 bg-[#FF6B00] text-white rounded-xl text-sm font-medium"
+          >
+            Go to Home
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 import { useStore } from '@/store/useStore';
 import { Navbar } from '@/components/Navbar';
 import { BottomNav } from '@/components/BottomNav';
@@ -192,9 +223,13 @@ function AppContent() {
 
 function App() {
   return (
-    <BrowserRouter>
-      <AppContent />
-    </BrowserRouter>
+    <PageErrorBoundary>
+      <BrowserRouter>
+        <PageErrorBoundary>
+          <AppContent />
+        </PageErrorBoundary>
+      </BrowserRouter>
+    </PageErrorBoundary>
   );
 }
 

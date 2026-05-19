@@ -248,6 +248,10 @@ export function DriverDashboard() {
         }
       } catch {}
 
+      // 2c. Filter out already-processed bookings (accepted or declined)
+      const processedIds = getProcessedIds();
+      bookings = bookings.filter(b => !processedIds.has(b.id));
+
       if (!bookings.length) { setBookingRequests([]); setLoadingRequests(false); return; }
 
       // 3. Get passenger profiles
@@ -283,6 +287,22 @@ export function DriverDashboard() {
         all.map((b: any) => b.id === id ? { ...b, ...patch } : b)
       ));
     } catch {}
+  };
+
+  /** Permanently mark a booking as processed so it never reappears in Requests */
+  const PROCESSED_KEY = 'wansniauto_processed_requests';
+  const markBookingProcessed = (id: string) => {
+    try {
+      const existing: string[] = JSON.parse(localStorage.getItem(PROCESSED_KEY) || '[]');
+      if (!existing.includes(id)) {
+        localStorage.setItem(PROCESSED_KEY, JSON.stringify([...existing, id]));
+      }
+    } catch {}
+  };
+  const getProcessedIds = (): Set<string> => {
+    try {
+      return new Set(JSON.parse(localStorage.getItem(PROCESSED_KEY) || '[]'));
+    } catch { return new Set(); }
   };
 
   const handleAcceptBooking = async (booking: BookingRequest) => {
@@ -323,7 +343,10 @@ export function DriverDashboard() {
         } catch {}
       }
 
-      // 4. Notify passenger (best-effort)
+      // 4. Mark as processed permanently (prevents reappearance on refresh)
+      markBookingProcessed(booking.id);
+
+      // 5. Notify passenger (best-effort)
       fetch(`${SUPABASE_URL}/rest/v1/notifications`, {
         method: 'POST',
         headers: { ...headers, 'Prefer': 'return=minimal' },
@@ -362,7 +385,10 @@ export function DriverDashboard() {
         });
       } catch {}
 
-      // 3. Notify passenger (best-effort)
+      // 3. Mark as processed permanently (prevents reappearance on refresh)
+      markBookingProcessed(booking.id);
+
+      // 4. Notify passenger (best-effort)
       fetch(`${SUPABASE_URL}/rest/v1/notifications`, {
         method: 'POST',
         headers: { ...headers, 'Prefer': 'return=minimal' },

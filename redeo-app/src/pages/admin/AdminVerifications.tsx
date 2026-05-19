@@ -138,40 +138,42 @@ export function AdminVerifications() {
   const handleApprove = async (id: string, userId: string) => {
     setProcessingId(id);
     try {
-      // 1. Update verification to 'verified'
-      const { error: verifErr } = await supabase
-        .from('verifications')
-        .update({ status: 'verified', admin_notes: 'Approved by admin', updated_at: new Date().toISOString() })
-        .eq('id', id);
-      if (verifErr) throw verifErr;
+      const headers = await getHeaders();
 
-      // 2. Update profile — mark user as verified
-      const { error: profileErr } = await supabase
-        .from('profiles')
-        .update({ is_verified: true, verification_status: 'verified' })
-        .eq('id', userId);
+      // 1. Update this verification to 'verified'
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/verifications?id=eq.${id}`, {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify({ status: 'verified', admin_notes: 'Approved by admin', updated_at: new Date().toISOString() }),
+      });
+      if (!res.ok) throw new Error(await res.text());
 
-      if (profileErr) {
-        console.warn('[Admin] Profile update via client failed:', profileErr.message);
-        // Fallback: try raw fetch with admin headers
-        const headers = await getHeaders();
-        await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${userId}`, {
-          method: 'PATCH',
-          headers: { ...headers, 'Prefer': 'return=minimal' },
-          body: JSON.stringify({ is_verified: true, verification_status: 'verified' }),
-        });
+      // 2. Mark user as verified on ANY doc approval (simplified)
+      const profileRes = await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${userId}`, {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify({ is_verified: true, verification_status: 'approved' }),
+      });
+      if (!profileRes.ok) {
+        toast.error('Profile update failed');
+      } else {
+        toast.success('Document approved! User is now verified.');
       }
 
-      // 3. Send notification to the user
-      await supabase.from('notifications').insert({
-        user_id: userId,
-        title: 'Document Approved ✅',
-        message: 'Your document has been verified by admin. Your account is now verified!',
-        type: 'success',
-        read: false,
+      // 3. Send notification to user
+      await fetch(`${SUPABASE_URL}/rest/v1/notifications`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          user_id: userId,
+          type: 'verification_approved',
+          title: 'Documents Approved',
+          message: 'Your verification documents have been approved. You can now publish trips and use all features.',
+          data: { doc_id: id, status: 'approved' },
+          read: false,
+        }),
       });
 
-      toast.success('Document approved! User is now verified.');
       await loadVerifications();
     } catch (err: any) {
       toast.error('Approval failed: ' + err.message);
@@ -197,19 +199,25 @@ export function AdminVerifications() {
       });
       if (!res.ok) throw new Error(await res.text());
 
-      // 2. Update profile status
-      await supabase
-        .from('profiles')
-        .update({ verification_status: 'rejected', is_verified: false })
-        .eq('id', userId);
+      // 2. Update user profile verification_status to 'rejected'
+      await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${userId}`, {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify({ verification_status: 'rejected', is_verified: false }),
+      });
 
-      // 3. Notify the user
-      await supabase.from('notifications').insert({
-        user_id: userId,
-        title: 'Document Rejected ❌',
-        message: `Your document was rejected: ${rejectReason}. Please re-upload a clear copy.`,
-        type: 'error',
-        read: false,
+      // 3. Send notification to user
+      await fetch(`${SUPABASE_URL}/rest/v1/notifications`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          user_id: userId,
+          type: 'verification_rejected',
+          title: 'Documents Rejected',
+          message: `Your verification was rejected. Reason: ${rejectReason}. Please re-upload your documents.`,
+          data: { doc_id: id, status: 'rejected', reason: rejectReason },
+          read: false,
+        }),
       });
 
       toast.success('Document rejected. User has been notified.');

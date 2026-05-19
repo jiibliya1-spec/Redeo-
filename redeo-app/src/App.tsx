@@ -1,9 +1,10 @@
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useStore } from '@/store/useStore';
 import { Navbar } from '@/components/Navbar';
 import { BottomNav } from '@/components/BottomNav';
 import { AdminRouteGuard } from '@/components/admin/AdminRouteGuard';
+import { SplashScreen } from '@/components/SplashScreen';
 import { LandingPage } from '@/pages/LandingPage';
 import { SearchResultsPage } from '@/pages/SearchResultsPage';
 import { TripDetailsPage } from '@/pages/TripDetailsPage';
@@ -21,13 +22,20 @@ import { AdminMessages } from '@/pages/admin/AdminMessages';
 import { AdminSettings } from '@/pages/admin/AdminSettings';
 import { AdminSupportTickets } from '@/pages/admin/AdminSupportTickets';
 import { ProfilePage } from '@/pages/ProfilePage';
-import { VerificationPage } from '@/pages/VerificationPage';
+import VerificationPage from '@/pages/VerificationPage';
 import { MessagesPage } from '@/pages/MessagesPage';
 import { NotificationsPage } from '@/pages/NotificationsPage';
 import { PublishTripPage } from '@/pages/PublishTripPage';
 import { SettingsPage } from '@/pages/SettingsPage';
 import { ContactSupportPage } from '@/pages/ContactSupportPage';
 import { DriverProfilePage } from '@/pages/DriverProfilePage';
+import AboutPage from '@/pages/AboutPage';
+import HowItWorksPage from '@/pages/HowItWorksPage';
+import CareersPage from '@/pages/CareersPage';
+import SafetyPage from '@/pages/SafetyPage';
+import FAQPage from '@/pages/FAQPage';
+import LegalPage from '@/pages/LegalPage';
+import { NotificationListener } from '@/components/NotificationListener';
 import { Toaster } from '@/components/ui/sonner';
 import { Spinner } from '@/components/ui/spinner';
 
@@ -38,12 +46,9 @@ function DashboardRouter() {
 
   useEffect(() => {
     if (!isAuthenticated) return;
-    console.log('[DashboardRouter] User role:', user?.role);
     if (user?.role === 'admin') {
-      console.log('[DashboardRouter] Admin → redirecting to /admin');
       navigate('/admin', { replace: true });
     }
-    // else: render the appropriate dashboard component below
   }, [isAuthenticated, user, navigate]);
 
   if (!isAuthenticated) return <Navigate to="/login" />;
@@ -93,6 +98,7 @@ function AdminRoutes() {
 /* ─── App content with conditional navbar ─── */
 function AppContent() {
   const { isAuthenticated, user, isLoading, initAuth, refreshProfile } = useStore();
+  const [showSplash, setShowSplash] = useState(true);
 
   useEffect(() => {
     const boot = async () => {
@@ -102,6 +108,11 @@ function AppContent() {
     };
     boot();
   }, []);
+
+  // Show splash screen on first load (independent of auth state)
+  if (showSplash) {
+    return <SplashScreen onComplete={() => setShowSplash(false)} />;
+  }
 
   if (isLoading) {
     return (
@@ -143,7 +154,20 @@ function AppContent() {
           <Route path="/notifications" element={isAuthenticated ? <NotificationsPage /> : <Navigate to="/login" />} />
           <Route path="/settings" element={isAuthenticated ? <SettingsPage /> : <Navigate to="/login" />} />
           <Route path="/support" element={<ContactSupportPage />} />
+          <Route path="/contact" element={<ContactSupportPage />} />
           <Route path="/profile/:id" element={<DriverProfilePage />} />
+
+          {/* Static pages - footer links */}
+          <Route path="/about" element={<AboutPage />} />
+          <Route path="/how-it-works" element={<HowItWorksPage />} />
+          <Route path="/careers" element={<CareersPage />} />
+          <Route path="/safety" element={<SafetyPage />} />
+          <Route path="/faq" element={<FAQPage />} />
+          <Route path="/terms" element={<LegalPage />} />
+          <Route path="/privacy" element={<LegalPage />} />
+          <Route path="/cookies" element={<LegalPage />} />
+          <Route path="/driver-agreement" element={<LegalPage />} />
+
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </main>
@@ -151,6 +175,7 @@ function AppContent() {
       {/* Show bottomnav only for non-admin users */}
       {!isAdmin && <BottomNav />}
 
+      <NotificationListener />
       <Toaster
         position="top-right"
         toastOptions={{

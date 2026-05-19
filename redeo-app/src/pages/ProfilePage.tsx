@@ -17,7 +17,7 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 export function ProfilePage() {
   const navigate = useNavigate();
-  const { user, signOut, setUser } = useStore();
+  const { user, signOut, setUser, mode, setMode } = useStore();
   const { lang, setLang, t } = useI18n();
 
   const [isEditing, setIsEditing] = useState(false);
@@ -40,50 +40,52 @@ export function ProfilePage() {
 
   // ─── Direct fetch from Supabase (always fresh) ───
   const fetchFreshProfile = useCallback(async () => {
-    if (!user?.id) return;
+    // Use store.getState() to avoid stale closure
+    const currentUser = useStore.getState().user;
+    if (!currentUser?.id) return;
     setIsRefreshing(true);
     try {
-      // Fetch profile and verifications in parallel
-      const [profileResult, verifsResult] = await Promise.all([
-        supabase
-          .from('profiles')
-          .select('is_verified, verification_status, role')
-          .eq('id', user.id)
-          .single(),
-        supabase
-          .from('verifications')
-          .select('status, doc_type')
-          .eq('user_id', user.id),
-      ]);
+      const { data: sessionData } = await supabase.auth.getSession();
+      const jwt = sessionData.session?.access_token || '';
 
-      const p = profileResult.data;
-      const verifs = verifsResult.data || [];
+      const res = await fetch(
+        `${SUPABASE_URL}/rest/v1/profiles?select=is_verified,verification_status,role&id=eq.${currentUser.id}&limit=1`,
+        {
+          headers: {
+            'apikey': SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${jwt}`,
+          },
+        }
+      );
 
-      // Fallback: if any doc is 'verified', user is verified regardless of profile field
-      const hasVerifiedDoc = verifs.some((v: any) => v.status === 'verified');
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.length > 0) {
+          const p = data[0];
+          console.log('[ProfilePage] Fresh fetch:', p);
+          setProfileVerified(p.is_verified === true);
+          setProfileStatus(p.verification_status || 'unverified');
+          setProfileRole(p.role || 'passenger');
 
-      const isVerified = (p?.is_verified === true) || hasVerifiedDoc;
-      const verificationStatus = isVerified
-        ? 'verified'
-        : (p?.verification_status || 'unverified');
-
-      console.log('[ProfilePage] Fresh fetch — profile:', p, '| verifiedDoc:', hasVerifiedDoc);
-
-      setProfileVerified(isVerified);
-      setProfileStatus(verificationStatus);
-      setProfileRole(p?.role || 'passenger');
-
-      setUser({
-        ...user,
-        is_verified: isVerified,
-        verification_status: verificationStatus as any,
-        role: ((p?.role || 'passenger') as 'passenger' | 'driver' | 'admin'),
-      });
+          // Also update the global user state with FRESH user
+          const freshUser = useStore.getState().user;
+          if (freshUser) {
+            setUser({
+              ...freshUser,
+              is_verified: p.is_verified === true,
+              verification_status: p.verification_status || 'unverified',
+              role: (p.role || 'passenger') as 'passenger' | 'driver' | 'admin',
+            });
+          }
+        }
+      } else {
+        console.error('[ProfilePage] Fetch failed:', res.status);
+      }
     } catch (err: any) {
       console.error('[ProfilePage] Error:', err.message);
     }
     setIsRefreshing(false);
-  }, [user?.id, setUser]);
+  }, [setUser]);
 
   // Load user data into form
   useEffect(() => {
@@ -104,47 +106,61 @@ export function ProfilePage() {
     fetchFreshProfile();
   }, [fetchFreshProfile]);
 
-  // ─── Realtime: watch profiles AND verifications for admin approval ───
+  // ─── Polling: refresh profile every 8 seconds (fallback if realtime is down) ───
+  useEffect(() => {
+    if (!user?.id) return;
+    const interval = setInterval(() => {
+      fetchFreshProfile();
+    }, 8000);
+    return () => clearInterval(interval);
+  }, [user?.id, fetchFreshProfile]);
+
+  // ─── Realtime subscription for profile changes ───
   useEffect(() => {
     if (!user?.id) return;
 
+    const uid = user.id;
     const channel = supabase
-      .channel(`profile-watch-${user.id}`)
-      // Watch profile row
+      .channel(`profile-${uid}`)
       .on(
         'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${user.id}` },
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'profiles',
+          filter: `id=eq.${uid}`,
+        },
         (payload) => {
           const p = payload.new as any;
-          if (!p) return;
-          console.log('[ProfilePage] Profile realtime:', p);
-          if (p.is_verified === true) {
-            setProfileVerified(true);
-            setProfileStatus('verified');
-            if (user) setUser({ ...user, is_verified: true, verification_status: 'verified' as any });
-            toast.success('🎉 Your account has been verified!');
-          }
-          if (p.role) setProfileRole(p.role);
-        }
-      )
-      // Watch verifications — fires when admin approves any doc
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'verifications', filter: `user_id=eq.${user.id}` },
-        (payload) => {
-          const v = payload.new as any;
-          if (!v) return;
-          console.log('[ProfilePage] Verification realtime:', v);
-          if (v.status === 'verified') {
-            // Refresh full profile to recalculate badge
-            fetchFreshProfile();
+          console.log('[ProfilePage] Realtime update:', p);
+          if (p) {
+            setProfileVerified(p.is_verified === true);
+            setProfileStatus(p.verification_status || 'unverified');
+            if (p.role) setProfileRole(p.role);
+
+            // Update global user with FRESH user (avoid stale closure)
+            const freshUser = useStore.getState().user;
+            if (freshUser) {
+              setUser({
+                ...freshUser,
+                is_verified: p.is_verified === true,
+                verification_status: p.verification_status || 'unverified',
+                role: (p.role || freshUser.role) as 'passenger' | 'driver' | 'admin',
+              });
+            }
+
+            if (p.is_verified && !profileVerified) {
+              toast.success('Your account has been verified!');
+            }
           }
         }
       )
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
-  }, [user?.id, setUser, fetchFreshProfile]);
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, profileVerified, setUser]);
 
   const processAvatarFile = async (file: File) => {
     if (!user?.id) return;
@@ -259,12 +275,7 @@ export function ProfilePage() {
     );
   };
 
-  // Debug info (shows actual values)
-  const debugInfo = () => (
-    <div className="mt-2 text-[10px] text-[#A0A0A0]/50 font-mono">
-      status: {profileStatus} | verified: {String(profileVerified)} | role: {profileRole}
-    </div>
-  );
+  // ─── (debug removed) ───
 
   const menuItems = profileRole === 'admin' ? [
     { icon: Shield, label: 'Admin Panel', desc: 'Manage platform', action: () => navigate('/admin') },
@@ -348,7 +359,7 @@ export function ProfilePage() {
                     <RefreshCw className={`w-3 h-3 text-[#A0A0A0] ${isRefreshing ? 'animate-spin' : ''}`} />
                   </button>
                 </div>
-                {debugInfo()}
+                {/* debug removed */}
               </div>
             </div>
             <button
@@ -361,6 +372,33 @@ export function ProfilePage() {
                <Edit className="w-5 h-5 text-[#A0A0A0]" />}
             </button>
           </div>
+
+          {/* ─── Mode Switcher ─── */}
+          {user.role !== 'admin' && (
+            <div className="mb-5 bg-[#0F1115] rounded-xl border border-white/5 p-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${mode === 'driver' ? 'bg-[#FF6B00]/10' : 'bg-blue-500/10'}`}>
+                    {mode === 'driver' ? <Car className="w-5 h-5 text-[#FF6B00]" /> : <Users className="w-5 h-5 text-blue-400" />}
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-white">
+                      {mode === 'driver' ? t('mode.driver') : t('mode.passenger')}
+                    </p>
+                    <p className="text-xs text-[#A0A0A0]">
+                      {mode === 'driver' ? t('mode.switch_to_passenger') : t('mode.switch_to_driver')}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setMode(mode === 'driver' ? 'passenger' : 'driver')}
+                  className={`relative w-14 h-8 rounded-full transition-colors duration-300 ${mode === 'driver' ? 'bg-[#FF6B00]' : 'bg-blue-500'}`}
+                >
+                  <div className={`absolute top-1 w-6 h-6 bg-white rounded-full shadow-md transition-transform duration-300 ${mode === 'driver' ? 'translate-x-7' : 'translate-x-1'}`} />
+                </button>
+              </div>
+            </div>
+          )}
 
           <div className="mb-4">
             <Label className="text-sm text-[#A0A0A0] mb-2 block">{t('profile.bio')}</Label>

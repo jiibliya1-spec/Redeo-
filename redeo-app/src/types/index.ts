@@ -7,11 +7,15 @@ export interface User {
   role: 'passenger' | 'driver' | 'admin';
   is_verified?: boolean;
   verification_status?: 'unverified' | 'pending' | 'submitted' | 'approved' | 'verified' | 'rejected';
+  passenger_verified?: boolean;
+  passenger_verification_status?: 'unverified' | 'pending' | 'verified' | 'rejected';
   rating?: number;
   trips_count?: number;
   created_at?: string;
   bio?: string;
 }
+
+export type AppMode = 'passenger' | 'driver';
 
 export interface Vehicle {
   id: string;
@@ -75,7 +79,6 @@ export interface Notification {
   message: string;
   type: 'info' | 'success' | 'warning' | 'error';
   read: boolean;
-  link?: string;
   created_at?: string;
 }
 

@@ -332,6 +332,7 @@ export function LandingPage() {
       <footer className="bg-[#0F1115] border-t border-white/5 py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-10">
+            {/* Brand */}
             <div className="col-span-2 md:col-span-1">
               <Link to="/" className="flex items-center gap-2 mb-3">
                 <div className="w-8 h-8 rounded-lg bg-[#FF6B00] flex items-center justify-center">
@@ -340,18 +341,43 @@ export function LandingPage() {
                 <span className="text-lg font-semibold text-white">Wansni<span className="text-[#FF6B00]">Auto</span></span>
               </Link>
               <p className="text-sm text-[#A0A0A0]">&ldquo;سافر بسهولة وشارك الطريق&rdquo;</p>
+              <p className="text-xs text-[#A0A0A0]/60 mt-2"> Morocco's trusted ride-sharing platform connecting drivers and passengers across 13+ cities.</p>
             </div>
-            {['Company', 'Support', 'Legal'].map(section => (
-              <div key={section}>
-                <h4 className="text-sm font-semibold text-white mb-3">{section}</h4>
-                <div className="space-y-2">
-                  {['About', 'Careers', 'Press'].map(item => (
-                    <p key={item} className="text-sm text-[#A0A0A0] hover:text-[#FF6B00] cursor-pointer transition-colors">{item}</p>
-                  ))}
-                </div>
+
+            {/* Company */}
+            <div>
+              <h4 className="text-sm font-semibold text-white mb-3">Company</h4>
+              <div className="space-y-2">
+                <Link to="/about" className="block text-sm text-[#A0A0A0] hover:text-[#FF6B00] transition-colors">About Us</Link>
+                <Link to="/how-it-works" className="block text-sm text-[#A0A0A0] hover:text-[#FF6B00] transition-colors">How it Works</Link>
+                <Link to="/careers" className="block text-sm text-[#A0A0A0] hover:text-[#FF6B00] transition-colors">Careers</Link>
+                <a href="https://instagram.com/wansniauto" target="_blank" rel="noopener noreferrer" className="block text-sm text-[#A0A0A0] hover:text-[#FF6B00] transition-colors">Instagram</a>
               </div>
-            ))}
+            </div>
+
+            {/* Support */}
+            <div>
+              <h4 className="text-sm font-semibold text-white mb-3">Support</h4>
+              <div className="space-y-2">
+                <Link to="/support" className="block text-sm text-[#A0A0A0] hover:text-[#FF6B00] transition-colors">Help Center</Link>
+                <Link to="/contact" className="block text-sm text-[#A0A0A0] hover:text-[#FF6B00] transition-colors">Contact Us</Link>
+                <Link to="/safety" className="block text-sm text-[#A0A0A0] hover:text-[#FF6B00] transition-colors">Safety</Link>
+                <Link to="/faq" className="block text-sm text-[#A0A0A0] hover:text-[#FF6B00] transition-colors">FAQs</Link>
+              </div>
+            </div>
+
+            {/* Legal */}
+            <div>
+              <h4 className="text-sm font-semibold text-white mb-3">Legal</h4>
+              <div className="space-y-2">
+                <Link to="/terms" className="block text-sm text-[#A0A0A0] hover:text-[#FF6B00] transition-colors">Terms & Conditions</Link>
+                <Link to="/privacy" className="block text-sm text-[#A0A0A0] hover:text-[#FF6B00] transition-colors">Privacy Policy</Link>
+                <Link to="/cookies" className="block text-sm text-[#A0A0A0] hover:text-[#FF6B00] transition-colors">Cookie Policy</Link>
+                <Link to="/driver-agreement" className="block text-sm text-[#A0A0A0] hover:text-[#FF6B00] transition-colors">Driver Agreement</Link>
+              </div>
+            </div>
           </div>
+
           <div className="border-t border-white/5 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
             <p className="text-sm text-[#A0A0A0]">&copy; 2025 WansniAuto. All rights reserved.</p>
             <div className="flex items-center gap-4">

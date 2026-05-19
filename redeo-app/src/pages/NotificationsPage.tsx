@@ -1,92 +1,91 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useStore } from '@/store/useStore';
 import { useI18n } from '@/lib/i18n';
-import { supabase } from '@/lib/supabase';
-import {
-  fetchNotifications, markNotificationRead, markAllNotificationsRead,
-  deleteNotification, deleteAllNotifications, subscribeToNotifications,
-} from '@/services/notificationService';
-import { ArrowLeft, MessageCircle, Check, Bell, Trash2, Loader2, CheckCheck } from 'lucide-react';
+import { ArrowLeft, MessageCircle, Check, Bell, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import type { Notification } from '@/types';
-import { toast } from 'sonner';
+
+interface NotificationItem {
+  id: string;
+  type: 'message' | 'booking' | 'system';
+  title: string;
+  message: string;
+  created_at: string;
+  read: boolean;
+  link?: string;
+  contactId?: string;
+  contactName?: string;
+  contactAvatar?: string;
+}
+
+const NOTIFS_KEY = 'wansniauto_notifications';
+
+function loadNotifications(): NotificationItem[] {
+  try {
+    const raw = localStorage.getItem(NOTIFS_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch { /* silent */ }
+  return [];
+}
+
+function saveNotifications(items: NotificationItem[]) {
+  localStorage.setItem(NOTIFS_KEY, JSON.stringify(items));
+}
 
 export function NotificationsPage() {
   const navigate = useNavigate();
   const { t, dir } = useI18n();
-  const { user, setUnreadCount, incrementUnread, unreadCount: storeUnreadCount } = useStore();
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<'all' | 'info' | 'success' | 'error'>('all');
-
-  const loadNotifications = useCallback(async () => {
-    if (!user?.id) { setLoading(false); return; }
-    setLoading(true);
-    try {
-      const data = await fetchNotifications(user.id);
-      setNotifications(data);
-      const unread = data.filter(n => !n.read).length;
-      setUnreadCount(unread);
-    } catch (err) {
-      console.error('Failed to load notifications:', err);
-    } finally {
-      setLoading(false);
-    }
-  }, [user?.id]);
+  const { setUnreadCount } = useStore();
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [filter, setFilter] = useState<'all' | 'message' | 'booking'>('all');
 
   useEffect(() => {
-    loadNotifications();
-  }, [loadNotifications]);
+    const items = loadNotifications();
+    setNotifications(items);
+    // Clear unread count when viewing notifications
+    setUnreadCount(0);
+    // Mark all as read
+    const updated = items.map(n => ({ ...n, read: true }));
+    saveNotifications(updated);
+  }, []);
 
-  // Subscribe to real-time notifications
-  useEffect(() => {
-    if (!user?.id) return;
-    const channel = subscribeToNotifications(user.id, (newNotif) => {
-      setNotifications(prev => [newNotif, ...prev]);
-      incrementUnread();
-    });
-    return () => { supabase.removeChannel(channel); };
-  }, [user?.id]);
-
-  const handleMarkAllRead = async () => {
-    if (!user?.id) return;
-    try {
-      await markAllNotificationsRead(user.id);
-      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-      setUnreadCount(0);
-    } catch { toast.error('Failed to mark all as read'); }
+  const handleDelete = (id: string) => {
+    const updated = notifications.filter(n => n.id !== id);
+    setNotifications(updated);
+    saveNotifications(updated);
   };
 
-  const handleDelete = async (id: string) => {
-    try {
-      await deleteNotification(id);
-      setNotifications(prev => prev.filter(n => n.id !== id));
-    } catch { toast.error('Failed to delete notification'); }
+  const handleDeleteAll = () => {
+    setNotifications([]);
+    localStorage.removeItem(NOTIFS_KEY);
   };
 
-  const handleDeleteAll = async () => {
-    if (!user?.id) return;
-    try {
-      await deleteAllNotifications(user.id);
-      setNotifications([]);
-      setUnreadCount(0);
-    } catch { toast.error('Failed to clear notifications'); }
-  };
+  const handleClick = (n: NotificationItem) => {
+    // Mark as read
+    const updated = notifications.map(item =>
+      item.id === n.id ? { ...item, read: true } : item
+    );
+    setNotifications(updated);
+    saveNotifications(updated);
 
-  const handleClick = async (n: Notification) => {
-    if (!n.read) {
-      try {
-        await markNotificationRead(n.id);
-        setNotifications(prev => prev.map(item => item.id === n.id ? { ...item, read: true } : item));
-        setUnreadCount(Math.max(0, storeUnreadCount - 1));
-      } catch { /* silent */ }
+    if (n.type === 'message' && n.contactId) {
+      navigate('/messages', {
+        state: {
+          contactId: n.contactId,
+          contactName: n.contactName || 'User',
+          contactAvatar: n.contactAvatar,
+        }
+      });
+    } else if (n.link) {
+      navigate(n.link);
     }
-    if (n.link) navigate(n.link);
   };
 
-  const filtered = filter === 'all' ? notifications : notifications.filter(n => n.type === filter);
+  const filtered = filter === 'all'
+    ? notifications
+    : notifications.filter(n => n.type === filter);
+
   const unreadCount = notifications.filter(n => !n.read).length;
 
   return (
@@ -100,34 +99,31 @@ export function NotificationsPage() {
             </button>
             <h1 className="text-xl font-bold text-white" dir={dir}>{t('notifications.title')}</h1>
             {unreadCount > 0 && (
-              <span className="px-2.5 py-0.5 bg-[#FF6B00] text-white text-xs font-bold rounded-full">{unreadCount}</span>
+              <span className="px-2.5 py-0.5 bg-[#FF6B00] text-white text-xs font-bold rounded-full">
+                {unreadCount}
+              </span>
             )}
           </div>
-          <div className="flex gap-2">
-            {unreadCount > 0 && (
-              <Button onClick={handleMarkAllRead} variant="ghost" size="sm" className="text-[#A0A0A0] hover:text-white rounded-xl">
-                <CheckCheck className="w-4 h-4 mr-1" /> Mark all read
-              </Button>
-            )}
-            {notifications.length > 0 && (
-              <Button onClick={handleDeleteAll} variant="ghost" size="sm" className="text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-xl">
-                <Trash2 className="w-4 h-4 mr-1" /> {t('common.delete')}
-              </Button>
-            )}
-          </div>
+          {notifications.length > 0 && (
+            <Button onClick={handleDeleteAll} variant="ghost" size="sm" className="text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-xl">
+              <Trash2 className="w-4 h-4 mr-1" /> {t('common.delete')}
+            </Button>
+          )}
         </div>
 
         {/* Filter tabs */}
         <div className="flex gap-1 p-1 bg-[#1B1F27] rounded-xl mb-6 border border-white/5" dir={dir}>
           {([
             { key: 'all' as const, label: t('notifications.all') },
-            { key: 'info' as const, label: t('notifications.messages') },
-            { key: 'success' as const, label: t('notifications.bookings') },
+            { key: 'message' as const, label: t('notifications.messages') },
+            { key: 'booking' as const, label: t('notifications.bookings') },
           ]).map(tab => (
             <button
               key={tab.key}
               onClick={() => setFilter(tab.key)}
-              className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all ${filter === tab.key ? 'bg-[#FF6B00]/10 text-[#FF6B00]' : 'text-[#A0A0A0] hover:text-white'}`}
+              className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all ${
+                filter === tab.key ? 'bg-[#FF6B00]/10 text-[#FF6B00]' : 'text-[#A0A0A0] hover:text-white'
+              }`}
             >
               {tab.label}
             </button>
@@ -136,61 +132,62 @@ export function NotificationsPage() {
 
         {/* Notifications List */}
         <div className="space-y-2">
-          {loading ? (
-            <div className="flex items-center justify-center py-16">
-              <Loader2 className="w-6 h-6 animate-spin text-[#FF6B00]" />
-            </div>
-          ) : (
-            <AnimatePresence>
-              {filtered.length === 0 ? (
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-16">
-                  <Bell className="w-12 h-12 text-[#A0A0A0] mx-auto mb-4" />
-                  <p className="text-lg text-white font-medium mb-1">{t('notifications.empty')}</p>
-                  <p className="text-sm text-[#A0A0A0]">{t('notifications.empty_desc')}</p>
-                </motion.div>
-              ) : (
-                filtered.map((n, i) => (
-                  <motion.button
-                    key={n.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, x: -50 }}
-                    transition={{ delay: i * 0.03 }}
-                    onClick={() => handleClick(n)}
-                    className={`w-full flex items-start gap-4 p-4 rounded-2xl border transition-all text-left hover:bg-white/5 ${n.read ? 'bg-transparent border-white/5' : 'bg-[#FF6B00]/5 border-[#FF6B00]/20'}`}
+          <AnimatePresence>
+            {filtered.length === 0 ? (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="text-center py-16"
+              >
+                <Bell className="w-12 h-12 text-[#A0A0A0] mx-auto mb-4" />
+                <p className="text-lg text-white font-medium mb-1">{t('notifications.empty')}</p>
+                <p className="text-sm text-[#A0A0A0]">{t('notifications.empty_desc')}</p>
+              </motion.div>
+            ) : (
+              filtered.map((n, i) => (
+                <motion.button
+                  key={n.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, x: -50 }}
+                  transition={{ delay: i * 0.03 }}
+                  onClick={() => handleClick(n)}
+                  className={`w-full flex items-start gap-4 p-4 rounded-2xl border transition-all text-left hover:bg-white/5 ${
+                    n.read ? 'bg-transparent border-white/5' : 'bg-[#FF6B00]/5 border-[#FF6B00]/20'
+                  }`}
+                >
+                  {/* Icon */}
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                    n.type === 'message' ? 'bg-blue-500/10' :
+                    n.type === 'booking' ? 'bg-green-500/10' : 'bg-[#FF6B00]/10'
+                  }`}>
+                    {n.type === 'message' ? <MessageCircle className="w-5 h-5 text-blue-400" /> :
+                     n.type === 'booking' ? <Check className="w-5 h-5 text-green-400" /> :
+                     <Bell className="w-5 h-5 text-[#FF6B00]" />}
+                  </div>
+
+                  {/* Content */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-sm font-medium text-white truncate">{n.title}</p>
+                      <span className="text-[10px] text-[#A0A0A0] shrink-0">
+                        {n.created_at ? new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+                      </span>
+                    </div>
+                    <p className="text-xs text-[#A0A0A0] mt-0.5 line-clamp-2">{n.message}</p>
+                  </div>
+
+                  {/* Delete button */}
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleDelete(n.id); }}
+                    className="p-1.5 rounded-lg hover:bg-red-500/10 text-[#A0A0A0] hover:text-red-400 shrink-0"
                   >
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-                      n.type === 'info' ? 'bg-blue-500/10' :
-                      n.type === 'success' ? 'bg-green-500/10' :
-                      n.type === 'error' ? 'bg-red-500/10' : 'bg-[#FF6B00]/10'
-                    }`}>
-                      {n.type === 'info' ? <MessageCircle className="w-5 h-5 text-blue-400" /> :
-                       n.type === 'success' ? <Check className="w-5 h-5 text-green-400" /> :
-                       n.type === 'error' ? <Bell className="w-5 h-5 text-red-400" /> :
-                       <Bell className="w-5 h-5 text-[#FF6B00]" />}
-                    </div>
-
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="text-sm font-medium text-white truncate">{n.title}</p>
-                        <span className="text-[10px] text-[#A0A0A0] shrink-0">
-                          {n.created_at ? new Date(n.created_at).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}
-                        </span>
-                      </div>
-                      <p className="text-xs text-[#A0A0A0] mt-0.5 line-clamp-2">{n.message}</p>
-                    </div>
-
-                    <button
-                      onClick={(e) => { e.stopPropagation(); handleDelete(n.id); }}
-                      className="p-1.5 rounded-lg hover:bg-red-500/10 text-[#A0A0A0] hover:text-red-400 shrink-0"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </motion.button>
-                ))
-              )}
-            </AnimatePresence>
-          )}
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </motion.button>
+              ))
+            )}
+          </AnimatePresence>
         </div>
       </div>
     </div>

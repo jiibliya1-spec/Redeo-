@@ -11,6 +11,9 @@ import {
   CheckCircle, XCircle, Clock3, Inbox,
 } from 'lucide-react';
 
+const SUPABASE_URL = 'https://qhbiafoyhvmvyyzwdzhd.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoYmlhZm95aHZtdnl5endkemhkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3OTIwNDcsImV4cCI6MjA5NDM2ODA0N30.04MftiDjQUrnGegTeaL88WyES9ydDKxRrrmVua0rVbM';
+
 interface BookingItem {
   id: string;
   trip_id: string;
@@ -25,7 +28,10 @@ interface BookingItem {
     departure_date: string;
     departure_time: string;
     price: number;
-    driver?: { name: string; avatar: string };
+  };
+  driver?: {
+    name: string;
+    avatar: string;
   };
 }
 
@@ -40,54 +46,66 @@ export function MyTripsPage() {
   const loadBookings = useCallback(async () => {
     if (!user?.id) { setLoading(false); return; }
     try {
-      const { data, error } = await supabase
-        .from('bookings')
-        .select(`
-          *,
-          trip:trips(
-            from_location, to_location, departure_date, departure_time, price,
-            driver:profiles(name, avatar)
-          )
-        `)
-        .eq('passenger_id', user.id)
-        .order('created_at', { ascending: false });
+      const { data: sessionData } = await supabase.auth.getSession();
+      const jwt = sessionData.session?.access_token || '';
 
-      if (error) throw error;
-      setBookings((data ?? []) as BookingItem[]);
-    } catch (e) {
-      console.error('loadBookings:', e);
-    }
+      const res = await fetch(
+        `${SUPABASE_URL}/rest/v1/bookings?passenger_id=eq.${user.id}&order=created_at.desc&limit=100`,
+        { headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${jwt}` } }
+      );
+
+      let data: BookingItem[] = [];
+      if (res.ok) {
+        data = await res.json();
+      }
+
+      // Fallback: merge with localStorage
+      const local = JSON.parse(localStorage.getItem('wansniauto_bookings') || '[]')
+        .filter((b: any) => b.passenger_id === user.id);
+      const existingIds = new Set(data.map(b => b.id));
+      data = [...data, ...local.filter((b: any) => !existingIds.has(b.id))];
+
+      // Enrich with trip + driver info
+      for (const b of data) {
+        if (b.trip_id) {
+          const tripRes = await fetch(
+            `${SUPABASE_URL}/rest/v1/trips?select=*&id=eq.${b.trip_id}&limit=1`,
+            { headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${jwt}` } }
+          );
+          if (tripRes.ok) {
+            const trips = await tripRes.json();
+            if (trips?.[0]) b.trip = trips[0];
+          }
+          if (b.driver_id) {
+            const driverRes = await fetch(
+              `${SUPABASE_URL}/rest/v1/profiles?select=name,avatar&id=eq.${b.driver_id}&limit=1`,
+              { headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${jwt}` } }
+            );
+            if (driverRes.ok) {
+              const drivers = await driverRes.json();
+              if (drivers?.[0]) b.driver = drivers[0];
+            }
+          }
+        }
+      }
+
+      setBookings(data);
+    } catch (e) { console.error('loadBookings:', e); }
     setLoading(false);
   }, [user?.id]);
 
   useEffect(() => { loadBookings(); }, [loadBookings]);
 
-  // Real-time subscription
-  useEffect(() => {
-    if (!user?.id) return;
-    const channel = supabase
-      .channel('my-bookings')
-      .on('postgres_changes', {
-        event: 'UPDATE',
-        schema: 'public',
-        table: 'bookings',
-        filter: `passenger_id=eq.${user.id}`,
-      }, (payload) => {
-        setBookings(prev => prev.map(b => b.id === payload.new.id ? { ...b, ...payload.new } : b));
-      })
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [user?.id]);
-
   const handleCancel = async (bookingId: string) => {
     if (!confirm('Cancel this booking?')) return;
     try {
-      const { error } = await supabase
-        .from('bookings')
-        .update({ status: 'cancelled' })
-        .eq('id', bookingId)
-        .eq('passenger_id', user!.id);
-      if (error) throw error;
+      const { data: sessionData } = await supabase.auth.getSession();
+      const jwt = sessionData.session?.access_token || '';
+      await fetch(`${SUPABASE_URL}/rest/v1/bookings?id=eq.${bookingId}`, {
+        method: 'PATCH',
+        headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${jwt}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'cancelled' }),
+      });
       setBookings(prev => prev.map(b => b.id === bookingId ? { ...b, status: 'cancelled' as const } : b));
       toast.success('Booking cancelled');
     } catch { toast.error('Failed to cancel'); }
@@ -107,13 +125,13 @@ export function MyTripsPage() {
   return (
     <div className="min-h-screen bg-[#0F1115] pt-20 pb-8">
       <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8">
+        {/* Header */}
         <div className="flex items-center gap-4 mb-6">
-          <button onClick={() => navigate('/')} className="p-2 rounded-xl hover:bg-white/5">
-            <ArrowLeft className="w-5 h-5 text-[#A0A0A0]" />
-          </button>
+          <button onClick={() => navigate('/')} className="p-2 rounded-xl hover:bg-white/5"><ArrowLeft className="w-5 h-5 text-[#A0A0A0]" /></button>
           <h1 className="text-2xl font-bold text-white" dir={dir}>My Bookings</h1>
         </div>
 
+        {/* Tabs */}
         <div className="flex gap-2 mb-6">
           {(['upcoming', 'past'] as const).map(tab => (
             <button
@@ -134,16 +152,13 @@ export function MyTripsPage() {
           <div className="text-center py-12">
             <Inbox className="w-12 h-12 text-[#A0A0A0]/30 mx-auto mb-3" />
             <p className="text-[#A0A0A0]">No {activeTab} bookings</p>
-            <Button onClick={() => navigate('/search')} className="mt-4 bg-[#FF6B00] hover:bg-[#E56000] text-white rounded-xl">
-              Find a Ride
-            </Button>
+            <Button onClick={() => navigate('/search')} className="mt-4 bg-[#FF6B00] hover:bg-[#E56000] text-white rounded-xl">Find a Ride</Button>
           </div>
         ) : (
           <div className="space-y-3">
             {filtered.map((b, i) => {
               const st = statusConfig[b.status] || statusConfig.pending;
               const StIcon = st.icon;
-              const driver = (b.trip as any)?.driver;
               return (
                 <motion.div
                   key={b.id}
@@ -155,15 +170,9 @@ export function MyTripsPage() {
                 >
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-3">
-                      <img
-                        src={driver?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${driver?.name || 'user'}`}
-                        alt=""
-                        className="w-10 h-10 rounded-full ring-2 ring-[#FF6B00]/20"
-                      />
+                      <img src={b.driver?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${b.driver?.name}`} alt="" className="w-10 h-10 rounded-full ring-2 ring-[#FF6B00]/20" />
                       <div>
-                        <p className="text-sm font-medium text-white">
-                          {b.trip?.from_location || '?'} → {b.trip?.to_location || '?'}
-                        </p>
+                        <p className="text-sm font-medium text-white">{b.trip?.from_location || '??'} → {b.trip?.to_location || '??'}</p>
                         <div className="flex items-center gap-2 text-xs text-[#A0A0A0]">
                           <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{b.trip?.departure_date}</span>
                           <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{b.trip?.departure_time}</span>

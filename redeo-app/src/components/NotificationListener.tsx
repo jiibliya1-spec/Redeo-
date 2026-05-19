@@ -34,13 +34,20 @@ function syncBookingStatus(notif: any, userId: string) {
 
     const bookings: any[] = JSON.parse(localStorage.getItem(LS_BOOKINGS) || '[]');
     const newStatus = notif.type === 'success' ? 'confirmed' : 'cancelled';
+    let changed = false;
     const updated = bookings.map(b => {
       if (b.trip_id === tripId && b.passenger_id === userId && b.status === 'pending') {
+        changed = true;
         return { ...b, status: newStatus };
       }
       return b;
     });
     localStorage.setItem(LS_BOOKINGS, JSON.stringify(updated));
+
+    // Notify MyTripsPage (and any listener) to refresh
+    if (changed) {
+      window.dispatchEvent(new CustomEvent('wansniauto:booking-updated', { detail: { tripId, status: newStatus } }));
+    }
   } catch {}
 }
 

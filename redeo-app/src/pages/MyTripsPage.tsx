@@ -138,6 +138,19 @@ export function MyTripsPage() {
 
   useEffect(() => { loadBookings(); }, [loadBookings]);
 
+  // Re-read localStorage when NotificationListener updates a booking status
+  useEffect(() => {
+    const onBookingUpdated = () => { loadBookings(); };
+    window.addEventListener('wansniauto:booking-updated', onBookingUpdated);
+    // Also refresh when the tab becomes visible again (user switches back)
+    const onVisible = () => { if (document.visibilityState === 'visible') loadBookings(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      window.removeEventListener('wansniauto:booking-updated', onBookingUpdated);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [loadBookings]);
+
   const handleCancel = async (bookingId: string) => {
     if (!window.confirm('Cancel this booking?')) return;
     try {

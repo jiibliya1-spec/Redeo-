@@ -177,7 +177,7 @@ export function PassengerDashboard() {
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ delay: index * 0.05 }}
-        onClick={() => navigate(`/trip/${trip.id}`)}
+        onClick={() => navigate(`/trip/${booking.trip_id}`)}
         className="flex items-center gap-4 p-4 rounded-xl hover:bg-white/5 transition-colors cursor-pointer group"
       >
         <div className="w-12 h-12 rounded-xl bg-[#FF6B00]/10 flex items-center justify-center shrink-0">

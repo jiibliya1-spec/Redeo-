@@ -123,6 +123,7 @@ export function BookingPage() {
             total_price: trip.price * seats,
             created_at: now,
             trip: {
+              id: trip.id,
               from_location: trip.from_location,
               to_location: trip.to_location,
               departure_date: trip.departure_date,
@@ -146,6 +147,7 @@ export function BookingPage() {
           total_price: trip.price * seats,
           created_at: now,
           trip: {
+            id: trip.id,
             from_location: trip.from_location,
             to_location: trip.to_location,
             departure_date: trip.departure_date,

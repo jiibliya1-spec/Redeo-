@@ -124,46 +124,54 @@ export function ProfilePage() {
     if (!user?.id) return;
 
     const uid = user.id;
-    const channelName = `profile-page-${uid}`;
+    // Unique name per mount to avoid conflicts with any lingering channel
+    const channelName = `profile-page-${uid}-${Date.now()}`;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
 
-    const channel = supabase
-      .channel(channelName)
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'profiles',
-          filter: `id=eq.${uid}`,
-        },
-        (payload) => {
-          const p = payload.new as any;
-          if (!p) return;
+    try {
+      channel = supabase
+        .channel(channelName)
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'profiles',
+            filter: `id=eq.${uid}`,
+          },
+          (payload) => {
+            const p = payload.new as any;
+            if (!p) return;
 
-          const wasVerified = profileVerifiedRef.current;
-          setProfileVerified(p.is_verified === true);
-          setProfileStatus(p.verification_status || 'unverified');
-          if (p.role) setProfileRole(p.role);
+            const wasVerified = profileVerifiedRef.current;
+            setProfileVerified(p.is_verified === true);
+            setProfileStatus(p.verification_status || 'unverified');
+            if (p.role) setProfileRole(p.role);
 
-          const freshUser = useStore.getState().user;
-          if (freshUser) {
-            setUser({
-              ...freshUser,
-              is_verified: p.is_verified === true,
-              verification_status: p.verification_status || 'unverified',
-              role: (p.role || freshUser.role) as 'passenger' | 'driver' | 'admin',
-            });
+            const freshUser = useStore.getState().user;
+            if (freshUser) {
+              setUser({
+                ...freshUser,
+                is_verified: p.is_verified === true,
+                verification_status: p.verification_status || 'unverified',
+                role: (p.role || freshUser.role) as 'passenger' | 'driver' | 'admin',
+              });
+            }
+
+            if (p.is_verified && !wasVerified) {
+              toast.success('Your account has been verified!');
+            }
           }
-
-          if (p.is_verified && !wasVerified) {
-            toast.success('Your account has been verified!');
-          }
-        }
-      )
-      .subscribe();
+        )
+        .subscribe();
+    } catch (err) {
+      console.warn('[ProfilePage] Realtime subscription failed (non-critical):', err);
+    }
 
     return () => {
-      supabase.removeChannel(channel);
+      if (channel) {
+        supabase.removeChannel(channel).catch(() => {});
+      }
     };
   }, [user?.id, setUser]);
 

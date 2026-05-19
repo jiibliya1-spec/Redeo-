@@ -328,8 +328,9 @@ export default function VerificationPage() {
   const uploadedCount = steps.filter((s) => ['uploaded', 'pending', 'approved'].includes(s.status)).length;
   const hasUploadedDocs = steps.some((s) => s.status === 'uploaded');
   const isVerified = user?.is_verified === true || user?.verification_status === 'verified';
-  const isSubmitted = user?.verification_status === 'submitted';
-  const isRejected = user?.verification_status === 'rejected';
+  /* isSubmitted: profile says submitted OR docs already in pending/review state in DB */
+  const isSubmitted = user?.verification_status === 'submitted' || steps.some((s) => s.status === 'pending');
+  const isRejected = user?.verification_status === 'rejected' && !steps.some((s) => s.status === 'pending');
 
   return (
     <div className="min-h-screen bg-[#0F1115] pt-16 pb-8">

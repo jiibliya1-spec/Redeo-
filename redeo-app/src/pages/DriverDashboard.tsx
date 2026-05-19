@@ -242,7 +242,6 @@ export function DriverDashboard() {
         duration: duration || '',
         status: 'upcoming',
         route: [from, to],
-        amenities: ['Air Conditioning'],
       };
 
       const result = await apiPost('trips', tripData);

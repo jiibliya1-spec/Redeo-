@@ -1,0 +1,59 @@
+2026-05-19T14:35:17.437655Z	Cloning repository...
+2026-05-19T14:35:19.478461Z	From https://github.com/jiibliya1-spec/Redeo-
+2026-05-19T14:35:19.479639Z	 * branch            3aeb3c74e8bfdbe957d0ae5f0849dcd89a5d217c -> FETCH_HEAD
+2026-05-19T14:35:19.479716Z	
+2026-05-19T14:35:19.82509Z	HEAD is now at 3aeb3c7 refactor: use Supabase as primary storage for bookings + notifications (localStorage as fallback cache)
+2026-05-19T14:35:19.825582Z	
+2026-05-19T14:35:19.967341Z	
+2026-05-19T14:35:19.967905Z	Using v2 root directory strategy
+2026-05-19T14:35:19.993862Z	Success: Finished cloning repository files
+2026-05-19T14:35:22.408301Z	Checking for configuration in a Wrangler configuration file (BETA)
+2026-05-19T14:35:22.408927Z	
+2026-05-19T14:35:22.410666Z	Found wrangler.toml file. Reading build configuration...
+2026-05-19T14:35:22.417394Z	pages_build_output_dir: dist
+2026-05-19T14:35:22.417576Z	Build environment variables: (none found)
+2026-05-19T14:35:23.546836Z	Successfully read the Wrangler configuration file.
+2026-05-19T14:35:24.057398Z	Detected the following tools from environment: pnpm@10.11.1, nodejs@22.16.0, npm@10.9.2
+2026-05-19T14:35:25.54331Z	Installing project dependencies: pnpm install
+2026-05-19T14:35:26.330899Z	Scope: all 8 workspace projects
+2026-05-19T14:35:26.726496Z	..                                       | Progress: resolved 1, reused 0, downloaded 0, added 0
+2026-05-19T14:35:26.882157Z	..                                       | +476 ++++++++++++++++++++++++++++++++
+2026-05-19T14:35:27.729454Z	..                                       | Progress: resolved 476, reused 0, downloaded 87, added 80
+2026-05-19T14:35:28.728622Z	..                                       | Progress: resolved 476, reused 0, downloaded 187, added 143
+2026-05-19T14:35:29.73032Z	..                                       | Progress: resolved 476, reused 0, downloaded 207, added 151
+2026-05-19T14:35:30.738696Z	..                                       | Progress: resolved 476, reused 0, downloaded 284, added 187
+2026-05-19T14:35:31.735079Z	..                                       | Progress: resolved 476, reused 0, downloaded 440, added 256
+2026-05-19T14:35:32.17567Z	..                                       | Progress: resolved 476, reused 0, downloaded 476, added 476, done
+2026-05-19T14:35:32.507813Z	.../esbuild@0.27.3/node_modules/esbuild postinstall$ node install.js
+2026-05-19T14:35:32.638076Z	.../esbuild@0.27.3/node_modules/esbuild postinstall: Done
+2026-05-19T14:35:33.077206Z	.. preinstall$ sh -c 'rm -f package-lock.json yarn.lock; case "$npm_config_user_agent" in pnpm/*) ;; *) echo "Use pnpm instead" >&2; exit 1 ;; esac'
+2026-05-19T14:35:33.126551Z	.. preinstall: Done
+2026-05-19T14:35:33.343581Z	Done in 7.5s using pnpm v10.11.1
+2026-05-19T14:35:33.391548Z	Executing user command: npm install && npm run build
+2026-05-19T14:35:57.460224Z	
+2026-05-19T14:35:57.460586Z	added 550 packages, and audited 551 packages in 24s
+2026-05-19T14:35:57.460685Z	
+2026-05-19T14:35:57.460765Z	73 packages are looking for funding
+2026-05-19T14:35:57.460825Z	  run `npm fund` for details
+2026-05-19T14:35:57.487041Z	
+2026-05-19T14:35:57.488106Z	9 vulnerabilities (3 moderate, 6 high)
+2026-05-19T14:35:57.48847Z	
+2026-05-19T14:35:57.48855Z	To address all issues, run:
+2026-05-19T14:35:57.488621Z	  npm audit fix
+2026-05-19T14:35:57.488665Z	
+2026-05-19T14:35:57.488746Z	Run `npm audit` for details.
+2026-05-19T14:35:58.250302Z	
+2026-05-19T14:35:58.25109Z	> my-app@0.0.0 build
+2026-05-19T14:35:58.251582Z	> tsc -b && vite build
+2026-05-19T14:35:58.251715Z	
+2026-05-19T14:36:11.500591Z	src/pages/MyTripsPage.tsx(99,29): error TS18048: 't' is possibly 'undefined'.
+2026-05-19T14:36:11.502196Z	src/pages/MyTripsPage.tsx(99,50): error TS18048: 't' is possibly 'undefined'.
+2026-05-19T14:36:11.502303Z	src/pages/MyTripsPage.tsx(99,80): error TS18048: 't' is possibly 'undefined'.
+2026-05-19T14:36:11.502991Z	src/pages/MyTripsPage.tsx(99,111): error TS18048: 't' is possibly 'undefined'.
+2026-05-19T14:36:11.503058Z	src/pages/MyTripsPage.tsx(99,145): error TS18048: 't' is possibly 'undefined'.
+2026-05-19T14:36:11.503125Z	src/pages/MyTripsPage.tsx(99,170): error TS18048: 't' is possibly 'undefined'.
+2026-05-19T14:36:11.503173Z	src/pages/MyTripsPage.tsx(99,190): error TS18048: 't' is possibly 'undefined'.
+2026-05-19T14:36:11.503217Z	src/pages/MyTripsPage.tsx(100,39): error TS18048: 't' is possibly 'undefined'.
+2026-05-19T14:36:12.378999Z	Failed: Error while executing user command. Exited with error code: 2
+2026-05-19T14:36:12.38951Z	Failed: build command exited with code: 1
+2026-05-19T14:36:13.228953Z	Failed: error occurred while running build command

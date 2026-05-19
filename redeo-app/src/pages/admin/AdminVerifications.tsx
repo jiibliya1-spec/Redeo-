@@ -133,21 +133,30 @@ export function AdminVerifications() {
     try {
       const headers = await getHeaders();
 
-      const [verifRes, usersRes] = await Promise.all([
-        fetch(`${SUPABASE_URL}/rest/v1/verifications?select=*&order=created_at.desc&limit=500`, { headers }),
-        fetch(`${SUPABASE_URL}/rest/v1/profiles?select=id,name,email,avatar,role&limit=1000`, { headers }),
-      ]);
+      /* Single joined query: verifications + nested profile fields in one round-trip */
+      const res = await fetch(
+        `${SUPABASE_URL}/rest/v1/verifications?select=*,profiles(name,email,avatar,role)&order=created_at.desc&limit=300`,
+        { headers }
+      );
 
-      if (!verifRes.ok) throw new Error('Status ' + verifRes.status + ': ' + await verifRes.text());
+      if (!res.ok) throw new Error('Status ' + res.status + ': ' + await res.text());
+      const verifData: any[] = await res.json();
 
-      const [verifData, usersData] = await Promise.all([
-        verifRes.json(),
-        usersRes.ok ? usersRes.json() : [],
-      ]);
+      /* Populate usersMapRef for realtime patches */
+      for (const v of verifData) {
+        if (v.profiles && v.user_id) {
+          usersMapRef.current.set(v.user_id, v.profiles);
+        }
+      }
 
-      usersMapRef.current = new Map<string, any>((usersData || []).map((u: any) => [u.id, u]));
+      const combined: VerificationRecord[] = verifData.map((v) => ({
+        ...v,
+        user_name: v.profiles?.name || 'Unknown',
+        user_email: v.profiles?.email || '',
+        user_avatar: v.profiles?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${v.user_id}`,
+        user_role: v.profiles?.role || 'passenger',
+      }));
 
-      const combined: VerificationRecord[] = (verifData || []).map(buildRecord);
       setVerifications(combined);
       saveCache(combined);
     } catch (err: any) {
@@ -155,7 +164,7 @@ export function AdminVerifications() {
     }
     setLoading(false);
     setRefreshing(false);
-  }, [getHeaders, buildRecord]);
+  }, [getHeaders]);
 
   useEffect(() => {
     // If we have cache, load silently in background; otherwise show spinner

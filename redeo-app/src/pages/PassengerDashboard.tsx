@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useStore } from '@/store/useStore';
 import { useI18n } from '@/lib/i18n';
-import { apiGet } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import type { Trip, Booking } from '@/types';
 import {
@@ -16,7 +16,6 @@ interface BookingWithTrip extends Booking {
 }
 
 const LOCAL_BOOKINGS_KEY = 'wansniauto_bookings';
-const LOCAL_TRIPS_KEY = 'wansniauto_trips';
 
 function getLocalBookings(): BookingWithTrip[] {
   try {
@@ -25,11 +24,60 @@ function getLocalBookings(): BookingWithTrip[] {
   } catch { return []; }
 }
 
-function getLocalTrips(): Trip[] {
+function patchLocalBooking(id: string, patch: Partial<BookingWithTrip>) {
   try {
-    const raw = localStorage.getItem(LOCAL_TRIPS_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch { return []; }
+    const all = getLocalBookings();
+    const updated = all.map((b: any) => b.id === id ? { ...b, ...patch } : b);
+    localStorage.setItem(LOCAL_BOOKINGS_KEY, JSON.stringify(updated));
+  } catch {}
+}
+
+/** Check Supabase notifications and sync booking status for any pending bookings */
+async function syncStatusFromNotifications(bookings: BookingWithTrip[], userId: string): Promise<BookingWithTrip[]> {
+  const pending = bookings.filter(b => b.status === 'pending');
+  if (!pending.length) return bookings;
+
+  try {
+    const { data: notifs } = await supabase
+      .from('notifications')
+      .select('id, type, title, message, created_at')
+      .eq('user_id', userId)
+      .in('type', ['success', 'warning'])
+      .order('created_at', { ascending: false })
+      .limit(30);
+
+    if (!notifs?.length) return bookings;
+
+    return bookings.map(booking => {
+      if (booking.status !== 'pending') return booking;
+
+      for (const notif of notifs) {
+        const msg = notif.message || '';
+
+        // Match by ||TRIP:id|| marker (new format)
+        const tripMatch = msg.match(/\|\|TRIP:([a-zA-Z0-9-]+)\|\|/);
+        if (tripMatch && tripMatch[1] === booking.trip_id) {
+          const newStatus = notif.type === 'success' ? 'confirmed' : 'cancelled';
+          patchLocalBooking(booking.id, { status: newStatus });
+          return { ...booking, status: newStatus as BookingWithTrip['status'] };
+        }
+
+        // Fallback: match by trip content in message (old format without marker)
+        const from = booking.trip?.from_location;
+        const to = booking.trip?.to_location;
+        const date = booking.trip?.departure_date;
+        if (from && to && date && msg.includes(from) && msg.includes(to) && msg.includes(date)) {
+          const newStatus = notif.type === 'success' ? 'confirmed' : 'cancelled';
+          patchLocalBooking(booking.id, { status: newStatus });
+          return { ...booking, status: newStatus as BookingWithTrip['status'] };
+        }
+      }
+
+      return booking;
+    });
+  } catch {
+    return bookings;
+  }
 }
 
 export function PassengerDashboard() {
@@ -41,55 +89,48 @@ export function PassengerDashboard() {
   const [bookings, setBookings] = useState<BookingWithTrip[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Stats
   const [totalTrips, setTotalTrips] = useState(0);
   const [totalSaved, setTotalSaved] = useState(0);
   const [rating, setRating] = useState(0);
 
-  useEffect(() => {
+  const loadBookings = useCallback(async () => {
     if (!user?.id) return;
-    loadBookings();
-  }, [user?.id]);
-
-  async function loadBookings() {
     try {
       setLoading(true);
 
-      let allBookings: BookingWithTrip[] = [];
+      // Load from localStorage (primary — bookings table may not exist in Supabase)
+      let allBookings: BookingWithTrip[] = getLocalBookings().filter(
+        (b: BookingWithTrip) => b.passenger_id === user.id
+      );
 
-      try {
-        const data = await apiGet('bookings');
-        if (data && data.length > 0) {
-          const enriched = await Promise.all(
-            data.map(async (b: any) => {
-              try {
-                const trips = await apiGet('trips', { eq: { id: b.trip_id } });
-                return { ...b, trip: trips?.[0] || undefined };
-              } catch { return b; }
-            })
-          );
-          allBookings = enriched;
+      // Try to enrich with trip data for any booking missing it
+      const needsTrip = allBookings.filter(b => !b.trip?.from_location && b.trip_id);
+      if (needsTrip.length) {
+        const tripIds = [...new Set(needsTrip.map(b => b.trip_id))];
+        const { data: trips } = await supabase
+          .from('trips')
+          .select('id, from_location, to_location, departure_date, departure_time, price, driver_id')
+          .in('id', tripIds);
+
+        if (trips?.length) {
+          const tripMap = new Map(trips.map(t => [t.id, t]));
+          allBookings = allBookings.map(b => {
+            if (!b.trip?.from_location && tripMap.has(b.trip_id)) {
+              const t = tripMap.get(b.trip_id);
+              return { ...b, trip: t as unknown as Trip };
+            }
+            return b;
+          });
         }
-      } catch {
-        console.log('REST API bookings not available');
       }
 
-      if (allBookings.length === 0) {
-        const localBookings = getLocalBookings();
-        const localTrips = getLocalTrips();
-        allBookings = localBookings
-          .map((b: BookingWithTrip) => {
-            const trip = localTrips.find((t: Trip) => t.id === b.trip_id);
-            return { ...b, trip };
-          })
-          .filter((b: BookingWithTrip) => b.passenger_id === user!.id);
-      }
+      // Sync status from Supabase notifications (driver accepted/rejected)
+      allBookings = await syncStatusFromNotifications(allBookings, user.id);
 
       setBookings(allBookings);
 
       const confirmedBookings = allBookings.filter((b: BookingWithTrip) => b.status === 'confirmed');
       const totalSpent = confirmedBookings.reduce((sum: number, b: BookingWithTrip) => sum + (b.total_price || 0), 0);
-
       setTotalTrips(confirmedBookings.length);
       setTotalSaved(totalSpent);
       setRating(user?.rating || 5);
@@ -98,7 +139,23 @@ export function PassengerDashboard() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [user?.id, user?.rating]);
+
+  useEffect(() => {
+    loadBookings();
+  }, [loadBookings]);
+
+  // Re-read when NotificationListener updates a booking status
+  useEffect(() => {
+    const onUpdate = () => loadBookings();
+    window.addEventListener('wansniauto:booking-updated', onUpdate);
+    const onVisible = () => { if (document.visibilityState === 'visible') loadBookings(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      window.removeEventListener('wansniauto:booking-updated', onUpdate);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [loadBookings]);
 
   const now = new Date().toISOString().split('T')[0];
   const upcomingBookings = bookings.filter(b => b.trip && b.trip.departure_date >= now && b.status !== 'cancelled');
@@ -138,7 +195,7 @@ export function PassengerDashboard() {
               <Calendar className="w-3 h-3" />{trip.departure_date}
             </span>
             <span className="text-xs text-[#A0A0A0] flex items-center gap-1">
-              <Clock className="w-3 h-3" />{trip.departure_time}
+              <Clock className="w-3 h-3" />{(trip as any).departure_time}
             </span>
           </div>
         </div>
@@ -184,7 +241,7 @@ export function PassengerDashboard() {
           {stats.map((s, i) => (
             <motion.div key={s.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }} className="bg-[#1B1F27] rounded-2xl border border-white/5 p-4">
               <s.icon className="w-5 h-5 text-[#FF6B00] mb-2" />
-              <p className="text-2xl font-bold text-white">{s.prefix}{s.value}{s.suffix}</p>
+              <p className="text-2xl font-bold text-white">{(s as any).prefix}{s.value}{(s as any).suffix}</p>
               <p className="text-xs text-[#A0A0A0]">{s.label}</p>
             </motion.div>
           ))}

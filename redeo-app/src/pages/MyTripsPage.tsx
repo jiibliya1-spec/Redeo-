@@ -129,7 +129,47 @@ export function MyTripsPage() {
         }
       }
 
-      /* 4. Sort by created_at desc */
+      /* 4. Sync status from Supabase notifications (works with old AND new message formats) */
+      const pendingItems = data.filter(b => b.status === 'pending');
+      if (pendingItems.length) {
+        try {
+          const { data: notifs } = await supabase
+            .from('notifications')
+            .select('id, type, title, message')
+            .eq('user_id', user.id)
+            .in('type', ['success', 'warning'])
+            .order('created_at', { ascending: false })
+            .limit(30);
+
+          if (notifs?.length) {
+            data = data.map(booking => {
+              if (booking.status !== 'pending') return booking;
+              for (const notif of notifs) {
+                const msg = notif.message || '';
+                // Try ||TRIP:id|| marker first (new format)
+                const tripMatch = msg.match(/\|\|TRIP:([a-zA-Z0-9-]+)\|\|/);
+                if (tripMatch && tripMatch[1] === booking.trip_id) {
+                  const ns = notif.type === 'success' ? 'confirmed' : 'cancelled';
+                  patchLocalBooking(booking.id, { status: ns as BookingItem['status'] });
+                  return { ...booking, status: ns as BookingItem['status'] };
+                }
+                // Fallback: match by trip content (old format without marker)
+                const from = booking.trip?.from_location;
+                const to = booking.trip?.to_location;
+                const date = booking.trip?.departure_date;
+                if (from && to && date && msg.includes(from) && msg.includes(to) && msg.includes(date)) {
+                  const ns = notif.type === 'success' ? 'confirmed' : 'cancelled';
+                  patchLocalBooking(booking.id, { status: ns as BookingItem['status'] });
+                  return { ...booking, status: ns as BookingItem['status'] };
+                }
+              }
+              return booking;
+            });
+          }
+        } catch { /* Supabase unavailable */ }
+      }
+
+      /* 5. Sort by created_at desc */
       data.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
       setBookings(data);
     } catch (e) { console.error('loadBookings:', e); }

@@ -10,8 +10,6 @@ import { useI18n } from '@/lib/i18n';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 
-const SUPABASE_URL = 'https://qhbiafoyhvmvyyzwdzhd.supabase.co';
-
 /* ─── Types ─── */
 interface DocStep {
   id: string;
@@ -28,64 +26,14 @@ interface DocStep {
   rejectionReason?: string;
 }
 
-/* ─── Required documents ─── */
 const ALL_DOCS: DocStep[] = [
-  {
-    id: 'cin_front',
-    label: 'National ID (Front)', labelAr: 'البطاقة الوطنية (أمام)', labelFr: 'CIN (Recto)',
-    desc: 'Clear photo of your National ID card front side',
-    descAr: 'صورة واضحة للجهة الأمامية للبطاقة الوطنية',
-    descFr: 'Photo claire du recto de votre CIN',
-    icon: CreditCard, status: 'not_uploaded',
-  },
-  {
-    id: 'cin_back',
-    label: 'National ID (Back)', labelAr: 'البطاقة الوطنية (خلف)', labelFr: 'CIN (Verso)',
-    desc: 'Clear photo of your National ID card back side',
-    descAr: 'صورة واضحة للجهة الخلفية للبطاقة الوطنية',
-    descFr: 'Photo claire du verso de votre CIN',
-    icon: CreditCard, status: 'not_uploaded',
-  },
-  {
-    id: 'selfie',
-    label: 'Selfie with ID', labelAr: 'صورة شخصية مع البطاقة', labelFr: 'Selfie avec CIN',
-    desc: 'Photo of yourself holding your ID next to your face',
-    descAr: 'صورة شخصية وانت كاتمسك البطاقة بجانب وجهك',
-    descFr: 'Photo de vous tenant votre CIN à côté de votre visage',
-    icon: User, status: 'not_uploaded',
-  },
-  {
-    id: 'driver_license',
-    label: 'Driver License', labelAr: 'رخصة السياقة', labelFr: 'Permis de conduire',
-    desc: 'Clear photo of your valid driver license',
-    descAr: 'صورة واضحة لرخصة السياقة الصالحة',
-    descFr: 'Photo claire de votre permis de conduire valide',
-    icon: Shield, status: 'not_uploaded',
-  },
-  {
-    id: 'insurance',
-    label: 'Insurance Certificate', labelAr: 'وثيقة التأمين', labelFr: 'Attestation d\'assurance',
-    desc: 'Vehicle insurance certificate',
-    descAr: 'شهادة التأمين للسيارة',
-    descFr: 'Attestation d\'assurance du véhicule',
-    icon: Shield, status: 'not_uploaded',
-  },
-  {
-    id: 'car_photo_front',
-    label: 'Car Photo (Front)', labelAr: 'صورة السيارة (أمام)', labelFr: 'Photo voiture (Avant)',
-    desc: 'Front view of your vehicle',
-    descAr: 'صورة السيارة من القدام',
-    descFr: 'Vue de face de votre véhicule',
-    icon: Car, status: 'not_uploaded',
-  },
-  {
-    id: 'car_photo_back',
-    label: 'Car Photo (Back)', labelAr: 'صورة السيارة (خلف)', labelFr: 'Photo voiture (Arrière)',
-    desc: 'Back view of your vehicle',
-    descAr: 'صورة السيارة من الخلف',
-    descFr: 'Vue de derrière de votre véhicule',
-    icon: Car, status: 'not_uploaded',
-  },
+  { id: 'cin_front', label: 'National ID (Front)', labelAr: 'البطاقة الوطنية (أمام)', labelFr: 'CIN (Recto)', desc: 'Clear photo of your National ID front side', descAr: 'صورة واضحة للبطاقة الوطنية من الأمام', descFr: 'Photo claire du recto de votre CIN', icon: CreditCard, status: 'not_uploaded' },
+  { id: 'cin_back', label: 'National ID (Back)', labelAr: 'البطاقة الوطنية (خلف)', labelFr: 'CIN (Verso)', desc: 'Clear photo of your National ID back side', descAr: 'صورة واضحة للبطاقة الوطنية من الخلف', descFr: 'Photo claire du verso de votre CIN', icon: CreditCard, status: 'not_uploaded' },
+  { id: 'selfie', label: 'Selfie with ID', labelAr: 'صورة شخصية مع البطاقة', labelFr: 'Selfie avec CIN', desc: 'Photo of yourself holding your ID next to your face', descAr: 'صورة شخصية وانت كاتمسك البطاقة بجانب وجهك', descFr: 'Photo de vous tenant votre CIN', icon: User, status: 'not_uploaded' },
+  { id: 'driver_license', label: 'Driver License', labelAr: 'رخصة السياقة', labelFr: 'Permis de conduire', desc: 'Clear photo of your valid driver license', descAr: 'صورة واضحة لرخصة السياقة الصالحة', descFr: 'Photo claire de votre permis', icon: Shield, status: 'not_uploaded' },
+  { id: 'insurance', label: 'Insurance Certificate', labelAr: 'وثيقة التأمين', labelFr: 'Attestation d\'assurance', desc: 'Vehicle insurance certificate', descAr: 'شهادة التأمين للسيارة', descFr: 'Attestation d\'assurance', icon: Shield, status: 'not_uploaded' },
+  { id: 'car_photo_front', label: 'Car Photo (Front)', labelAr: 'صورة السيارة (أمام)', labelFr: 'Photo voiture (Avant)', desc: 'Front view of your vehicle', descAr: 'صورة السيارة من القدام', descFr: 'Vue de face de votre véhicule', icon: Car, status: 'not_uploaded' },
+  { id: 'car_photo_back', label: 'Car Photo (Back)', labelAr: 'صورة السيارة (خلف)', labelFr: 'Photo voiture (Arrière)', desc: 'Back view of your vehicle', descAr: 'صورة السيارة من الخلف', descFr: 'Vue de derrière', icon: Car, status: 'not_uploaded' },
 ];
 
 export default function VerificationPage() {
@@ -96,38 +44,16 @@ export default function VerificationPage() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
 
-  /* ─── Get JWT token ─── */
-  const getJwt = useCallback(async () => {
-    const { data } = await supabase.auth.getSession();
-    return data.session?.access_token || '';
-  }, []);
-
-  const getHeaders = useCallback(async () => {
-    const jwt = await getJwt();
-    return {
-      'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoYmlhZm95aHZtdnl5endkemhkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg3OTIwNDcsImV4cCI6MjA5NDM2ODA0N30.04MftiDjQUrnGegTeaL88WyES9ydDKxRrrmVua0rVbM',
-      'Authorization': `Bearer ${jwt}`,
-      'Content-Type': 'application/json',
-      'Prefer': 'return=representation',
-    };
-  }, [getJwt]);
-
-  /* ─── Load existing docs from DB ─── */
+  /* ─── Load existing docs ─── */
   const loadDocuments = useCallback(async () => {
     if (!user?.id) return;
     try {
-      const jwt = await getJwt();
-      const res = await fetch(
-        `${SUPABASE_URL}/rest/v1/verification_documents?select=*&user_id=eq.${user.id}&order=created_at.desc`,
-        {
-          headers: {
-            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoYmlhZm95aHZtdnl5endkemhkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg3OTIwNDcsImV4cCI6MjA5NDM2ODA0N30.04MftiDjQUrnGegTeaL88WyES9ydDKxRrrmVua0rVbM',
-            'Authorization': `Bearer ${jwt}`,
-          },
-        }
-      );
-      if (!res.ok) { console.warn('[Verify] load docs failed', res.status); return; }
-      const docs = await res.json();
+      const { data: docs, error } = await supabase
+        .from('verifications')
+        .select('*')
+        .eq('user_id', user.id);
+
+      if (error) { console.warn('[Verify] load error:', error.message); return; }
       if (!docs?.length) return;
 
       setSteps((prev) => prev.map((s) => {
@@ -138,17 +64,17 @@ export default function VerificationPage() {
       const rejected = docs.find((d: any) => d.rejection_reason);
       if (rejected) setRejectionReason(rejected.rejection_reason);
     } catch (e) { console.warn('[Verify] load docs error', e); }
-  }, [user?.id, getJwt]);
+  }, [user?.id]);
 
   useEffect(() => { loadDocuments(); }, [loadDocuments]);
 
-  /* ─── Realtime subscription ─── */
+  /* ─── Realtime ─── */
   useEffect(() => {
     if (!user?.id) return;
     const uid = user.id;
     const channel = supabase
       .channel(`vd-${uid}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'verification_documents', filter: `user_id=eq.${uid}` }, () => loadDocuments())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'verifications', filter: `user_id=eq.${uid}` }, () => loadDocuments())
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${uid}` }, (payload) => {
         const p = payload.new as any;
         setUser({ ...user, is_verified: p.is_verified === true, verification_status: p.verification_status });
@@ -159,98 +85,83 @@ export default function VerificationPage() {
     return () => { supabase.removeChannel(channel); };
   }, [user?.id]);
 
-  /* ─── Polling fallback ─── */
+  /* ─── Polling ─── */
   useEffect(() => {
     if (!user?.id) return;
     const iv = setInterval(loadDocuments, 12000);
     return () => clearInterval(iv);
   }, [user?.id, loadDocuments]);
 
-  /* ─── Upload document (via REST API with JWT) ─── */
+  /* ─── Upload ─── */
   const handleUpload = async (docId: string, file: File) => {
-    if (!user?.id) { toast.error('Please login first'); return; }
-    const uid = user.id;
+    if (!user?.id) { toast.error('Login first'); return; }
 
     setSteps((prev) => prev.map((s) => s.id === docId ? { ...s, status: 'uploading' } : s));
 
     try {
-      const jwt = await getJwt();
+      const uid = user.id;
       const fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg';
       const fileName = `${uid}/${docId}_${Date.now()}.${fileExt}`;
 
-      /* 1. Upload to Supabase Storage via REST API */
-      const formData = new FormData();
-      formData.append('', file); // Supabase expects file directly
+      // 1. Upload to Storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('documents')
+        .upload(fileName, file, { upsert: true, contentType: file.type });
 
-      const uploadRes = await fetch(
-        `${SUPABASE_URL}/storage/v1/object/documents/${fileName}`,
-        {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${jwt}` },
-          body: file, // Send file directly
-        }
-      );
-
-      if (!uploadRes.ok) {
-        const errText = await uploadRes.text().catch(() => 'Upload failed');
-        throw new Error(errText);
+      if (uploadError) {
+        console.error('[Upload] Storage error:', uploadError.message, uploadError);
+        throw new Error(`Storage: ${uploadError.message}`);
       }
 
-      /* 2. Get public URL */
-      const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/documents/${fileName}`;
+      console.log('[Upload] Success:', uploadData?.path);
 
-      /* 3. Save to database */
-      const headers = await getHeaders();
-      const dbRes = await fetch(`${SUPABASE_URL}/rest/v1/verification_documents`, {
-        method: 'POST',
-        headers: { ...headers, 'Prefer': 'resolution=merge-duplicates' },
-        body: JSON.stringify({
-          user_id: uid, doc_type: docId,
-          doc_category: 'identity', status: 'pending',
-          storage_path: `documents/${fileName}`, public_url: publicUrl,
-        }),
-      });
+      // 2. Get public URL
+      const { data: urlData } = supabase.storage.from('documents').getPublicUrl(fileName);
+      const publicUrl = urlData.publicUrl;
 
-      if (!dbRes.ok && dbRes.status !== 409) {
-        throw new Error('Failed to save document record');
+      // 3. Save to DB
+      const { error: dbError } = await supabase
+        .from('verifications')
+        .upsert({
+          user_id: uid,
+          doc_type: docId,
+          status: 'pending',
+          storage_path: fileName,
+          public_url: publicUrl,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'user_id,doc_type' });
+
+      if (dbError) {
+        console.error('[Upload] DB error:', dbError.message);
+        throw new Error(`Database: ${dbError.message}`);
       }
+
+      console.log('[Upload] DB saved for:', docId);
 
       setSteps((prev) => prev.map((s) => s.id === docId ? { ...s, status: 'uploaded', url: publicUrl, fileName } : s));
       toast.success(t('verify.upload_success'));
     } catch (err: any) {
+      console.error('[Upload] FAILED:', err.message);
       setSteps((prev) => prev.map((s) => s.id === docId ? { ...s, status: 'not_uploaded' } : s));
       toast.error(`${t('verify.upload_error')}: ${err.message}`);
     }
   };
 
-  /* ─── Delete uploaded doc ─── */
+  /* ─── Delete ─── */
   const handleDelete = async (docId: string) => {
     if (!user?.id) return;
     const step = steps.find((s) => s.id === docId);
     if (!step?.fileName) return;
 
     try {
-      const jwt = await getJwt();
-      // Delete from storage
-      await fetch(`${SUPABASE_URL}/storage/v1/object/documents/${step.fileName}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${jwt}` },
-      });
-      // Delete from DB
-      const headers = await getHeaders();
-      await fetch(`${SUPABASE_URL}/rest/v1/verification_documents?user_id=eq.${user.id}&doc_type=eq.${docId}`, {
-        method: 'DELETE',
-        headers,
-      });
-
+      await supabase.storage.from('documents').remove([step.fileName]);
+      await supabase.from('verifications').delete().eq('user_id', user.id).eq('doc_type', docId);
       setSteps((prev) => prev.map((s) => s.id === docId ? { ...s, status: 'not_uploaded', url: undefined, fileName: undefined } : s));
       toast.success('Document removed');
-    } catch (e: any) {
-      toast.error('Failed to remove: ' + e.message);
-    }
+    } catch (e: any) { toast.error('Failed: ' + e.message); }
   };
 
-  /* ─── Submit for review ─── */
+  /* ─── Submit ─── */
   const handleSubmit = async () => {
     if (!user?.id) return;
     const uploaded = steps.filter((s) => s.status === 'uploaded');
@@ -258,28 +169,14 @@ export default function VerificationPage() {
 
     setSubmitting(true);
     try {
-      const headers = await getHeaders();
-
-      // Update all to pending
       for (const doc of uploaded) {
-        await fetch(`${SUPABASE_URL}/rest/v1/verification_documents?user_id=eq.${user.id}&doc_type=eq.${doc.id}`, {
-          method: 'PATCH', headers,
-          body: JSON.stringify({ status: 'pending', updated_at: new Date().toISOString() }),
-        });
+        await supabase.from('verifications').update({ status: 'pending' }).eq('user_id', user.id).eq('doc_type', doc.id);
       }
-
-      // Update profile
-      await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${user.id}`, {
-        method: 'PATCH', headers,
-        body: JSON.stringify({ verification_status: 'submitted', is_verified: false, updated_at: new Date().toISOString() }),
-      });
-
+      await supabase.from('profiles').update({ verification_status: 'submitted', is_verified: false }).eq('id', user.id);
       setSteps((prev) => prev.map((s) => s.status === 'uploaded' ? { ...s, status: 'pending' } : s));
       setUser({ ...user, verification_status: 'submitted', is_verified: false });
       toast.success(t('verify.submitted'));
-    } catch {
-      toast.error(t('verify.submit_error'));
-    }
+    } catch { toast.error(t('verify.submit_error')); }
     setSubmitting(false);
   };
 
@@ -289,7 +186,7 @@ export default function VerificationPage() {
       case 'approved': return { icon: <CheckCircle className="w-5 h-5 text-green-500" />, label: lang === 'ar' ? 'مقبول' : lang === 'fr' ? 'Approuvé' : 'Approved', color: 'text-green-500' };
       case 'pending': return { icon: <Clock className="w-5 h-5 text-yellow-500" />, label: lang === 'ar' ? 'قيد المراجعة' : lang === 'fr' ? 'En attente' : 'Pending', color: 'text-yellow-500' };
       case 'uploaded': return { icon: <CheckCircle className="w-5 h-5 text-blue-500" />, label: lang === 'ar' ? 'محمل' : lang === 'fr' ? 'Téléchargé' : 'Uploaded', color: 'text-blue-500' };
-      case 'uploading': return { icon: <div className="w-5 h-5 border-2 border-[#FF6B00] border-t-transparent rounded-full animate-spin" />, label: lang === 'ar' ? 'جاري التحميل' : lang === 'fr' ? 'Téléchargement...' : 'Uploading...', color: 'text-[#FF6B00]' };
+      case 'uploading': return { icon: <div className="w-5 h-5 border-2 border-[#FF6B00] border-t-transparent rounded-full animate-spin" />, label: lang === 'ar' ? 'جاري...' : lang === 'fr' ? 'Chargement...' : 'Uploading...', color: 'text-[#FF6B00]' };
       case 'rejected': return { icon: <XCircle className="w-5 h-5 text-red-500" />, label: lang === 'ar' ? 'مرفوض' : lang === 'fr' ? 'Rejeté' : 'Rejected', color: 'text-red-500' };
       default: return { icon: <div className="w-5 h-5 rounded-full border-2 border-white/20" />, label: lang === 'ar' ? 'لم يُحمّل' : lang === 'fr' ? 'Non téléchargé' : 'Not Uploaded', color: 'text-[#A0A0A0]' };
     }
@@ -320,7 +217,7 @@ export default function VerificationPage() {
         {user?.verification_status === 'submitted' && (
           <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4 mb-6 flex items-center gap-3">
             <Clock className="w-6 h-6 text-yellow-500 shrink-0" />
-            <div><p className="text-sm font-medium text-yellow-400">{t('profile.pending')}</p><p className="text-xs text-[#A0A0A0]">{lang === 'ar' ? 'وثائقك قيد المراجعة' : lang === 'fr' ? 'Documents en révision' : 'Documents under review'}</p></div>
+            <div><p className="text-sm font-medium text-yellow-400">{t('profile.pending')}</p><p className="text-xs text-[#A0A0A0]">{lang === 'ar' ? 'وثائقك قيد المراجعة' : lang === 'fr' ? 'Documents en révision' : 'Under review'}</p></div>
           </motion.div>
         )}
         {user?.verification_status === 'rejected' && (
@@ -359,7 +256,6 @@ export default function VerificationPage() {
                       </div>
                       <p className="text-xs text-[#A0A0A0] mt-0.5">{getDesc(step)}</p>
 
-                      {/* Preview */}
                       {step.url && (
                         <div className="mt-3 relative">
                           <img src={step.url} alt={step.label} className="w-full h-32 object-cover rounded-lg" />
@@ -372,14 +268,13 @@ export default function VerificationPage() {
                         </div>
                       )}
 
-                      {/* Upload / Re-upload */}
                       {(step.status === 'not_uploaded' || step.status === 'rejected') && (
                         <label className="mt-3 flex items-center gap-2 cursor-pointer">
                           <input type="file" accept="image/jpeg,image/png,image/jpg" className="hidden"
                             onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUpload(step.id, f); e.target.value = ''; }} />
                           <div className="flex-1 h-10 rounded-lg border border-dashed border-white/10 flex items-center justify-center gap-2 hover:border-[#FF6B00]/50 hover:bg-[#FF6B00]/5 transition-all">
                             <Upload className="w-4 h-4 text-[#A0A0A0]" />
-                            <span className="text-xs text-[#A0A0A0]">{lang === 'ar' ? 'اضغط لتحميل الصورة' : lang === 'fr' ? 'Cliquez pour télécharger' : 'Click to upload image'}</span>
+                            <span className="text-xs text-[#A0A0A0]">{lang === 'ar' ? 'اضغط لتحميل' : lang === 'fr' ? 'Cliquez pour télécharger' : 'Click to upload'}</span>
                           </div>
                         </label>
                       )}

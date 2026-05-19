@@ -309,10 +309,7 @@ const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     'common.done': 'Done',
     'common.yes': 'Yes',
     'common.no': 'No',
-    'common.error': 'Error',
     'common.success': 'Success',
-    'common.warning': 'Warning',
-    'common.info': 'Info',
     'common.see_all': 'See All',
     'common.view': 'View',
     'common.loading': 'Loading...',
@@ -321,6 +318,9 @@ const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     'common.favorite_routes': 'Favorite Routes',
     'common.no_bio': 'No bio yet',
     'common.not_set': 'Not set',
+    'profile.bio_placeholder': 'Tell us about yourself...',
+    'bookings': 'Bookings',
+    'trips': 'Trips',
 
     // ─── Footer ───
     'footer.company': 'Company',
@@ -654,10 +654,7 @@ const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     'common.done': 'Terminé',
     'common.yes': 'Oui',
     'common.no': 'Non',
-    'common.error': 'Erreur',
     'common.success': 'Succès',
-    'common.warning': 'Attention',
-    'common.info': 'Info',
     'common.see_all': 'Voir tout',
     'common.view': 'Voir',
     'common.loading': 'Chargement...',
@@ -666,6 +663,9 @@ const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     'common.favorite_routes': 'Trajets favoris',
     'common.no_bio': 'Pas de bio',
     'common.not_set': 'Non défini',
+    'profile.bio_placeholder': 'Parlez-nous de vous...',
+    'bookings': 'Réservations',
+    'trips': 'Trajets',
 
     // ─── Footer ───
     'footer.company': 'Entreprise',
@@ -999,10 +999,7 @@ const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     'common.done': 'تم',
     'common.yes': 'نعم',
     'common.no': 'لا',
-    'common.error': 'خطأ',
     'common.success': 'نجاح',
-    'common.warning': 'تنبيه',
-    'common.info': 'معلومة',
     'common.see_all': 'شوف الكل',
     'common.view': 'شوف',
     'common.loading': 'جاري التحميل...',
@@ -1011,6 +1008,9 @@ const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     'common.favorite_routes': 'المسارات المفضلة',
     'common.no_bio': 'ماكاينش نبذة',
     'common.not_set': 'محددش',
+    'profile.bio_placeholder': 'قلنا شي حاجة على راسك...',
+    'bookings': 'الحجوزات',
+    'trips': 'الرحلات',
 
     // ─── Footer ───
     'footer.company': 'الشركة',

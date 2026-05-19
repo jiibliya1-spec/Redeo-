@@ -47,28 +47,48 @@ export function TripDetailsPage() {
     setIsLoading(true);
 
     const load = async () => {
-      // 1. Fetch trip
       try {
-        const data = await apiGet('trips', { eq: { id } });
-        if (data && data[0]) {
-          const t = data[0] as Trip;
-          setTrip(t);
+        // 1. Fetch trip — use Supabase JS client (handles RLS + auth automatically)
+        let tripData: Trip | null = null;
 
-          // 2. Fetch driver
+        const { data: trips, error } = await supabase
+          .from('trips')
+          .select('*')
+          .eq('id', id)
+          .limit(1);
+
+        if (!error && trips?.[0]) {
+          tripData = trips[0] as Trip;
+        } else {
+          // Fallback: direct REST with auth headers
           const headers = await getHeaders();
-          const dres = await fetch(
-            `${SUPABASE_URL}/rest/v1/profiles?select=*&id=eq.${t.driver_id}&limit=1`,
+          const res = await fetch(
+            `${SUPABASE_URL}/rest/v1/trips?select=*&id=eq.${id}&limit=1`,
             { headers }
           );
-          if (dres.ok) {
-            const d = await dres.json();
-            if (d?.[0]) {
-              setDriver(d[0]);
-              setTrip(prev => prev ? { ...prev, driver: d[0] } : null);
-            }
+          if (res.ok) {
+            const rows = await res.json();
+            if (rows?.[0]) tripData = rows[0] as Trip;
           }
         }
-      } catch (e) { console.error('load error:', e); }
+
+        if (!tripData) { setIsLoading(false); return; }
+        setTrip(tripData);
+
+        // 2. Fetch driver profile
+        if (tripData.driver_id) {
+          const { data: profiles } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', tripData.driver_id)
+            .limit(1);
+
+          if (profiles?.[0]) {
+            setDriver(profiles[0] as unknown as User);
+            setTrip(prev => prev ? { ...prev, driver: profiles[0] as unknown as User } : null);
+          }
+        }
+      } catch (e) { console.error('TripDetailsPage load error:', e); }
       setIsLoading(false);
     };
 

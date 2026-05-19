@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { Shield, Check, Upload, CreditCard, Camera, FileText, AlertCircle, Loader2, X, Clock } from 'lucide-react';
+import { uploadVerificationDoc } from '@/services/storageService';
 
 const SUPABASE_URL = 'https://qhbiafoyhvmvyyzwdzhd.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoYmlhZm95aHZtdnl5endkemhkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3OTIwNDcsImV4cCI6MjA5NDM2ODA0N30.04MftiDjQUrnGegTeaL88WyES9ydDKxRrrmVua0rVbM';
@@ -188,25 +189,35 @@ export function VerificationPage() {
     if (!user?.id || !activeDoc) return;
     setIsUploading(true);
 
-    try {
-      const dataUrl = await fileToDataUrl(file);
-      setPreviewUrl(dataUrl);
+    // Show local preview immediately
+    const dataUrl = await fileToDataUrl(file);
+    setPreviewUrl(dataUrl);
 
-      const ok = await saveDoc(user.id, activeDoc, dataUrl);
+    try {
+      // 1. Upload to Supabase Storage (real URL, not base64)
+      let storageUrl: string;
+      try {
+        storageUrl = await uploadVerificationDoc(user.id, activeDoc, file);
+      } catch (storageErr: any) {
+        // Storage bucket may not exist yet — fall back to base64 stored in DB
+        console.warn('[Upload] Storage failed, using base64 fallback:', storageErr.message);
+        storageUrl = dataUrl;
+      }
+
+      // 2. Save URL to verifications table
+      const ok = await saveDoc(user.id, activeDoc, storageUrl);
       if (!ok) {
         toast.error('Failed to save document. Please try again.');
-        setIsUploading(false);
         return;
       }
 
       setSteps(prev =>
-        prev.map(s => s.id === activeDoc ? { ...s, status: 'uploaded' as const, url: dataUrl } : s)
+        prev.map(s => s.id === activeDoc ? { ...s, status: 'uploaded' as const, url: storageUrl } : s)
       );
-      toast.success(`${activeDoc.toUpperCase()} uploaded successfully!`);
-
+      toast.success(`Document uploaded successfully!`);
       await loadVerifications();
     } catch (err: any) {
-      toast.error(err.message || 'Upload failed');
+      toast.error(err.message || 'Upload failed. Check your connection and try again.');
     } finally {
       setIsUploading(false);
       setPreviewUrl(null);

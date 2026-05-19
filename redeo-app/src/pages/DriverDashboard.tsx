@@ -238,10 +238,7 @@ export function DriverDashboard() {
         price: parseFloat(price),
         available_seats: parseInt(seats),
         total_seats: parseInt(seats),
-        distance: distance || '0 km',
-        duration: duration || '',
         status: 'upcoming',
-        route: [from, to],
       };
 
       const result = await apiPost('trips', tripData);

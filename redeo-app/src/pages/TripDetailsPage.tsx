@@ -10,7 +10,7 @@ import {
   ArrowLeft, Star, CheckCircle, MessageCircle,
   Shield, Users, Loader2, Car, Leaf, AlertTriangle,
   Share2, PawPrint, Ban, Calendar, ChevronRight, Phone,
-  Circle, CircleDot,
+  Circle, CircleDot, Clock,
 } from 'lucide-react';
 
 const SUPABASE_URL = 'https://qhbiafoyhvmvyyzwdzhd.supabase.co';
@@ -270,52 +270,115 @@ export function TripDetailsPage() {
 
         {/* ─── DRIVER CARD ─── */}
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="bg-[#1B1F27] rounded-2xl border border-white/5 p-5">
-          <div className="flex items-center gap-4 mb-4">
-            <div className="relative cursor-pointer" onClick={handleViewDriver}>
+
+          {/* Driver header — avatar + name + rating */}
+          <div className="flex items-center gap-4 mb-5 cursor-pointer" onClick={handleViewDriver}>
+            <div className="relative shrink-0">
               <img
                 src={driver?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${trip.driver_id}`}
                 alt={driver?.name}
-                className="w-14 h-14 rounded-full object-cover ring-2 ring-[#FF6B00]/20"
+                className="w-16 h-16 rounded-full object-cover ring-2 ring-[#FF6B00]/30"
               />
-              {driver?.is_verified && (
-                <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-[#4A9EFF] rounded-full flex items-center justify-center">
-                  <CheckCircle className="w-3 h-3 text-white" />
+              {(driver?.is_verified) && (
+                <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-[#4A9EFF] rounded-full flex items-center justify-center ring-2 ring-[#1B1F27]">
+                  <CheckCircle className="w-3.5 h-3.5 text-white" />
                 </div>
               )}
             </div>
-            <div className="flex-1 cursor-pointer" onClick={handleViewDriver}>
-              <p className="text-lg font-bold text-white">{driver?.name || 'Driver'}</p>
-              <div className="flex items-center gap-2">
-                <Star className="w-4 h-4 text-[#FF6B00] fill-[#FF6B00]" />
-                <span className="text-sm text-white font-medium">{driver?.rating || 5}/5</span>
-                <span className="text-xs text-[#A0A0A0]">- {driver?.trips_count || 0} reviews</span>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <p className="text-lg font-bold text-white">{driver?.name || 'Driver'}</p>
+                {driver?.is_verified && (
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-green-500/10 text-green-400 font-medium shrink-0">
+                    ✓ Verified
+                  </span>
+                )}
+              </div>
+              {/* Star rating */}
+              <div className="flex items-center gap-1.5 mt-0.5">
+                {[1,2,3,4,5].map(s => (
+                  <Star key={s} className={`w-3.5 h-3.5 ${s <= Math.round(driver?.rating || 5) ? 'text-[#FF6B00] fill-[#FF6B00]' : 'text-white/20'}`} />
+                ))}
+                <span className="text-sm text-white font-semibold ml-0.5">{(driver?.rating || 5).toFixed(1)}</span>
+                <span className="text-xs text-[#A0A0A0]">/ 5</span>
               </div>
             </div>
-            <ChevronRight className="w-5 h-5 text-[#A0A0A0]" />
+            <ChevronRight className="w-5 h-5 text-[#A0A0A0] shrink-0" />
           </div>
 
-          {/* Driver badges */}
-          <div className="space-y-3">
+          {/* Driver stats row */}
+          <div className="grid grid-cols-3 gap-3 mb-5">
+            <div className="bg-[#0F1115] rounded-xl p-3 text-center">
+              <p className="text-lg font-bold text-white">{driver?.trips_count || 0}</p>
+              <p className="text-[10px] text-[#A0A0A0] mt-0.5">Trips</p>
+            </div>
+            <div className="bg-[#0F1115] rounded-xl p-3 text-center">
+              <p className="text-lg font-bold text-white">{(driver?.rating || 5).toFixed(1)}</p>
+              <p className="text-[10px] text-[#A0A0A0] mt-0.5">Rating</p>
+            </div>
+            <div className="bg-[#0F1115] rounded-xl p-3 text-center">
+              <p className="text-lg font-bold text-white">
+                {driver?.created_at ? new Date(driver.created_at).getFullYear() : '—'}
+              </p>
+              <p className="text-[10px] text-[#A0A0A0] mt-0.5">Member since</p>
+            </div>
+          </div>
+
+          {/* Bio */}
+          {driver?.bio && (
+            <p className="text-sm text-[#A0A0A0] leading-relaxed mb-4 italic">"{driver.bio}"</p>
+          )}
+
+          {/* Badges */}
+          <div className="space-y-2.5 mb-4">
             {driver?.is_verified && (
               <div className="flex items-center gap-3">
-                <Shield className="w-5 h-5 text-[#4A9EFF]" />
-                <span className="text-sm text-white">{T.verified}</span>
+                <div className="w-8 h-8 rounded-lg bg-[#4A9EFF]/10 flex items-center justify-center shrink-0">
+                  <Shield className="w-4 h-4 text-[#4A9EFF]" />
+                </div>
+                <div>
+                  <p className="text-sm text-white font-medium">{T.verified}</p>
+                  <p className="text-xs text-[#A0A0A0]">ID & documents verified by WansniAuto</p>
+                </div>
               </div>
             )}
             <div className="flex items-center gap-3">
-              <Ban className="w-5 h-5 text-green-400" />
-              <span className="text-sm text-white">Never cancels rides</span>
+              <div className="w-8 h-8 rounded-lg bg-green-500/10 flex items-center justify-center shrink-0">
+                <Clock className="w-4 h-4 text-green-400" />
+              </div>
+              <div>
+                <p className="text-sm text-white font-medium">Member since {driver?.created_at ? new Date(driver.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : '—'}</p>
+                <p className="text-xs text-[#A0A0A0]">{driver?.trips_count || 0} trips completed on WansniAuto</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-[#FF6B00]/10 flex items-center justify-center shrink-0">
+                <Ban className="w-4 h-4 text-[#FF6B00]" />
+              </div>
+              <div>
+                <p className="text-sm text-white font-medium">Reliable driver</p>
+                <p className="text-xs text-[#A0A0A0]">Never cancels confirmed rides</p>
+              </div>
             </div>
           </div>
 
-          {/* Contact button */}
-          <Button
-            onClick={handleContactDriver}
-            variant="outline"
-            className="w-full mt-4 border-white/10 text-white hover:bg-white/5 rounded-xl h-11"
-          >
-            <MessageCircle className="w-4 h-4 mr-2" /> {T.contact}
-          </Button>
+          {/* Buttons */}
+          <div className="flex gap-2">
+            <Button
+              onClick={handleContactDriver}
+              variant="outline"
+              className="flex-1 border-white/10 text-white hover:bg-white/5 rounded-xl h-11"
+            >
+              <MessageCircle className="w-4 h-4 mr-2" /> {T.contact}
+            </Button>
+            <Button
+              onClick={handleViewDriver}
+              variant="outline"
+              className="flex-1 border-[#FF6B00]/30 text-[#FF6B00] hover:bg-[#FF6B00]/5 rounded-xl h-11"
+            >
+              View Profile
+            </Button>
+          </div>
         </motion.div>
 
         {/* ─── BOOKING INFO ─── */}

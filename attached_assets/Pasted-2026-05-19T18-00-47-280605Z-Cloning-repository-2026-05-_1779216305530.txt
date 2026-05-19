@@ -1,0 +1,50 @@
+2026-05-19T18:00:47.280605Z	Cloning repository...
+2026-05-19T18:00:49.61709Z	From https://github.com/jiibliya1-spec/Redeo-
+2026-05-19T18:00:49.617428Z	 * branch            d40c4d928b14ede8f8326abbb9c7be55aa556f81 -> FETCH_HEAD
+2026-05-19T18:00:49.617487Z	
+2026-05-19T18:00:49.83121Z	HEAD is now at d40c4d9 feat: admin verification — per-user review panel, all docs in one view, single approve/reject
+2026-05-19T18:00:49.831548Z	
+2026-05-19T18:00:49.875451Z	
+2026-05-19T18:00:49.875821Z	Using v2 root directory strategy
+2026-05-19T18:00:49.887067Z	Success: Finished cloning repository files
+2026-05-19T18:00:52.113117Z	Checking for configuration in a Wrangler configuration file (BETA)
+2026-05-19T18:00:52.113614Z	
+2026-05-19T18:00:52.115233Z	Found wrangler.toml file. Reading build configuration...
+2026-05-19T18:00:52.119863Z	pages_build_output_dir: dist
+2026-05-19T18:00:52.120029Z	Build environment variables: (none found)
+2026-05-19T18:00:53.211297Z	Successfully read the Wrangler configuration file.
+2026-05-19T18:00:53.485554Z	Detected the following tools from environment: pnpm@10.11.1, nodejs@22.16.0, npm@10.9.2
+2026-05-19T18:00:54.366407Z	Installing project dependencies: pnpm install
+2026-05-19T18:00:54.903808Z	Scope: all 8 workspace projects
+2026-05-19T18:00:55.005399Z	..                                       | Progress: resolved 1, reused 0, downloaded 0, added 0
+2026-05-19T18:00:55.061442Z	..                                       | +476 ++++++++++++++++++++++++++++++++
+2026-05-19T18:00:56.003662Z	..                                       | Progress: resolved 476, reused 0, downloaded 192, added 191
+2026-05-19T18:00:57.009156Z	..                                       | Progress: resolved 476, reused 0, downloaded 321, added 291
+2026-05-19T18:00:58.004695Z	..                                       | Progress: resolved 476, reused 0, downloaded 471, added 471
+2026-05-19T18:00:58.509081Z	..                                       | Progress: resolved 476, reused 0, downloaded 476, added 476, done
+2026-05-19T18:00:58.675405Z	.../esbuild@0.27.3/node_modules/esbuild postinstall$ node install.js
+2026-05-19T18:00:58.759901Z	.../esbuild@0.27.3/node_modules/esbuild postinstall: Done
+2026-05-19T18:00:59.062407Z	.. preinstall$ sh -c 'rm -f package-lock.json yarn.lock; case "$npm_config_user_agent" in pnpm/*) ;; *) echo "Use pnpm instead" >&2; exit 1 ;; esac'
+2026-05-19T18:00:59.076421Z	.. preinstall: Done
+2026-05-19T18:00:59.23646Z	Done in 4.6s using pnpm v10.11.1
+2026-05-19T18:00:59.273209Z	Executing user command: npm install && npm run build
+2026-05-19T18:01:09.634535Z	
+2026-05-19T18:01:09.634896Z	added 550 packages, and audited 551 packages in 10s
+2026-05-19T18:01:09.635146Z	
+2026-05-19T18:01:09.63546Z	73 packages are looking for funding
+2026-05-19T18:01:09.635527Z	  run `npm fund` for details
+2026-05-19T18:01:09.650568Z	
+2026-05-19T18:01:09.650772Z	9 vulnerabilities (3 moderate, 6 high)
+2026-05-19T18:01:09.650827Z	
+2026-05-19T18:01:09.65087Z	To address all issues, run:
+2026-05-19T18:01:09.650906Z	  npm audit fix
+2026-05-19T18:01:09.650982Z	
+2026-05-19T18:01:09.651025Z	Run `npm audit` for details.
+2026-05-19T18:01:10.618026Z	
+2026-05-19T18:01:10.61829Z	> my-app@0.0.0 build
+2026-05-19T18:01:10.618383Z	> tsc -b && vite build
+2026-05-19T18:01:10.618443Z	
+2026-05-19T18:01:18.94208Z	src/pages/admin/AdminVerifications.tsx(10,36): error TS6133: 'AlertCircle' is declared but its value is never read.
+2026-05-19T18:01:19.437078Z	Failed: Error while executing user command. Exited with error code: 2
+2026-05-19T18:01:19.444103Z	Failed: build command exited with code: 1
+2026-05-19T18:01:20.943773Z	Failed: error occurred while running build command

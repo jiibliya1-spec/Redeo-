@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import {
   ShieldCheck, Check, X, Search, CreditCard, Camera, FileText,
-  Shield, Clock, UserCheck, UserX, AlertCircle, Eye, Loader2, Car,
+  Shield, Clock, UserCheck, UserX, Eye, Loader2, Car,
   ChevronRight, ZoomIn,
 } from 'lucide-react';
 

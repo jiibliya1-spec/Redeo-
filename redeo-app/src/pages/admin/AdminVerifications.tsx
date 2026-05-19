@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import {
   ShieldCheck, Check, X, Search, CreditCard, Camera, FileText,
   Shield, Clock, UserCheck, UserX, AlertCircle, Eye, Loader2, Car,
+  ChevronRight, ZoomIn,
 } from 'lucide-react';
 
 const SUPABASE_URL = 'https://qhbiafoyhvmvyyzwdzhd.supabase.co';
@@ -18,7 +19,6 @@ interface VerificationRecord {
   user_id: string;
   doc_type: string;
   status: string;
-  /* Support both old 'url' column and new 'public_url' column */
   url?: string;
   public_url?: string;
   storage_path?: string;
@@ -26,84 +26,96 @@ interface VerificationRecord {
   rejection_reason?: string | null;
   created_at: string;
   updated_at: string;
-  /* joined fields */
   user_name: string;
   user_email: string;
   user_avatar: string;
   user_role: string;
 }
 
-type StatusFilter = 'all' | 'uploaded' | 'pending' | 'approved' | 'rejected';
+/** One entry per unique user in the verifications table */
+interface UserBundle {
+  user_id: string;
+  user_name: string;
+  user_email: string;
+  user_avatar: string;
+  user_role: string;
+  docs: VerificationRecord[];
+  pendingCount: number;
+  approvedCount: number;
+  rejectedCount: number;
+  latestDate: string;
+}
 
-/* Map all doc_type values → icon */
+type StatusFilter = 'all' | 'pending' | 'approved' | 'rejected';
+
 const docIcons: Record<string, any> = {
-  /* old style */
-  cin: CreditCard,
-  selfie: Camera,
-  license: FileText,
-  registration: FileText,
-  insurance: Shield,
-  /* new style */
-  cin_front: CreditCard,
-  cin_back: CreditCard,
-  driver_license: FileText,
-  car_photo_front: Car,
-  car_photo_back: Car,
+  cin: CreditCard, selfie: Camera, license: FileText,
+  registration: FileText, insurance: Shield,
+  cin_front: CreditCard, cin_back: CreditCard,
+  driver_license: FileText, car_photo_front: Car, car_photo_back: Car,
 };
 
-/* Map all doc_type values → human label */
 const docLabels: Record<string, string> = {
-  cin: 'National ID (CIN)',
-  selfie: 'Selfie',
-  license: 'Driver License',
-  registration: 'Vehicle Registration',
-  insurance: 'Insurance',
-  cin_front: 'National ID – Front',
-  cin_back: 'National ID – Back',
+  cin: 'National ID (CIN)', selfie: 'Selfie', license: 'Driver License',
+  registration: 'Vehicle Registration', insurance: 'Insurance',
+  cin_front: 'CIN – Front', cin_back: 'CIN – Back',
   driver_license: 'Driver License',
-  car_photo_front: 'Car Photo – Front',
-  car_photo_back: 'Car Photo – Back',
+  car_photo_front: 'Car – Front', car_photo_back: 'Car – Back',
 };
 
-function getDocLabel(docType: string) {
-  return docLabels[docType] || docType;
-}
-function getDocIcon(docType: string) {
-  return docIcons[docType] || FileText;
-}
-/** Returns the viewable URL for a verification record (handles both column names) */
-function getDocUrl(v: VerificationRecord): string | null {
-  return v.public_url || v.url || null;
-}
+function getDocLabel(t: string) { return docLabels[t] || t; }
+function getDocIcon(t: string) { return docIcons[t] || FileText; }
+function getDocUrl(v: VerificationRecord): string | null { return v.public_url || v.url || null; }
 
 const CACHE_KEY = 'admin_verifications_cache';
-
 function saveCache(data: VerificationRecord[]) {
-  try { localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), data })); } catch { /* silent */ }
+  try { localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), data })); } catch {}
 }
 function loadCache(): VerificationRecord[] {
   try {
     const raw = localStorage.getItem(CACHE_KEY);
     if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    // Use cache if less than 5 minutes old
-    if (Date.now() - parsed.ts < 5 * 60 * 1000) return parsed.data as VerificationRecord[];
-  } catch { /* silent */ }
+    const p = JSON.parse(raw);
+    if (Date.now() - p.ts < 5 * 60 * 1000) return p.data as VerificationRecord[];
+  } catch {}
   return [];
+}
+
+function buildBundles(verifications: VerificationRecord[]): UserBundle[] {
+  const map = new Map<string, UserBundle>();
+  for (const v of verifications) {
+    if (!map.has(v.user_id)) {
+      map.set(v.user_id, {
+        user_id: v.user_id, user_name: v.user_name, user_email: v.user_email,
+        user_avatar: v.user_avatar, user_role: v.user_role,
+        docs: [], pendingCount: 0, approvedCount: 0, rejectedCount: 0,
+        latestDate: v.created_at,
+      });
+    }
+    const b = map.get(v.user_id)!;
+    b.docs.push(v);
+    if (v.status === 'pending' || v.status === 'uploaded') b.pendingCount++;
+    else if (v.status === 'approved' || v.status === 'verified') b.approvedCount++;
+    else if (v.status === 'rejected') b.rejectedCount++;
+    if (v.created_at > b.latestDate) b.latestDate = v.created_at;
+  }
+  return [...map.values()].sort((a, b) =>
+    b.latestDate.localeCompare(a.latestDate)
+  );
 }
 
 export function AdminVerifications() {
   const cached = loadCache();
   const [verifications, setVerifications] = useState<VerificationRecord[]>(cached);
-  const [filtered, setFiltered] = useState<VerificationRecord[]>(cached);
   const [loading, setLoading] = useState(cached.length === 0);
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
-  const [selectedDoc, setSelectedDoc] = useState<VerificationRecord | null>(null);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState('');
-  const [processingId, setProcessingId] = useState<string | null>(null);
-  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [processing, setProcessing] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [showRejectPanel, setShowRejectPanel] = useState(false);
   const usersMapRef = useRef<Map<string, any>>(new Map());
 
   const getHeaders = useCallback(async () => {
@@ -128,20 +140,16 @@ export function AdminVerifications() {
   }, []);
 
   const loadVerifications = useCallback(async (silent = false) => {
-    if (silent) setRefreshing(true);
-    else setLoading(true);
+    if (silent) setRefreshing(true); else setLoading(true);
     try {
       const headers = await getHeaders();
-
-      /* Step 1: fetch verifications */
       const verifRes = await fetch(
         `${SUPABASE_URL}/rest/v1/verifications?select=*&order=created_at.desc&limit=300`,
         { headers }
       );
-      if (!verifRes.ok) throw new Error('Status ' + verifRes.status + ': ' + await verifRes.text());
+      if (!verifRes.ok) throw new Error('Status ' + verifRes.status);
       const verifData: any[] = await verifRes.json();
 
-      /* Step 2: fetch ONLY the profiles referenced in these verifications (avoids full-table scan) */
       const userIds = [...new Set<string>(verifData.map((v) => v.user_id).filter(Boolean))];
       let usersData: any[] = [];
       if (userIds.length > 0) {
@@ -153,13 +161,11 @@ export function AdminVerifications() {
       }
 
       usersMapRef.current = new Map<string, any>(usersData.map((u: any) => [u.id, u]));
-
       const combined: VerificationRecord[] = verifData.map((v) => {
         const u = usersMapRef.current.get(v.user_id);
         return {
           ...v,
-          user_name: u?.name || 'Unknown',
-          user_email: u?.email || '',
+          user_name: u?.name || 'Unknown', user_email: u?.email || '',
           user_avatar: u?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${v.user_id}`,
           user_role: u?.role || 'passenger',
         };
@@ -168,465 +174,568 @@ export function AdminVerifications() {
       setVerifications(combined);
       saveCache(combined);
     } catch (err: any) {
-      toast.error('Failed to load verifications: ' + err.message);
+      toast.error('Failed to load: ' + err.message);
     }
     setLoading(false);
     setRefreshing(false);
   }, [getHeaders]);
 
-  useEffect(() => {
-    // If we have cache, load silently in background; otherwise show spinner
-    loadVerifications(cached.length > 0);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  useEffect(() => { loadVerifications(cached.length > 0); }, []);
 
-  /* Realtime — update only the changed record instead of re-fetching everything */
+  /* Realtime */
   useEffect(() => {
     const channel = supabase
-      .channel('admin-verif-rt-v2')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'verifications' }, (payload) => {
-        const newRecord = buildRecord(payload.new as any);
-        setVerifications((prev) => {
-          const next = [newRecord, ...prev.filter((v) => v.id !== newRecord.id)];
-          saveCache(next);
-          return next;
-        });
+      .channel('admin-verif-rt-v3')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'verifications' }, (p) => {
+        const r = buildRecord(p.new as any);
+        setVerifications((prev) => { const n = [r, ...prev.filter((v) => v.id !== r.id)]; saveCache(n); return n; });
       })
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'verifications' }, (payload) => {
-        const updated = buildRecord(payload.new as any);
-        setVerifications((prev) => {
-          const next = prev.map((v) => v.id === updated.id ? { ...v, ...updated } : v);
-          saveCache(next);
-          return next;
-        });
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'verifications' }, (p) => {
+        const r = buildRecord(p.new as any);
+        setVerifications((prev) => { const n = prev.map((v) => v.id === r.id ? { ...v, ...r } : v); saveCache(n); return n; });
       })
-      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'verifications' }, (payload) => {
-        setVerifications((prev) => {
-          const next = prev.filter((v) => v.id !== (payload.old as any)?.id);
-          saveCache(next);
-          return next;
-        });
-      })
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles' }, (payload) => {
-        const p = payload.new as any;
-        if (p?.id) {
-          usersMapRef.current.set(p.id, { ...usersMapRef.current.get(p.id), ...p });
-          setVerifications((prev) => {
-            const next = prev.map((v) => v.user_id === p.id ? buildRecord(v) : v);
-            saveCache(next);
-            return next;
-          });
-        }
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'verifications' }, (p) => {
+        setVerifications((prev) => { const n = prev.filter((v) => v.id !== (p.old as any)?.id); saveCache(n); return n; });
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [buildRecord]);
 
-  /* Filter */
-  useEffect(() => {
-    let result = verifications;
-    if (statusFilter !== 'all') {
-      if (statusFilter === 'pending') {
-        result = result.filter((v) => v.status === 'pending' || v.status === 'uploaded');
-      } else if (statusFilter === 'approved') {
-        result = result.filter((v) => v.status === 'approved' || v.status === 'verified');
-      } else {
-        result = result.filter((v) => v.status === statusFilter);
-      }
-    }
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      result = result.filter(
-        (v) =>
-          v.user_name.toLowerCase().includes(q) ||
-          v.user_email.toLowerCase().includes(q) ||
-          getDocLabel(v.doc_type).toLowerCase().includes(q)
-      );
-    }
-    setFiltered(result);
-  }, [verifications, statusFilter, search]);
-
-  /* ─── Approve ─── */
-  const handleApprove = async (id: string, userId: string) => {
-    setProcessingId(id);
+  /* ─── Approve ALL docs for user ─── */
+  const handleApproveUser = async (bundle: UserBundle) => {
+    setProcessing(true);
     try {
       const headers = await getHeaders();
+      const pendingDocs = bundle.docs.filter((d) => d.status === 'pending' || d.status === 'uploaded');
 
-      /* 1. Mark this verification as 'approved' */
-      const verifRes = await fetch(`${SUPABASE_URL}/rest/v1/verifications?id=eq.${id}`, {
+      // Approve each pending doc
+      await Promise.all(pendingDocs.map((doc) =>
+        fetch(`${SUPABASE_URL}/rest/v1/verifications?id=eq.${doc.id}`, {
+          method: 'PATCH',
+          headers: { ...headers, 'Prefer': 'return=minimal' },
+          body: JSON.stringify({ status: 'approved', admin_notes: 'Approved by admin', updated_at: new Date().toISOString() }),
+        })
+      ));
+
+      // Update profile
+      await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${bundle.user_id}`, {
         method: 'PATCH',
         headers: { ...headers, 'Prefer': 'return=minimal' },
-        body: JSON.stringify({
-          status: 'approved',
-          admin_notes: 'Approved by admin',
-          updated_at: new Date().toISOString(),
-        }),
+        body: JSON.stringify({ is_verified: true, verification_status: 'verified', updated_at: new Date().toISOString() }),
       });
-      if (!verifRes.ok) throw new Error('Verif update failed: ' + await verifRes.text());
 
-      /* 2. Update profile: is_verified = true, verification_status = 'verified' */
-      const profileRes = await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${userId}`, {
-        method: 'PATCH',
-        headers: { ...headers, 'Prefer': 'return=minimal' },
-        body: JSON.stringify({
-          is_verified: true,
-          verification_status: 'verified',
-          updated_at: new Date().toISOString(),
-        }),
-      });
-      if (!profileRes.ok) {
-        console.warn('[Admin] Profile update failed:', await profileRes.text());
-      }
-
-      /* 3. Send notification to user */
+      // Notify user
       await fetch(`${SUPABASE_URL}/rest/v1/notifications`, {
         method: 'POST',
         headers: { ...headers, 'Prefer': 'return=minimal' },
         body: JSON.stringify({
-          user_id: userId,
-          type: 'verification_approved',
+          user_id: bundle.user_id, type: 'verification_approved',
           title: 'Documents Approved ✅',
           message: 'Your verification documents have been approved! You can now publish trips and use all features.',
-          data: JSON.stringify({ doc_id: id, status: 'approved' }),
-          read: false,
-          created_at: new Date().toISOString(),
+          data: JSON.stringify({ status: 'approved' }), read: false, created_at: new Date().toISOString(),
         }),
       });
 
-      toast.success('Document approved! User is now verified.');
-      await loadVerifications();
+      toast.success(`✅ ${bundle.user_name} verified — all ${pendingDocs.length} document(s) approved`);
+      setSelectedUserId(null);
+      await loadVerifications(true);
     } catch (err: any) {
       toast.error('Approval failed: ' + err.message);
     }
-    setProcessingId(null);
-    setSelectedDoc(null);
+    setProcessing(false);
   };
 
-  /* ─── Reject ─── */
-  const handleReject = async (id: string, userId: string) => {
-    if (!rejectReason.trim()) {
-      toast.error('Please provide a rejection reason');
-      return;
-    }
-    setProcessingId(id);
+  /* ─── Reject ALL docs for user ─── */
+  const handleRejectUser = async (bundle: UserBundle) => {
+    if (!rejectReason.trim()) { toast.error('Please enter a rejection reason'); return; }
+    setProcessing(true);
     try {
       const headers = await getHeaders();
+      const pendingDocs = bundle.docs.filter((d) => d.status === 'pending' || d.status === 'uploaded');
 
-      /* 1. Mark verification as 'rejected' */
-      const verifRes = await fetch(`${SUPABASE_URL}/rest/v1/verifications?id=eq.${id}`, {
+      await Promise.all(pendingDocs.map((doc) =>
+        fetch(`${SUPABASE_URL}/rest/v1/verifications?id=eq.${doc.id}`, {
+          method: 'PATCH',
+          headers: { ...headers, 'Prefer': 'return=minimal' },
+          body: JSON.stringify({
+            status: 'rejected', admin_notes: rejectReason,
+            rejection_reason: rejectReason, updated_at: new Date().toISOString(),
+          }),
+        })
+      ));
+
+      await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${bundle.user_id}`, {
         method: 'PATCH',
         headers: { ...headers, 'Prefer': 'return=minimal' },
-        body: JSON.stringify({
-          status: 'rejected',
-          admin_notes: rejectReason,
-          rejection_reason: rejectReason,
-          updated_at: new Date().toISOString(),
-        }),
-      });
-      if (!verifRes.ok) throw new Error('Verif update failed: ' + await verifRes.text());
-
-      /* 2. Update profile status */
-      await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${userId}`, {
-        method: 'PATCH',
-        headers: { ...headers, 'Prefer': 'return=minimal' },
-        body: JSON.stringify({
-          verification_status: 'rejected',
-          is_verified: false,
-          updated_at: new Date().toISOString(),
-        }),
+        body: JSON.stringify({ verification_status: 'rejected', is_verified: false, updated_at: new Date().toISOString() }),
       });
 
-      /* 3. Send notification to user */
       await fetch(`${SUPABASE_URL}/rest/v1/notifications`, {
         method: 'POST',
         headers: { ...headers, 'Prefer': 'return=minimal' },
         body: JSON.stringify({
-          user_id: userId,
-          type: 'verification_rejected',
+          user_id: bundle.user_id, type: 'verification_rejected',
           title: 'Documents Rejected ❌',
           message: `Your verification was rejected. Reason: ${rejectReason}. Please re-upload your documents.`,
-          data: JSON.stringify({ doc_id: id, status: 'rejected', reason: rejectReason }),
-          read: false,
-          created_at: new Date().toISOString(),
+          data: JSON.stringify({ status: 'rejected', reason: rejectReason }), read: false, created_at: new Date().toISOString(),
         }),
       });
 
-      toast.success('Document rejected. User has been notified.');
-      await loadVerifications();
+      toast.success(`❌ ${bundle.user_name}'s verification rejected`);
+      setSelectedUserId(null);
+      setRejectReason('');
+      setShowRejectPanel(false);
+      await loadVerifications(true);
     } catch (err: any) {
       toast.error('Rejection failed: ' + err.message);
     }
-    setProcessingId(null);
-    setSelectedDoc(null);
-    setRejectReason('');
+    setProcessing(false);
   };
 
-  const statusCounts = {
-    all: verifications.length,
-    uploaded: verifications.filter((v) => v.status === 'uploaded').length,
-    pending: verifications.filter((v) => v.status === 'pending' || v.status === 'uploaded').length,
-    approved: verifications.filter((v) => v.status === 'approved' || v.status === 'verified').length,
-    rejected: verifications.filter((v) => v.status === 'rejected').length,
+  /* Build bundles + filter */
+  const allBundles = buildBundles(verifications);
+
+  const filteredBundles = allBundles.filter((b) => {
+    const matchStatus =
+      statusFilter === 'all' ? true :
+      statusFilter === 'pending' ? b.pendingCount > 0 :
+      statusFilter === 'approved' ? b.approvedCount > 0 && b.pendingCount === 0 :
+      b.rejectedCount > 0 && b.pendingCount === 0;
+
+    const q = search.toLowerCase().trim();
+    const matchSearch = !q || b.user_name.toLowerCase().includes(q) || b.user_email.toLowerCase().includes(q);
+    return matchStatus && matchSearch;
+  });
+
+  const selectedBundle = selectedUserId ? allBundles.find((b) => b.user_id === selectedUserId) ?? null : null;
+
+  const counts = {
+    all: allBundles.length,
+    pending: allBundles.filter((b) => b.pendingCount > 0).length,
+    approved: allBundles.filter((b) => b.approvedCount > 0 && b.pendingCount === 0).length,
+    rejected: allBundles.filter((b) => b.rejectedCount > 0 && b.pendingCount === 0).length,
   };
 
-  const formatDate = (date: string) =>
-    new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  const formatDate = (d: string) =>
+    new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+  const getBundleStatus = (b: UserBundle) => {
+    if (b.pendingCount > 0) return { label: 'Needs Review', cls: 'bg-yellow-500/10 text-yellow-400', icon: Clock };
+    if (b.approvedCount > 0 && b.rejectedCount === 0) return { label: 'Verified', cls: 'bg-green-500/10 text-green-400', icon: UserCheck };
+    if (b.rejectedCount > 0) return { label: 'Rejected', cls: 'bg-red-500/10 text-red-400', icon: UserX };
+    return { label: 'No Pending', cls: 'bg-white/5 text-[#A0A0A0]', icon: ShieldCheck };
+  };
+
+  const getDocStatus = (status: string) => {
+    if (status === 'approved' || status === 'verified') return { dot: 'bg-green-400', label: 'Approved', text: 'text-green-400' };
+    if (status === 'rejected') return { dot: 'bg-red-400', label: 'Rejected', text: 'text-red-400' };
+    if (status === 'uploaded') return { dot: 'bg-yellow-400', label: 'Uploaded', text: 'text-yellow-400' };
+    return { dot: 'bg-blue-400', label: 'Pending', text: 'text-blue-400' };
+  };
 
   return (
     <AdminLayout>
+      {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h2 className="text-xl font-bold text-white">Verification Management</h2>
-          <p className="text-sm text-[#A0A0A0] mt-0.5">Review and approve driver verification documents</p>
+          <h2 className="text-xl font-bold text-white">Verification Review</h2>
+          <p className="text-sm text-[#A0A0A0] mt-0.5">
+            Click a user to review all their documents at once — one decision per user
+          </p>
         </div>
-        <Button onClick={() => loadVerifications(false)} variant="outline" className="border-white/10 text-[#A0A0A0] rounded-xl" disabled={loading || refreshing}>
+        <Button
+          onClick={() => loadVerifications(false)}
+          variant="outline"
+          className="border-white/10 text-[#A0A0A0] rounded-xl"
+          disabled={loading || refreshing}
+        >
           {refreshing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Clock className="w-4 h-4 mr-2" />}
-          {refreshing ? 'Refreshing...' : 'Refresh'}
+          {refreshing ? 'Refreshing…' : 'Refresh'}
         </Button>
       </div>
 
       {/* Status Tabs */}
-      <div className="flex flex-wrap gap-2 mb-6">
+      <div className="flex flex-wrap gap-2 mb-5">
         {([
-          { key: 'all' as StatusFilter, label: 'All', count: statusCounts.all, color: 'bg-white/5 text-[#A0A0A0]' },
-          { key: 'uploaded' as StatusFilter, label: 'Uploaded', count: statusCounts.uploaded, color: 'bg-yellow-500/10 text-yellow-400' },
-          { key: 'pending' as StatusFilter, label: 'Pending Review', count: statusCounts.pending, color: 'bg-blue-500/10 text-blue-400' },
-          { key: 'approved' as StatusFilter, label: 'Approved', count: statusCounts.approved, color: 'bg-green-500/10 text-green-400' },
-          { key: 'rejected' as StatusFilter, label: 'Rejected', count: statusCounts.rejected, color: 'bg-red-500/10 text-red-400' },
+          { key: 'all' as StatusFilter, label: 'All Users', count: counts.all, cls: 'bg-white/5 text-[#A0A0A0]' },
+          { key: 'pending' as StatusFilter, label: 'Needs Review', count: counts.pending, cls: 'bg-yellow-500/10 text-yellow-400' },
+          { key: 'approved' as StatusFilter, label: 'Approved', count: counts.approved, cls: 'bg-green-500/10 text-green-400' },
+          { key: 'rejected' as StatusFilter, label: 'Rejected', count: counts.rejected, cls: 'bg-red-500/10 text-red-400' },
         ]).map((tab) => (
           <button
             key={tab.key}
             onClick={() => setStatusFilter(tab.key)}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
-              statusFilter === tab.key ? `${tab.color} ring-1 ring-current` : 'text-[#A0A0A0] hover:bg-white/5'
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+              statusFilter === tab.key ? `${tab.cls} ring-1 ring-current` : 'text-[#A0A0A0] hover:bg-white/5'
             }`}
           >
             {tab.label}
-            <span className={`text-xs px-1.5 py-0.5 rounded-full ${tab.color}`}>{tab.count}</span>
+            <span className={`text-xs px-1.5 py-0.5 rounded-full ${tab.cls}`}>{tab.count}</span>
           </button>
         ))}
       </div>
 
       {/* Search */}
-      <div className="relative mb-6">
+      <div className="relative mb-5">
         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#A0A0A0]" />
         <Input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search by name, email, or document type..."
+          placeholder="Search by name or email…"
           className="pl-11 bg-[#111318] border-white/5 text-white rounded-xl h-11"
         />
       </div>
 
-      {/* Table */}
-      <div className="bg-[#111318] rounded-2xl border border-white/5 overflow-hidden">
-        {loading ? (
-          <div className="flex items-center justify-center h-48">
-            <Loader2 className="w-6 h-6 text-[#FF6B00] animate-spin" />
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-48 text-center">
-            <ShieldCheck className="w-10 h-10 text-[#A0A0A0] mb-3" />
-            <p className="text-sm text-[#A0A0A0]">No verifications found</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-white/5 text-left">
-                  <th className="px-5 py-3.5 text-xs font-semibold text-[#A0A0A0] uppercase">User</th>
-                  <th className="px-5 py-3.5 text-xs font-semibold text-[#A0A0A0] uppercase">Document</th>
-                  <th className="px-5 py-3.5 text-xs font-semibold text-[#A0A0A0] uppercase">Status</th>
-                  <th className="px-5 py-3.5 text-xs font-semibold text-[#A0A0A0] uppercase">Date</th>
-                  <th className="px-5 py-3.5 text-xs font-semibold text-[#A0A0A0] uppercase">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/5">
-                {filtered.map((v) => {
-                  const DocIcon = getDocIcon(v.doc_type);
-                  const docUrl = getDocUrl(v);
-                  const canAct = v.status === 'uploaded' || v.status === 'pending';
-                  return (
-                    <tr key={v.id} className="hover:bg-white/[0.02] transition-colors">
-                      {/* User */}
-                      <td className="px-5 py-4">
-                        <div className="flex items-center gap-3">
-                          <img src={v.user_avatar} alt="" className="w-9 h-9 rounded-full bg-[#1B1F27] object-cover" />
-                          <div>
-                            <p className="text-sm font-medium text-white truncate max-w-[120px]">{v.user_name}</p>
-                            <p className="text-xs text-[#A0A0A0] truncate max-w-[120px]">{v.user_email}</p>
-                          </div>
-                        </div>
-                      </td>
-                      {/* Document */}
-                      <td className="px-5 py-4">
-                        <div className="flex items-center gap-2">
-                          <DocIcon className="w-4 h-4 text-[#FF6B00] shrink-0" />
-                          <span className="text-sm text-white">{getDocLabel(v.doc_type)}</span>
-                        </div>
-                      </td>
-                      {/* Status */}
-                      <td className="px-5 py-4">
-                        <span className={`text-xs px-2.5 py-1 rounded-full capitalize flex items-center gap-1 w-fit ${
-                          v.status === 'approved' || v.status === 'verified' ? 'bg-green-500/10 text-green-400' :
-                          v.status === 'rejected' ? 'bg-red-500/10 text-red-400' :
-                          v.status === 'uploaded' ? 'bg-yellow-500/10 text-yellow-400' :
-                          'bg-blue-500/10 text-blue-400'
-                        }`}>
-                          {v.status === 'approved' || v.status === 'verified' ? <UserCheck className="w-3 h-3" /> :
-                           v.status === 'rejected' ? <UserX className="w-3 h-3" /> :
-                           <Clock className="w-3 h-3" />}
-                          {v.status === 'pending' ? 'Pending Review' :
-                           v.status === 'uploaded' ? 'Uploaded' :
-                           v.status === 'approved' || v.status === 'verified' ? 'Approved' :
-                           v.status}
+      {/* Split layout: user list (left) + review panel (right) */}
+      <div className="flex gap-5 min-h-[500px]">
+
+        {/* ── Left: User list ── */}
+        <div className={`flex flex-col gap-2 ${selectedBundle ? 'w-full lg:w-[320px] shrink-0' : 'w-full'}`}>
+          {loading ? (
+            <div className="flex justify-center py-16">
+              <Loader2 className="w-6 h-6 text-[#FF6B00] animate-spin" />
+            </div>
+          ) : filteredBundles.length === 0 ? (
+            <div className="bg-[#111318] rounded-2xl border border-white/5 flex flex-col items-center justify-center py-16 text-center">
+              <ShieldCheck className="w-10 h-10 text-[#A0A0A0] mb-3" />
+              <p className="text-sm text-[#A0A0A0]">No users found</p>
+            </div>
+          ) : (
+            filteredBundles.map((bundle) => {
+              const st = getBundleStatus(bundle);
+              const isSelected = selectedUserId === bundle.user_id;
+              return (
+                <motion.button
+                  key={bundle.user_id}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  onClick={() => {
+                    setSelectedUserId(isSelected ? null : bundle.user_id);
+                    setShowRejectPanel(false);
+                    setRejectReason('');
+                  }}
+                  className={`w-full text-left bg-[#111318] rounded-2xl border transition-all p-4 ${
+                    isSelected
+                      ? 'border-[#FF6B00]/50 ring-1 ring-[#FF6B00]/30'
+                      : 'border-white/5 hover:border-white/10'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="relative shrink-0">
+                      <img
+                        src={bundle.user_avatar}
+                        alt=""
+                        className="w-11 h-11 rounded-full bg-[#1B1F27] object-cover"
+                      />
+                      {bundle.pendingCount > 0 && (
+                        <span className="absolute -top-1 -right-1 w-5 h-5 bg-yellow-400 text-black text-[10px] font-bold rounded-full flex items-center justify-center">
+                          {bundle.pendingCount}
                         </span>
-                      </td>
-                      {/* Date */}
-                      <td className="px-5 py-4 text-sm text-[#A0A0A0] whitespace-nowrap">
-                        {formatDate(v.created_at)}
-                      </td>
-                      {/* Actions */}
-                      <td className="px-5 py-4">
-                        <div className="flex items-center gap-2">
-                          {docUrl && (
-                            <button
-                              onClick={() => setPreviewImage(docUrl)}
-                              className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-[#A0A0A0] hover:text-white transition-colors"
-                              title="View document"
-                            >
-                              <Eye className="w-4 h-4" />
-                            </button>
-                          )}
-                          {canAct && (
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-sm font-semibold text-white truncate">{bundle.user_name}</p>
+                        <ChevronRight className={`w-4 h-4 shrink-0 transition-transform ${isSelected ? 'rotate-90 text-[#FF6B00]' : 'text-[#A0A0A0]'}`} />
+                      </div>
+                      <p className="text-xs text-[#A0A0A0] truncate">{bundle.user_email}</p>
+                      <div className="flex items-center gap-2 mt-1.5">
+                        <span className={`flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-medium ${st.cls}`}>
+                          <st.icon className="w-2.5 h-2.5" />
+                          {st.label}
+                        </span>
+                        <span className="text-[10px] text-[#A0A0A0]">
+                          {bundle.docs.length} doc{bundle.docs.length !== 1 ? 's' : ''}
+                        </span>
+                        <span className="text-[10px] text-[#A0A0A0]">· {formatDate(bundle.latestDate)}</span>
+                      </div>
+                    </div>
+                  </div>
+                </motion.button>
+              );
+            })
+          )}
+        </div>
+
+        {/* ── Right: Document review panel ── */}
+        <AnimatePresence mode="wait">
+          {selectedBundle && (
+            <motion.div
+              key={selectedBundle.user_id}
+              initial={{ opacity: 0, x: 24 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 24 }}
+              transition={{ duration: 0.25 }}
+              className="hidden lg:flex flex-col flex-1 bg-[#111318] rounded-2xl border border-white/5 overflow-hidden"
+            >
+              {/* Panel header */}
+              <div className="p-5 border-b border-white/5 flex items-center gap-4">
+                <img src={selectedBundle.user_avatar} alt="" className="w-12 h-12 rounded-full bg-[#1B1F27] object-cover" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-base font-bold text-white">{selectedBundle.user_name}</p>
+                  <p className="text-xs text-[#A0A0A0]">{selectedBundle.user_email}</p>
+                </div>
+                <button
+                  onClick={() => { setSelectedUserId(null); setShowRejectPanel(false); setRejectReason(''); }}
+                  className="p-2 rounded-xl hover:bg-white/5 text-[#A0A0A0]"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Document grid */}
+              <div className="flex-1 overflow-y-auto p-5">
+                <p className="text-xs font-semibold text-[#A0A0A0] uppercase tracking-wider mb-3">
+                  Documents ({selectedBundle.docs.length})
+                </p>
+                <div className="grid grid-cols-2 xl:grid-cols-3 gap-3">
+                  {selectedBundle.docs.map((doc) => {
+                    const DocIcon = getDocIcon(doc.doc_type);
+                    const docUrl = getDocUrl(doc);
+                    const ds = getDocStatus(doc.status);
+                    return (
+                      <div
+                        key={doc.id}
+                        className="bg-[#0F1115] rounded-xl border border-white/5 overflow-hidden group"
+                      >
+                        {/* Thumbnail / click to preview */}
+                        <div
+                          className="relative aspect-[4/3] bg-[#1B1F27] flex items-center justify-center cursor-pointer overflow-hidden"
+                          onClick={() => docUrl && setPreviewUrl(docUrl)}
+                        >
+                          {docUrl ? (
                             <>
-                              <button
-                                onClick={() => handleApprove(v.id, v.user_id)}
-                                disabled={processingId === v.id}
-                                className="p-2 rounded-lg bg-green-500/10 hover:bg-green-500/20 text-green-400 transition-colors disabled:opacity-50"
-                                title="Approve"
-                              >
-                                {processingId === v.id ? (
-                                  <Loader2 className="w-4 h-4 animate-spin" />
-                                ) : (
-                                  <Check className="w-4 h-4" />
-                                )}
-                              </button>
-                              <button
-                                onClick={() => setSelectedDoc(v)}
-                                disabled={processingId === v.id}
-                                className="p-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 transition-colors disabled:opacity-50"
-                                title="Reject"
-                              >
-                                <X className="w-4 h-4" />
-                              </button>
+                              <img
+                                src={docUrl}
+                                alt={getDocLabel(doc.doc_type)}
+                                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                              />
+                              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center">
+                                <ZoomIn className="w-7 h-7 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                              </div>
                             </>
+                          ) : (
+                            <div className="flex flex-col items-center gap-2 text-[#A0A0A0]">
+                              <DocIcon className="w-8 h-8" />
+                              <span className="text-xs">No image</span>
+                            </div>
                           )}
                         </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+
+                        {/* Doc info */}
+                        <div className="p-3">
+                          <div className="flex items-center gap-1.5 mb-1">
+                            <DocIcon className="w-3 h-3 text-[#FF6B00] shrink-0" />
+                            <p className="text-xs font-medium text-white truncate">{getDocLabel(doc.doc_type)}</p>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${ds.dot}`} />
+                            <span className={`text-[10px] font-medium ${ds.text}`}>{ds.label}</span>
+                          </div>
+                          {doc.rejection_reason && (
+                            <p className="text-[10px] text-red-400 mt-1 line-clamp-2">{doc.rejection_reason}</p>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Action footer */}
+              <div className="p-5 border-t border-white/5 bg-[#0F1115]">
+                {selectedBundle.pendingCount === 0 ? (
+                  <div className="flex items-center gap-2 text-sm text-[#A0A0A0]">
+                    <ShieldCheck className="w-4 h-4" />
+                    No pending documents — already processed
+                  </div>
+                ) : showRejectPanel ? (
+                  <div className="space-y-3">
+                    <label className="text-sm text-[#A0A0A0]">Rejection reason *</label>
+                    <textarea
+                      value={rejectReason}
+                      onChange={(e) => setRejectReason(e.target.value)}
+                      placeholder="e.g. Documents are blurry, please re-upload…"
+                      rows={3}
+                      className="w-full bg-[#1B1F27] border border-white/10 text-white text-sm rounded-xl p-3 outline-none focus:border-red-400/50 resize-none"
+                    />
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={() => handleRejectUser(selectedBundle)}
+                        disabled={processing || !rejectReason.trim()}
+                        className="flex-1 bg-red-500 hover:bg-red-600 text-white rounded-xl h-11"
+                      >
+                        {processing ? <Loader2 className="w-4 h-4 animate-spin" /> : <><X className="w-4 h-4 mr-2" />Confirm Rejection</>}
+                      </Button>
+                      <Button
+                        onClick={() => { setShowRejectPanel(false); setRejectReason(''); }}
+                        variant="outline"
+                        className="border-white/10 text-[#A0A0A0] rounded-xl h-11"
+                        disabled={processing}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex gap-3">
+                    <Button
+                      onClick={() => handleApproveUser(selectedBundle)}
+                      disabled={processing}
+                      className="flex-1 bg-green-500 hover:bg-green-600 text-white rounded-xl h-12 text-sm font-semibold"
+                    >
+                      {processing
+                        ? <Loader2 className="w-4 h-4 animate-spin" />
+                        : <><Check className="w-4 h-4 mr-2" />Approve All ({selectedBundle.pendingCount} docs)</>
+                      }
+                    </Button>
+                    <Button
+                      onClick={() => setShowRejectPanel(true)}
+                      disabled={processing}
+                      variant="outline"
+                      className="flex-1 border-red-500/30 text-red-400 hover:bg-red-500/10 rounded-xl h-12 text-sm font-semibold"
+                    >
+                      <X className="w-4 h-4 mr-2" />Reject
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
-      {/* Preview Modal */}
+      {/* Mobile: review panel as bottom sheet */}
       <AnimatePresence>
-        {previewImage && (
+        {selectedBundle && (
           <motion.div
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            onClick={() => setPreviewImage(null)}
-            className="fixed inset-0 z-[70] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => { setSelectedUserId(null); setShowRejectPanel(false); }}
+            className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm lg:hidden"
           >
             <motion.div
-              initial={{ scale: 0.9 }} animate={{ scale: 1 }} exit={{ scale: 0.9 }}
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 28, stiffness: 300 }}
               onClick={(e) => e.stopPropagation()}
-              className="relative max-w-3xl max-h-[85vh]"
+              className="absolute bottom-0 left-0 right-0 bg-[#111318] rounded-t-3xl border-t border-white/10 max-h-[90vh] flex flex-col"
             >
-              <button
-                onClick={() => setPreviewImage(null)}
-                className="absolute -top-10 right-0 p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white"
-              >
-                <X className="w-5 h-5" />
-              </button>
-              <img
-                src={previewImage}
-                alt="Document"
-                className="max-w-full max-h-[80vh] rounded-2xl border border-white/10"
-              />
+              {/* Handle */}
+              <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mt-3 mb-1 shrink-0" />
+
+              {/* Header */}
+              <div className="px-5 py-4 border-b border-white/5 flex items-center gap-3 shrink-0">
+                <img src={selectedBundle.user_avatar} alt="" className="w-10 h-10 rounded-full bg-[#1B1F27] object-cover" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-bold text-white">{selectedBundle.user_name}</p>
+                  <p className="text-xs text-[#A0A0A0]">{selectedBundle.docs.length} documents</p>
+                </div>
+                <button onClick={() => { setSelectedUserId(null); setShowRejectPanel(false); }} className="p-2 rounded-xl hover:bg-white/5 text-[#A0A0A0]">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Scrollable docs */}
+              <div className="overflow-y-auto flex-1 p-4">
+                <div className="grid grid-cols-2 gap-3">
+                  {selectedBundle.docs.map((doc) => {
+                    const DocIcon = getDocIcon(doc.doc_type);
+                    const docUrl = getDocUrl(doc);
+                    const ds = getDocStatus(doc.status);
+                    return (
+                      <div key={doc.id} className="bg-[#0F1115] rounded-xl border border-white/5 overflow-hidden">
+                        <div
+                          className="relative aspect-[4/3] bg-[#1B1F27] flex items-center justify-center cursor-pointer"
+                          onClick={() => docUrl && setPreviewUrl(docUrl)}
+                        >
+                          {docUrl ? (
+                            <>
+                              <img src={docUrl} alt="" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                              <div className="absolute top-1.5 right-1.5 p-1 rounded-lg bg-black/50">
+                                <Eye className="w-3 h-3 text-white" />
+                              </div>
+                            </>
+                          ) : (
+                            <DocIcon className="w-7 h-7 text-[#A0A0A0]" />
+                          )}
+                        </div>
+                        <div className="p-2.5">
+                          <p className="text-xs font-medium text-white truncate mb-1">{getDocLabel(doc.doc_type)}</p>
+                          <div className="flex items-center gap-1">
+                            <span className={`w-1.5 h-1.5 rounded-full ${ds.dot}`} />
+                            <span className={`text-[10px] ${ds.text}`}>{ds.label}</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Footer actions */}
+              <div className="p-4 border-t border-white/5 bg-[#0D0F14] shrink-0">
+                {selectedBundle.pendingCount === 0 ? (
+                  <p className="text-sm text-[#A0A0A0] text-center py-2">No pending documents</p>
+                ) : showRejectPanel ? (
+                  <div className="space-y-3">
+                    <textarea
+                      value={rejectReason}
+                      onChange={(e) => setRejectReason(e.target.value)}
+                      placeholder="Rejection reason…"
+                      rows={2}
+                      className="w-full bg-[#1B1F27] border border-white/10 text-white text-sm rounded-xl p-3 outline-none resize-none"
+                    />
+                    <div className="flex gap-2">
+                      <Button onClick={() => handleRejectUser(selectedBundle)} disabled={processing || !rejectReason.trim()} className="flex-1 bg-red-500 hover:bg-red-600 text-white rounded-xl h-11">
+                        {processing ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Confirm Reject'}
+                      </Button>
+                      <Button onClick={() => { setShowRejectPanel(false); setRejectReason(''); }} variant="outline" className="border-white/10 text-[#A0A0A0] rounded-xl h-11">Cancel</Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex gap-3">
+                    <Button onClick={() => handleApproveUser(selectedBundle)} disabled={processing} className="flex-1 bg-green-500 hover:bg-green-600 text-white rounded-xl h-12 font-semibold">
+                      {processing ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Check className="w-4 h-4 mr-1" />Approve All</>}
+                    </Button>
+                    <Button onClick={() => setShowRejectPanel(true)} disabled={processing} variant="outline" className="flex-1 border-red-500/30 text-red-400 hover:bg-red-500/10 rounded-xl h-12 font-semibold">
+                      <X className="w-4 h-4 mr-1" />Reject
+                    </Button>
+                  </div>
+                )}
+              </div>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Reject Modal */}
+      {/* Full-screen image preview */}
       <AnimatePresence>
-        {selectedDoc && (
+        {previewUrl && (
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            onClick={() => setSelectedDoc(null)}
-            className="fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+            onClick={() => setPreviewUrl(null)}
+            className="fixed inset-0 z-[80] bg-black/95 flex items-center justify-center p-4"
           >
             <motion.div
-              initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }}
+              initial={{ scale: 0.9 }} animate={{ scale: 1 }} exit={{ scale: 0.9 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-[#1B1F27] rounded-2xl border border-white/10 p-6 w-full max-w-md"
+              className="relative max-w-4xl max-h-[90vh]"
             >
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 bg-red-500/10 rounded-xl flex items-center justify-center">
-                  <AlertCircle className="w-5 h-5 text-red-400" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold text-white">Reject Document</h3>
-                  <p className="text-xs text-[#A0A0A0]">
-                    {getDocLabel(selectedDoc.doc_type)} — {selectedDoc.user_name}
-                  </p>
-                </div>
-              </div>
-
-              {/* Document preview in modal */}
-              {getDocUrl(selectedDoc) && (
-                <div className="mb-4">
-                  <img
-                    src={getDocUrl(selectedDoc)!}
-                    alt="Document"
-                    className="w-full max-h-40 object-cover rounded-xl border border-white/5"
-                  />
-                </div>
-              )}
-
-              <div className="mb-4">
-                <label className="text-sm text-[#A0A0A0] mb-2 block">Rejection Reason *</label>
-                <textarea
-                  value={rejectReason}
-                  onChange={(e) => setRejectReason(e.target.value)}
-                  placeholder="Enter reason for rejection (e.g. blurry image, expired document...)"
-                  className="w-full bg-[#0A0C10] border border-white/10 rounded-xl p-3 text-sm text-white placeholder:text-[#A0A0A0] resize-none h-24 focus:outline-none focus:border-[#FF6B00]/30"
-                />
-              </div>
-
-              <div className="flex gap-3">
-                <Button
-                  onClick={() => { setSelectedDoc(null); setRejectReason(''); }}
-                  variant="outline"
-                  className="flex-1 border-white/10 text-white rounded-xl"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={() => handleReject(selectedDoc.id, selectedDoc.user_id)}
-                  disabled={processingId === selectedDoc.id || !rejectReason.trim()}
-                  className="flex-1 bg-red-500 text-white hover:bg-red-600 rounded-xl disabled:opacity-50"
-                >
-                  {processingId === selectedDoc.id ? (
-                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                  ) : null}
-                  Reject
-                </Button>
-              </div>
+              <button
+                onClick={() => setPreviewUrl(null)}
+                className="absolute -top-10 right-0 p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+              <img
+                src={previewUrl}
+                alt="Document"
+                className="max-w-full max-h-[85vh] rounded-2xl border border-white/10 object-contain"
+              />
             </motion.div>
           </motion.div>
         )}

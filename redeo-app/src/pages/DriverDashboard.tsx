@@ -354,7 +354,7 @@ export function DriverDashboard() {
           user_id: booking.passenger_id,
           type: 'success',
           title: 'Booking Confirmed ✅',
-          message: `Your booking for ${booking.seats} seat(s) on the trip ${tripData?.from_location || ''} → ${tripData?.to_location || ''} on ${tripData?.departure_date || ''} has been confirmed! Pay ${booking.total_price} MAD cash to the driver.`,
+          message: `Your booking for ${booking.seats} seat(s) from ${tripData?.from_location || ''} to ${tripData?.to_location || ''} on ${tripData?.departure_date || ''} is confirmed! Pay ${booking.total_price} MAD cash to the driver. ||TRIP:${booking.trip_id}||`,
           read: false,
         }),
       }).catch(() => {});
@@ -396,7 +396,7 @@ export function DriverDashboard() {
           user_id: booking.passenger_id,
           type: 'warning',
           title: 'Booking Not Accepted',
-          message: `Unfortunately your booking for the trip ${tripData?.from_location || ''} → ${tripData?.to_location || ''} on ${tripData?.departure_date || ''} was not accepted by the driver. Please try another trip.`,
+          message: `Unfortunately your booking from ${tripData?.from_location || ''} to ${tripData?.to_location || ''} on ${tripData?.departure_date || ''} was not accepted by the driver. Please try another trip. ||TRIP:${booking.trip_id}||`,
           read: false,
         }),
       }).catch(() => {});

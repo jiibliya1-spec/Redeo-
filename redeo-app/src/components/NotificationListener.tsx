@@ -4,12 +4,48 @@ import { useStore } from '@/store/useStore';
 import { toast } from 'sonner';
 import { CheckCircle, XCircle, Bell } from 'lucide-react';
 
-/**
- * Global NotificationListener
- * Listens to realtime notifications + profile updates
- */
+const LS_NOTIFS = 'wansniauto_notifications';
+const LS_BOOKINGS = 'wansniauto_bookings';
+
+/** Save a Supabase notification into localStorage so NotificationsPage can display it */
+function persistNotification(notif: any) {
+  try {
+    const existing: any[] = JSON.parse(localStorage.getItem(LS_NOTIFS) || '[]');
+    if (existing.some(n => n.id === notif.id)) return; // deduplicate
+
+    const mapped = {
+      id: notif.id,
+      type: notif.type === 'success' ? 'booking' : notif.type === 'warning' ? 'booking' : 'system',
+      title: notif.title,
+      message: notif.message,
+      created_at: notif.created_at || new Date().toISOString(),
+      read: false,
+    };
+    localStorage.setItem(LS_NOTIFS, JSON.stringify([mapped, ...existing].slice(0, 100)));
+  } catch {}
+}
+
+/** If the message contains ||TRIP:uuid||, sync that trip's booking status in localStorage */
+function syncBookingStatus(notif: any, userId: string) {
+  try {
+    const tripMatch = (notif.message || '').match(/\|\|TRIP:([a-zA-Z0-9-]+)\|\|/);
+    if (!tripMatch) return;
+    const tripId = tripMatch[1];
+
+    const bookings: any[] = JSON.parse(localStorage.getItem(LS_BOOKINGS) || '[]');
+    const newStatus = notif.type === 'success' ? 'confirmed' : 'cancelled';
+    const updated = bookings.map(b => {
+      if (b.trip_id === tripId && b.passenger_id === userId && b.status === 'pending') {
+        return { ...b, status: newStatus };
+      }
+      return b;
+    });
+    localStorage.setItem(LS_BOOKINGS, JSON.stringify(updated));
+  } catch {}
+}
+
 export function NotificationListener() {
-  const { user, isAuthenticated, refreshProfile, setUser } = useStore();
+  const { user, isAuthenticated, refreshProfile, setUser, setUnreadCount } = useStore();
   const userId = user?.id;
   const shownRef = useRef<Set<string>>(new Set());
 
@@ -31,15 +67,59 @@ export function NotificationListener() {
           duration: 8000,
         });
         break;
+      case 'success':
+        toast.success(notif.title || notif.message, {
+          icon: <CheckCircle className="w-5 h-5 text-green-500" />,
+          duration: 8000,
+          description: notif.title ? notif.message?.replace(/\|\|TRIP:[^|]+\|\|/, '').trim() : undefined,
+        });
+        break;
+      case 'warning':
+        toast.warning(notif.title || notif.message, {
+          duration: 8000,
+          description: notif.title ? notif.message?.replace(/\|\|TRIP:[^|]+\|\|/, '').trim() : undefined,
+        });
+        break;
       default:
-        toast.info(notif.message, {
+        toast.info(notif.title || notif.message, {
           icon: <Bell className="w-5 h-5 text-[#FF6B00]" />,
           duration: 5000,
+          description: notif.title ? notif.message?.replace(/\|\|TRIP:[^|]+\|\|/, '').trim() : undefined,
         });
     }
   }, []);
 
-  // Listen to notifications INSERT
+  const processNotification = useCallback(async (notif: any) => {
+    showToast(notif);
+    persistNotification(notif);
+
+    if (userId) {
+      syncBookingStatus(notif, userId);
+    }
+
+    // Handle verification changes
+    if (notif.type === 'verification_approved') {
+      setUser({ ...user!, is_verified: true, verification_status: 'verified' });
+      await refreshProfile();
+    } else if (notif.type === 'verification_rejected') {
+      setUser({ ...user!, is_verified: false, verification_status: 'rejected' });
+      await refreshProfile();
+    }
+
+    // Update unread count badge
+    try {
+      const existing: any[] = JSON.parse(localStorage.getItem(LS_NOTIFS) || '[]');
+      const unread = existing.filter(n => !n.read).length;
+      setUnreadCount(unread);
+    } catch {}
+
+    // Mark as read in Supabase (best-effort)
+    try {
+      await supabase.from('notifications').update({ read: true }).eq('id', notif.id);
+    } catch {}
+  }, [showToast, userId, user, refreshProfile, setUser, setUnreadCount]);
+
+  // ── Realtime listener ──
   useEffect(() => {
     if (!isAuthenticated || !userId) return;
 
@@ -49,24 +129,15 @@ export function NotificationListener() {
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${userId}` },
         async (payload) => {
-          const notif = payload.new as any;
-          showToast(notif);
-
-          if (notif.type === 'verification_approved') {
-            setUser({ ...user!, is_verified: true, verification_status: 'verified' });
-            await refreshProfile();
-          } else if (notif.type === 'verification_rejected') {
-            setUser({ ...user!, is_verified: false, verification_status: 'rejected' });
-            await refreshProfile();
-          }
+          await processNotification(payload.new as any);
         }
       )
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [isAuthenticated, userId, showToast, refreshProfile, setUser, user]);
+  }, [isAuthenticated, userId, processNotification]);
 
-  // Listen to profile UPDATE (verification status changes)
+  // ── Profile UPDATE listener ──
   useEffect(() => {
     if (!isAuthenticated || !userId) return;
 
@@ -101,35 +172,32 @@ export function NotificationListener() {
     return () => { supabase.removeChannel(channel); };
   }, [isAuthenticated, userId, setUser, user]);
 
-  // Polling fallback
+  // ── Polling fallback (every 10s) ──
   useEffect(() => {
     if (!isAuthenticated || !userId) return;
 
     const check = async () => {
-      const { data: notifs } = await supabase
-        .from('notifications')
-        .select('*')
-        .eq('user_id', userId)
-        .eq('read', false)
-        .order('created_at', { ascending: false })
-        .limit(5);
+      try {
+        const { data: notifs } = await supabase
+          .from('notifications')
+          .select('*')
+          .eq('user_id', userId)
+          .eq('read', false)
+          .order('created_at', { ascending: false })
+          .limit(10);
 
-      if (!notifs?.length) return;
+        if (!notifs?.length) return;
 
-      for (const n of notifs) {
-        showToast(n);
-        if (n.type === 'verification_approved') {
-          setUser({ ...user!, is_verified: true, verification_status: 'verified' });
-        } else if (n.type === 'verification_rejected') {
-          setUser({ ...user!, is_verified: false, verification_status: 'rejected' });
+        for (const n of notifs) {
+          await processNotification(n);
         }
-      }
+      } catch { /* Supabase unavailable */ }
     };
 
     check();
     const iv = setInterval(check, 10000);
     return () => clearInterval(iv);
-  }, [isAuthenticated, userId, showToast, setUser, user]);
+  }, [isAuthenticated, userId, processNotification]);
 
   return null;
 }

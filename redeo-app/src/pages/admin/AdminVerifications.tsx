@@ -133,29 +133,37 @@ export function AdminVerifications() {
     try {
       const headers = await getHeaders();
 
-      /* Single joined query: verifications + nested profile fields in one round-trip */
-      const res = await fetch(
-        `${SUPABASE_URL}/rest/v1/verifications?select=*,profiles(name,email,avatar,role)&order=created_at.desc&limit=300`,
+      /* Step 1: fetch verifications */
+      const verifRes = await fetch(
+        `${SUPABASE_URL}/rest/v1/verifications?select=*&order=created_at.desc&limit=300`,
         { headers }
       );
+      if (!verifRes.ok) throw new Error('Status ' + verifRes.status + ': ' + await verifRes.text());
+      const verifData: any[] = await verifRes.json();
 
-      if (!res.ok) throw new Error('Status ' + res.status + ': ' + await res.text());
-      const verifData: any[] = await res.json();
-
-      /* Populate usersMapRef for realtime patches */
-      for (const v of verifData) {
-        if (v.profiles && v.user_id) {
-          usersMapRef.current.set(v.user_id, v.profiles);
-        }
+      /* Step 2: fetch ONLY the profiles referenced in these verifications (avoids full-table scan) */
+      const userIds = [...new Set<string>(verifData.map((v) => v.user_id).filter(Boolean))];
+      let usersData: any[] = [];
+      if (userIds.length > 0) {
+        const profileRes = await fetch(
+          `${SUPABASE_URL}/rest/v1/profiles?select=id,name,email,avatar,role&id=in.(${userIds.join(',')})`,
+          { headers }
+        );
+        if (profileRes.ok) usersData = await profileRes.json();
       }
 
-      const combined: VerificationRecord[] = verifData.map((v) => ({
-        ...v,
-        user_name: v.profiles?.name || 'Unknown',
-        user_email: v.profiles?.email || '',
-        user_avatar: v.profiles?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${v.user_id}`,
-        user_role: v.profiles?.role || 'passenger',
-      }));
+      usersMapRef.current = new Map<string, any>(usersData.map((u: any) => [u.id, u]));
+
+      const combined: VerificationRecord[] = verifData.map((v) => {
+        const u = usersMapRef.current.get(v.user_id);
+        return {
+          ...v,
+          user_name: u?.name || 'Unknown',
+          user_email: u?.email || '',
+          user_avatar: u?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${v.user_id}`,
+          user_role: u?.role || 'passenger',
+        };
+      });
 
       setVerifications(combined);
       saveCache(combined);

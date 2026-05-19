@@ -69,7 +69,7 @@ const ALL_DOCS: DocStep[] = [
 
 export default function VerificationPage() {
   const { user, setUser } = useStore();
-  const { t, lang } = useI18n();
+  const { lang } = useI18n();
   const [steps, setSteps] = useState<DocStep[]>([...ALL_DOCS]);
   const [submitting, setSubmitting] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);

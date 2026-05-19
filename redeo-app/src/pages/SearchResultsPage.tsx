@@ -110,6 +110,7 @@ export function SearchResultsPage() {
   const [results, setResults] = useState<Trip[]>([]);
   const [sortBy, setSortBy] = useState('price');
   const [isLoading, setIsLoading] = useState(true);
+  const [lastUpdated, setLastUpdated] = useState(0);
 
   // ─── Fetch driver profiles for trips ───
   const enrichTripsWithDrivers = useCallback(async (trips: Trip[]): Promise<Trip[]> => {
@@ -167,51 +168,57 @@ export function SearchResultsPage() {
   }, []);
 
   // ─── Load and filter trips ───
-  useEffect(() => {
+  const loadResults = useCallback(async () => {
     setIsLoading(true);
+    let allTrips: Trip[] = [];
 
-    const loadResults = async () => {
-      let allTrips: Trip[] = [];
-
-      // 1. Fetch from Supabase
-      try {
-        const data = await apiGet('trips');
-        if (data && data.length > 0) {
-          allTrips = data as Trip[];
-        }
-      } catch (e) {
-        console.error('[SearchResults] Failed to fetch trips:', e);
+    try {
+      const data = await apiGet('trips');
+      if (data && data.length > 0) {
+        allTrips = data as Trip[];
       }
+    } catch (e) {
+      console.error('[SearchResults] Failed to fetch trips:', e);
+    }
 
-      // 3. Filter
-      let filtered = allTrips.filter((t: Trip) => t.status === 'upcoming');
+    // Filter
+    let filtered = allTrips.filter((t: Trip) => t.status === 'upcoming');
+    if (searchFilters.from) {
+      filtered = filtered.filter((t: Trip) =>
+        t.from_location?.toLowerCase().includes(searchFilters.from.toLowerCase())
+      );
+    }
+    if (searchFilters.to) {
+      filtered = filtered.filter((t: Trip) =>
+        t.to_location?.toLowerCase().includes(searchFilters.to.toLowerCase())
+      );
+    }
+    if (searchFilters.date) {
+      filtered = filtered.filter((t: Trip) => t.departure_date === searchFilters.date);
+    }
+    if (searchFilters.passengers > 0) {
+      filtered = filtered.filter((t: Trip) => (t.available_seats || 0) >= searchFilters.passengers);
+    }
 
-      if (searchFilters.from) {
-        filtered = filtered.filter((t: Trip) =>
-          t.from_location?.toLowerCase().includes(searchFilters.from.toLowerCase())
-        );
-      }
-      if (searchFilters.to) {
-        filtered = filtered.filter((t: Trip) =>
-          t.to_location?.toLowerCase().includes(searchFilters.to.toLowerCase())
-        );
-      }
-      if (searchFilters.date) {
-        filtered = filtered.filter((t: Trip) => t.departure_date === searchFilters.date);
-      }
-      if (searchFilters.passengers > 0) {
-        filtered = filtered.filter((t: Trip) => (t.available_seats || 0) >= searchFilters.passengers);
-      }
-
-      // 4. Enrich with driver data
-      const enriched = await enrichTripsWithDrivers(filtered);
-
-      setResults(enriched);
-      setIsLoading(false);
-    };
-
-    loadResults();
+    const enriched = await enrichTripsWithDrivers(filtered);
+    setResults(enriched);
+    setIsLoading(false);
   }, [searchFilters, enrichTripsWithDrivers]);
+
+  useEffect(() => { loadResults(); }, [loadResults, lastUpdated]);
+
+  // ─── Realtime: auto-refresh when a trip is added/updated/deleted ───
+  useEffect(() => {
+    const channel = supabase
+      .channel('trips-realtime-search')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'trips' },
+        () => { setLastUpdated(Date.now()); }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, []);
 
   const sorted = [...results].sort((a, b) => {
     if (sortBy === 'price') return a.price - b.price;

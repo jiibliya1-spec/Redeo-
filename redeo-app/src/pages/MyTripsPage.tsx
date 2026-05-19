@@ -92,8 +92,8 @@ export function MyTripsPage() {
           }
 
           data = data.map(b => {
-            if (!b.trip?.from_location && tripMap.has(b.trip_id)) {
-              const t = tripMap.get(b.trip_id);
+            const t = tripMap.get(b.trip_id);
+            if (!b.trip?.from_location && t) {
               return {
                 ...b,
                 trip: { id: t.id, from_location: t.from_location, to_location: t.to_location, departure_date: t.departure_date, departure_time: t.departure_time, price: t.price, driver_id: t.driver_id },

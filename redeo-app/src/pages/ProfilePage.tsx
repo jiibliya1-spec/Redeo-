@@ -41,46 +41,82 @@ export function ProfilePage() {
 
   // ─── Direct fetch from Supabase (always fresh) ───
   const fetchFreshProfile = useCallback(async () => {
-    // Use store.getState() to avoid stale closure
     const currentUser = useStore.getState().user;
     if (!currentUser?.id) return;
     setIsRefreshing(true);
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       const jwt = sessionData.session?.access_token || '';
+      const headers = { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${jwt}` };
 
-      const res = await fetch(
-        `${SUPABASE_URL}/rest/v1/profiles?select=is_verified,verification_status,role&id=eq.${currentUser.id}&limit=1`,
-        {
-          headers: {
-            'apikey': SUPABASE_ANON_KEY,
-            'Authorization': `Bearer ${jwt}`,
-          },
+      // Fetch profile and verifications in parallel
+      const [profileRes, verifRes] = await Promise.all([
+        fetch(
+          `${SUPABASE_URL}/rest/v1/profiles?select=is_verified,verification_status,role&id=eq.${currentUser.id}&limit=1`,
+          { headers }
+        ),
+        fetch(
+          `${SUPABASE_URL}/rest/v1/verifications?select=status&user_id=eq.${currentUser.id}`,
+          { headers }
+        ),
+      ]);
+
+      let derivedVerified = false;
+      let derivedStatus = 'unverified';
+      let derivedRole = 'passenger';
+
+      // 1. Read profile fields
+      if (profileRes.ok) {
+        const profileData = await profileRes.json();
+        if (profileData?.length > 0) {
+          const p = profileData[0];
+          derivedRole = p.role || 'passenger';
+          derivedVerified = p.is_verified === true;
+          derivedStatus = p.verification_status || 'unverified';
         }
-      );
+      }
 
-      if (res.ok) {
-        const data = await res.json();
-        if (data && data.length > 0) {
-          const p = data[0];
-          console.log('[ProfilePage] Fresh fetch:', p);
-          setProfileVerified(p.is_verified === true);
-          setProfileStatus(p.verification_status || 'unverified');
-          setProfileRole(p.role || 'passenger');
+      // 2. Override with verifications table (source of truth when admin approves)
+      if (verifRes.ok) {
+        const verifData: { status: string }[] = await verifRes.json();
+        if (verifData?.length > 0) {
+          const allApproved = verifData.every(
+            (v) => v.status === 'approved' || v.status === 'verified'
+          );
+          const anyApproved = verifData.some(
+            (v) => v.status === 'approved' || v.status === 'verified'
+          );
+          const anyPending = verifData.some(
+            (v) => v.status === 'pending' || v.status === 'uploaded' || v.status === 'submitted'
+          );
+          const anyRejected = verifData.some((v) => v.status === 'rejected');
 
-          // Also update the global user state with FRESH user
-          const freshUser = useStore.getState().user;
-          if (freshUser) {
-            setUser({
-              ...freshUser,
-              is_verified: p.is_verified === true,
-              verification_status: p.verification_status || 'unverified',
-              role: (p.role || 'passenger') as 'passenger' | 'driver' | 'admin',
-            });
+          if (allApproved) {
+            derivedVerified = true;
+            derivedStatus = 'verified';
+          } else if (anyRejected) {
+            derivedStatus = 'rejected';
+            derivedVerified = false;
+          } else if (anyPending || anyApproved) {
+            // Has some docs uploaded/pending — don't downgrade if profile already says verified
+            if (!derivedVerified) derivedStatus = 'pending';
           }
         }
-      } else {
-        console.error('[ProfilePage] Fetch failed:', res.status);
+      }
+
+      setProfileVerified(derivedVerified);
+      setProfileStatus(derivedStatus);
+      setProfileRole(derivedRole);
+
+      // Sync global store
+      const freshUser = useStore.getState().user;
+      if (freshUser) {
+        setUser({
+          ...freshUser,
+          is_verified: derivedVerified,
+          verification_status: derivedStatus,
+          role: derivedRole as 'passenger' | 'driver' | 'admin',
+        });
       }
     } catch (err: any) {
       console.error('[ProfilePage] Error:', err.message);
@@ -119,35 +155,28 @@ export function ProfilePage() {
   // Keep ref in sync so the realtime callback can read latest value without causing re-subscription
   useEffect(() => { profileVerifiedRef.current = profileVerified; }, [profileVerified]);
 
-  // ─── Realtime subscription for profile changes (only re-runs when user.id changes) ───
+  // ─── Realtime: profiles + verifications (re-runs only when user.id changes) ───
   useEffect(() => {
     if (!user?.id) return;
 
     const uid = user.id;
-    // Unique name per mount to avoid conflicts with any lingering channel
     const channelName = `profile-page-${uid}-${Date.now()}`;
     let channel: ReturnType<typeof supabase.channel> | null = null;
 
     try {
       channel = supabase
         .channel(channelName)
+        /* profiles update */
         .on(
           'postgres_changes',
-          {
-            event: 'UPDATE',
-            schema: 'public',
-            table: 'profiles',
-            filter: `id=eq.${uid}`,
-          },
+          { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${uid}` },
           (payload) => {
             const p = payload.new as any;
             if (!p) return;
-
             const wasVerified = profileVerifiedRef.current;
             setProfileVerified(p.is_verified === true);
             setProfileStatus(p.verification_status || 'unverified');
             if (p.role) setProfileRole(p.role);
-
             const freshUser = useStore.getState().user;
             if (freshUser) {
               setUser({
@@ -157,11 +186,24 @@ export function ProfilePage() {
                 role: (p.role || freshUser.role) as 'passenger' | 'driver' | 'admin',
               });
             }
-
             if (p.is_verified && !wasVerified) {
-              toast.success('Your account has been verified!');
+              toast.success(t('notif.verified'));
             }
           }
+        )
+        /* verifications update — re-derive status when admin approves/rejects a doc */
+        .on(
+          'postgres_changes',
+          { event: 'UPDATE', schema: 'public', table: 'verifications', filter: `user_id=eq.${uid}` },
+          () => {
+            // Re-fetch everything to recompute derived status
+            fetchFreshProfile();
+          }
+        )
+        .on(
+          'postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'verifications', filter: `user_id=eq.${uid}` },
+          () => { fetchFreshProfile(); }
         )
         .subscribe();
     } catch (err) {

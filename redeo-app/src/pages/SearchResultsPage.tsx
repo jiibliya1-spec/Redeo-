@@ -109,8 +109,9 @@ export function SearchResultsPage() {
   const { t, dir } = useI18n();
   const [results, setResults] = useState<Trip[]>([]);
   const [sortBy, setSortBy] = useState('price');
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(0);
+  const hasFilters = !!(searchFilters.from || searchFilters.to || searchFilters.date);
 
   // ─── Fetch driver profiles for trips ───
   const enrichTripsWithDrivers = useCallback(async (trips: Trip[]): Promise<Trip[]> => {
@@ -205,7 +206,14 @@ export function SearchResultsPage() {
     setIsLoading(false);
   }, [searchFilters, enrichTripsWithDrivers]);
 
-  useEffect(() => { loadResults(); }, [loadResults, lastUpdated]);
+  useEffect(() => {
+    if (hasFilters) {
+      loadResults();
+    } else {
+      setResults([]);
+      setIsLoading(false);
+    }
+  }, [loadResults, lastUpdated, hasFilters]);
 
   // ─── Realtime: auto-refresh when a trip is added/updated/deleted ───
   useEffect(() => {
@@ -265,7 +273,15 @@ export function SearchResultsPage() {
           </select>
         </div>
 
-        {isLoading ? (
+        {!hasFilters ? (
+          <div className="text-center py-16">
+            <div className="w-20 h-20 bg-[#FF6B00]/10 rounded-full flex items-center justify-center mx-auto mb-5">
+              <MapPin className="w-10 h-10 text-[#FF6B00]" />
+            </div>
+            <h3 className="text-lg font-medium text-white mb-2" dir={dir}>{t('search.pick_route')}</h3>
+            <p className="text-sm text-[#A0A0A0]" dir={dir}>{t('search.pick_route_desc')}</p>
+          </div>
+        ) : isLoading ? (
           <div className="flex items-center justify-center py-20"><Loader2 className="w-8 h-8 text-[#FF6B00] animate-spin" /></div>
         ) : (
           <div className="space-y-4">

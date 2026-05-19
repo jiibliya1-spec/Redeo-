@@ -446,7 +446,23 @@ export function ProfilePage() {
                   </div>
                 </div>
                 <button
-                  onClick={() => setMode(mode === 'driver' ? 'passenger' : 'driver')}
+                  onClick={async () => {
+                    const newMode = mode === 'driver' ? 'passenger' : 'driver';
+                    setMode(newMode);
+                    // Persist new role to Supabase and sync local store
+                    if (user?.id) {
+                      try {
+                        await supabase
+                          .from('profiles')
+                          .update({ role: newMode })
+                          .eq('id', user.id);
+                        setUser({ ...user, role: newMode as 'passenger' | 'driver' });
+                        setProfileRole(newMode);
+                      } catch (e) {
+                        console.warn('Role sync failed:', e);
+                      }
+                    }
+                  }}
                   className={`relative w-14 h-8 rounded-full transition-colors duration-300 ${mode === 'driver' ? 'bg-[#FF6B00]' : 'bg-blue-500'}`}
                 >
                   <div className={`absolute top-1 w-6 h-6 bg-white rounded-full shadow-md transition-transform duration-300 ${mode === 'driver' ? 'translate-x-7' : 'translate-x-1'}`} />

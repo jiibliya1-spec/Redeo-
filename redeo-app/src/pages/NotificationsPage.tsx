@@ -16,6 +16,24 @@ interface NotifItem {
   read: boolean;
 }
 
+// ─── User-scoped localStorage helpers ────────────────────────────────────────
+function getCacheKey(userId: string) {
+  return `wansniauto_notifications_${userId}`;
+}
+function readCache(userId: string): NotifItem[] {
+  try {
+    return JSON.parse(localStorage.getItem(getCacheKey(userId)) || '[]');
+  } catch { return []; }
+}
+function writeCache(userId: string, items: NotifItem[]) {
+  try {
+    localStorage.setItem(getCacheKey(userId), JSON.stringify(items.slice(0, 100)));
+  } catch {}
+}
+function clearCache(userId: string) {
+  try { localStorage.removeItem(getCacheKey(userId)); } catch {}
+}
+
 export function NotificationsPage() {
   const navigate = useNavigate();
   const { t, dir } = useI18n();
@@ -28,7 +46,7 @@ export function NotificationsPage() {
     if (!user?.id) { setLoading(false); return; }
     setLoading(true);
 
-    // PRIMARY: Supabase notifications table
+    // PRIMARY: Supabase — always filtered by user_id via RLS + explicit eq
     const { data } = await supabase
       .from('notifications')
       .select('id, type, title, message, created_at, read')
@@ -38,14 +56,15 @@ export function NotificationsPage() {
 
     let items: NotifItem[] = data || [];
 
-    // Merge with localStorage cache (for any that haven't been persisted yet)
-    try {
-      const cached: any[] = JSON.parse(localStorage.getItem('wansniauto_notifications') || '[]');
-      const sbIds = new Set(items.map(n => n.id));
-      for (const c of cached) {
-        if (!sbIds.has(c.id)) items.push(c);
-      }
-    } catch {}
+    // SECONDARY: user-scoped localStorage cache (only for the logged-in user)
+    const cached = readCache(user.id);
+    const sbIds = new Set(items.map(n => n.id));
+    for (const c of cached) {
+      if (!sbIds.has(c.id)) items.push(c);
+    }
+
+    // Write back refreshed cache (user-scoped)
+    writeCache(user.id, items);
 
     setNotifs(items);
     setUnreadCount(items.filter(n => !n.read).length);
@@ -66,25 +85,23 @@ export function NotificationsPage() {
   useEffect(() => { load(); }, [load]);
 
   const handleDelete = async (id: string) => {
-    setNotifs(prev => prev.filter(n => n.id !== id));
-    await supabase.from('notifications').delete().eq('id', id);
-    // also remove from localStorage cache
-    try {
-      const cached: any[] = JSON.parse(localStorage.getItem('wansniauto_notifications') || '[]');
-      localStorage.setItem('wansniauto_notifications', JSON.stringify(cached.filter(n => n.id !== id)));
-    } catch {}
+    if (!user?.id) return;
+    const next = notifs.filter(n => n.id !== id);
+    setNotifs(next);
+    writeCache(user.id, next);
+    await supabase.from('notifications').delete().eq('id', id).eq('user_id', user.id);
   };
 
   const handleDeleteAll = async () => {
+    if (!user?.id) return;
     setNotifs([]);
-    if (user?.id) {
-      await supabase.from('notifications').delete().eq('user_id', user.id);
-    }
-    localStorage.removeItem('wansniauto_notifications');
+    clearCache(user.id);
+    await supabase.from('notifications').delete().eq('user_id', user.id);
+    setUnreadCount(0);
   };
 
   const getDisplayType = (type: string): 'booking' | 'message' | 'system' => {
-    if (type === 'success' || type === 'warning') return 'booking';
+    if (type === 'success' || type === 'warning' || type === 'verification_approved' || type === 'verification_rejected') return 'booking';
     if (type === 'message') return 'message';
     return 'system';
   };

@@ -92,6 +92,8 @@ const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     'search.all_cities': 'All Cities',
     'search.clear_filters': 'Clear Filters',
     'search.try_adjust': 'Try adjusting your search filters',
+    'search.pick_route': 'Where are you going?',
+    'search.pick_route_desc': 'Choose a departure city or destination to see available rides.',
     'search.price': 'MAD',
 
     // ─── Trip ───
@@ -506,6 +508,8 @@ const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     'search.all_cities': 'Toutes les villes',
     'search.clear_filters': 'Effacer les filtres',
     'search.try_adjust': 'Essayez d\'ajuster vos filtres',
+    'search.pick_route': 'Où allez-vous ?',
+    'search.pick_route_desc': 'Choisissez une ville de départ ou une destination pour voir les trajets disponibles.',
     'search.price': 'MAD',
 
     // ─── Trip ───
@@ -920,6 +924,8 @@ const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     'search.all_cities': 'جميع المدن',
     'search.clear_filters': 'مسح الفلاتر',
     'search.try_adjust': 'جرب تبدل فلاتر البحث',
+    'search.pick_route': 'أين تريد الذهاب؟',
+    'search.pick_route_desc': 'اختر مدينة الانطلاق أو الوجهة لعرض الرحلات المتاحة.',
     'search.price': 'درهم',
 
     // ─── Trip ───

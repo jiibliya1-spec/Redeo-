@@ -185,9 +185,17 @@ export const useStore = create<AppState>()(
       },
 
       signOut: async () => {
+        const { user } = get();
         await supabase.auth.signOut();
+        // Clear all user-specific caches to prevent data leakage between accounts
         localStorage.removeItem('wansniauto-storage');
-        set({ user: null, isAuthenticated: false, selectedTrip: null, mode: 'passenger' });
+        localStorage.removeItem('wansniauto_bookings');
+        localStorage.removeItem('wansniauto_notifications');
+        // Also clear user-scoped notification cache if we have user id
+        if (user?.id) {
+          localStorage.removeItem(`wansniauto_notifications_${user.id}`);
+        }
+        set({ user: null, isAuthenticated: false, selectedTrip: null, mode: 'passenger', unreadCount: 0, bookings: [] });
       },
     }),
     {

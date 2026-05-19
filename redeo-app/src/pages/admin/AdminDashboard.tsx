@@ -280,17 +280,20 @@ export function AdminDashboard() {
         </motion.div>
       </div>
 
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="mt-6 bg-[#111318] rounded-2xl border border-white/5 p-5">
-        <h3 className="text-sm font-semibold text-white mb-4">Quick Actions</h3>
-        <div className="flex flex-wrap gap-3">
-          <Link to="/admin/verifications" className="flex items-center gap-2 px-4 py-2.5 bg-[#FF6B00]/10 text-[#FF6B00] rounded-xl text-sm font-medium hover:bg-[#FF6B00]/20 transition-colors">
-            <ShieldCheck className="w-4 h-4" /> Review Verifications
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="mt-6 bg-[#111318] rounded-2xl border border-white/5 p-4 sm:p-5">
+        <h3 className="text-sm font-semibold text-white mb-3">Quick Actions</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <Link to="/admin/verifications" className="flex items-center gap-3 px-4 py-4 bg-[#FF6B00]/10 text-[#FF6B00] rounded-2xl text-sm font-medium hover:bg-[#FF6B00]/20 active:bg-[#FF6B00]/30 transition-colors min-h-[56px]">
+            <ShieldCheck className="w-5 h-5 shrink-0" />
+            <span>Review Verifications</span>
           </Link>
-          <Link to="/admin/users" className="flex items-center gap-2 px-4 py-2.5 bg-blue-500/10 text-blue-400 rounded-xl text-sm font-medium hover:bg-blue-500/20 transition-colors">
-            <Users className="w-4 h-4" /> Manage Users
+          <Link to="/admin/users" className="flex items-center gap-3 px-4 py-4 bg-blue-500/10 text-blue-400 rounded-2xl text-sm font-medium hover:bg-blue-500/20 active:bg-blue-500/30 transition-colors min-h-[56px]">
+            <Users className="w-5 h-5 shrink-0" />
+            <span>Manage Users</span>
           </Link>
-          <Link to="/admin/trips" className="flex items-center gap-2 px-4 py-2.5 bg-green-500/10 text-green-400 rounded-xl text-sm font-medium hover:bg-green-500/20 transition-colors">
-            <Car className="w-4 h-4" /> View Trips
+          <Link to="/admin/trips" className="flex items-center gap-3 px-4 py-4 bg-green-500/10 text-green-400 rounded-2xl text-sm font-medium hover:bg-green-500/20 active:bg-green-500/30 transition-colors min-h-[56px]">
+            <Car className="w-5 h-5 shrink-0" />
+            <span>View Trips</span>
           </Link>
         </div>
       </motion.div>

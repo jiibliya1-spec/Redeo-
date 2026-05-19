@@ -10,16 +10,8 @@ import { useI18n } from '@/lib/i18n';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 
-/* ─── Bucket mapping: each doc type → its Supabase Storage bucket ─── */
-const BUCKET_MAP: Record<string, string> = {
-  cin_front: 'cin-documents',
-  cin_back: 'cin-documents',
-  selfie: 'selfies',
-  driver_license: 'driver-licenses',
-  insurance: 'insurance-documents',
-  car_photo_front: 'vehicle-photos',
-  car_photo_back: 'vehicle-photos',
-};
+/* ─── Single bucket 'documents' with subfolders per doc type ─── */
+const BUCKET = 'documents';
 
 interface DocStep {
   id: string;
@@ -106,12 +98,8 @@ export default function VerificationPage() {
     }
     if (!user?.id) { toast.error('User not authenticated'); return; }
 
-    /* 2. Find bucket */
-    const bucket = BUCKET_MAP[docId];
-    if (!bucket) {
-      toast.error(`Unknown document type: ${docId}`);
-      return;
-    }
+    /* 2. Use single 'documents' bucket with subfolder */
+    const bucket = BUCKET;
 
     /* 3. Set uploading state */
     setSteps((prev) => prev.map((s) => s.id === docId ? { ...s, status: 'uploading' as const, errorMsg: undefined } : s));
@@ -120,7 +108,7 @@ export default function VerificationPage() {
       const uid = user.id;
       const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
       const fileName = `${docId}_${Date.now()}.${ext}`;
-      const filePath = `${uid}/${fileName}`;
+      const filePath = `${uid}/${docId}/${fileName}`;
 
       console.log('[Upload] ============================================');
       console.log('[Upload] docId:', docId);
@@ -185,11 +173,8 @@ export default function VerificationPage() {
     if (!user?.id) return;
     const step = steps.find((s) => s.id === docId);
     if (!step?.filePath) return;
-    const bucket = BUCKET_MAP[docId];
-    if (!bucket) return;
-
     try {
-      await supabase.storage.from(bucket).remove([step.filePath]);
+      await supabase.storage.from(BUCKET).remove([step.filePath]);
       await supabase.from('verifications').delete().eq('user_id', user.id).eq('doc_type', docId);
       setSteps((prev) => prev.map((s) => s.id === docId ? { ...s, status: 'not_uploaded' as const, url: undefined, filePath: undefined } : s));
       toast.success('Document removed');
@@ -278,7 +263,6 @@ export default function VerificationPage() {
         <div className="space-y-3">
           {steps.map((step, i) => {
             const st = getStatus(step.status);
-            const bucket = BUCKET_MAP[step.id];
             return (
               <motion.div key={step.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
                 className="bg-[#1B1F27] rounded-xl border border-white/5 overflow-hidden">
@@ -291,8 +275,6 @@ export default function VerificationPage() {
                         <div className="flex items-center gap-1.5">{st.icon}<span className={`text-xs ${st.color}`}>{st.label}</span></div>
                       </div>
                       <p className="text-xs text-[#A0A0A0] mt-0.5">{getDesc(step)}</p>
-                      <p className="text-[10px] text-white/20 mt-0.5">Bucket: {bucket}</p>
-
                       {step.errorMsg && (
                         <p className="text-xs text-red-400 mt-1">Error: {step.errorMsg}</p>
                       )}

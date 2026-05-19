@@ -1,0 +1,51 @@
+2026-05-19T16:19:10.056079Z	Cloning repository...
+2026-05-19T16:19:12.13444Z	From https://github.com/jiibliya1-spec/Redeo-
+2026-05-19T16:19:12.134919Z	 * branch            c8cb289c89b37aec564ed3759869731bf06b03f7 -> FETCH_HEAD
+2026-05-19T16:19:12.135073Z	
+2026-05-19T16:19:12.40825Z	HEAD is now at c8cb289 fix: ProfilePage derives verification status from verifications table + realtime on verifications updates
+2026-05-19T16:19:12.408682Z	
+2026-05-19T16:19:12.454649Z	
+2026-05-19T16:19:12.455094Z	Using v2 root directory strategy
+2026-05-19T16:19:12.470308Z	Success: Finished cloning repository files
+2026-05-19T16:19:14.674563Z	Checking for configuration in a Wrangler configuration file (BETA)
+2026-05-19T16:19:14.67504Z	
+2026-05-19T16:19:14.675544Z	Found wrangler.toml file. Reading build configuration...
+2026-05-19T16:19:14.681631Z	pages_build_output_dir: dist
+2026-05-19T16:19:14.681788Z	Build environment variables: (none found)
+2026-05-19T16:19:15.792983Z	Successfully read the Wrangler configuration file.
+2026-05-19T16:19:16.017078Z	Detected the following tools from environment: pnpm@10.11.1, nodejs@22.16.0, npm@10.9.2
+2026-05-19T16:19:17.00218Z	Installing project dependencies: pnpm install
+2026-05-19T16:19:17.624443Z	Scope: all 8 workspace projects
+2026-05-19T16:19:17.741675Z	..                                       | Progress: resolved 1, reused 0, downloaded 0, added 0
+2026-05-19T16:19:17.820392Z	..                                       | +476 ++++++++++++++++++++++++++++++++
+2026-05-19T16:19:18.741562Z	..                                       | Progress: resolved 476, reused 0, downloaded 132, added 79
+2026-05-19T16:19:19.743869Z	..                                       | Progress: resolved 476, reused 0, downloaded 303, added 197
+2026-05-19T16:19:20.7446Z	..                                       | Progress: resolved 476, reused 0, downloaded 338, added 209
+2026-05-19T16:19:21.745196Z	..                                       | Progress: resolved 476, reused 0, downloaded 476, added 373
+2026-05-19T16:19:21.867819Z	..                                       | Progress: resolved 476, reused 0, downloaded 476, added 476, done
+2026-05-19T16:19:22.095756Z	.../esbuild@0.27.3/node_modules/esbuild postinstall$ node install.js
+2026-05-19T16:19:22.216826Z	.../esbuild@0.27.3/node_modules/esbuild postinstall: Done
+2026-05-19T16:19:22.556917Z	.. preinstall$ sh -c 'rm -f package-lock.json yarn.lock; case "$npm_config_user_agent" in pnpm/*) ;; *) echo "Use pnpm instead" >&2; exit 1 ;; esac'
+2026-05-19T16:19:22.570979Z	.. preinstall: Done
+2026-05-19T16:19:22.767Z	Done in 5.5s using pnpm v10.11.1
+2026-05-19T16:19:22.806554Z	Executing user command: npm install && npm run build
+2026-05-19T16:19:36.927615Z	
+2026-05-19T16:19:36.928Z	added 550 packages, and audited 551 packages in 14s
+2026-05-19T16:19:36.928096Z	
+2026-05-19T16:19:36.928604Z	73 packages are looking for funding
+2026-05-19T16:19:36.928954Z	  run `npm fund` for details
+2026-05-19T16:19:36.947821Z	
+2026-05-19T16:19:36.948081Z	9 vulnerabilities (3 moderate, 6 high)
+2026-05-19T16:19:36.948128Z	
+2026-05-19T16:19:36.948163Z	To address all issues, run:
+2026-05-19T16:19:36.948195Z	  npm audit fix
+2026-05-19T16:19:36.948232Z	
+2026-05-19T16:19:36.948307Z	Run `npm audit` for details.
+2026-05-19T16:19:37.363048Z	
+2026-05-19T16:19:37.363383Z	> my-app@0.0.0 build
+2026-05-19T16:19:37.363463Z	> tsc -b && vite build
+2026-05-19T16:19:37.363521Z	
+2026-05-19T16:19:47.484838Z	src/pages/ProfilePage.tsx(117,11): error TS2322: Type 'string' is not assignable to type '"unverified" | "pending" | "submitted" | "approved" | "verified" | "rejected" | undefined'.
+2026-05-19T16:19:48.114235Z	Failed: Error while executing user command. Exited with error code: 2
+2026-05-19T16:19:48.122613Z	Failed: build command exited with code: 1
+2026-05-19T16:19:48.870901Z	Failed: error occurred while running build command

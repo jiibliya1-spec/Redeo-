@@ -114,7 +114,7 @@ export function ProfilePage() {
         setUser({
           ...freshUser,
           is_verified: derivedVerified,
-          verification_status: derivedStatus,
+          verification_status: derivedStatus as 'unverified' | 'pending' | 'submitted' | 'approved' | 'verified' | 'rejected',
           role: derivedRole as 'passenger' | 'driver' | 'admin',
         });
       }

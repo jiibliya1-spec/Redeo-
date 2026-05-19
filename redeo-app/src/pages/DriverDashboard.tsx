@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useStore } from '@/store/useStore';
 import { useI18n } from '@/lib/i18n';
-import { apiGet, apiPost } from '@/lib/supabase';
+import { apiGet, apiPost, supabase } from '@/lib/supabase';
 import { MOROCCAN_CITIES } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,7 +26,39 @@ import {
   TrendingUp,
   CarFront,
   Shield,
+  Check,
+  ShieldCheck,
+  Inbox,
+  Banknote,
 } from 'lucide-react';
+
+const SUPABASE_URL = 'https://qhbiafoyhvmvyyzwdzhd.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoYmlhZm95aHZtdnl5endkemhkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3OTIwNDcsImV4cCI6MjA5NDM2ODA0N30.04MftiDjQUrnGegTeaL88WyES9ydDKxRrrmVua0rVbM';
+
+interface BookingRequest {
+  id: string;
+  trip_id: string;
+  passenger_id: string;
+  seats: number;
+  status: 'pending' | 'confirmed' | 'cancelled';
+  total_price: number;
+  created_at: string;
+  passenger?: {
+    id: string;
+    name: string;
+    avatar: string;
+    rating: number;
+    trips_count: number;
+    is_verified: boolean;
+    phone?: string;
+  };
+  trip?: {
+    from_location: string;
+    to_location: string;
+    departure_date: string;
+    departure_time: string;
+  };
+}
 
 // ─── Vehicle Manager ───
 interface Vehicle {
@@ -157,13 +189,172 @@ export function DriverDashboard() {
   });
 
   // Tabs
-  const [activeTab, setActiveTab] = useState<'upcoming' | 'past' | 'vehicles'>('upcoming');
+  const [activeTab, setActiveTab] = useState<'upcoming' | 'past' | 'vehicles' | 'requests'>('upcoming');
+
+  // Booking requests
+  const [bookingRequests, setBookingRequests] = useState<BookingRequest[]>([]);
+  const [loadingRequests, setLoadingRequests] = useState(false);
+  const [processingBookingId, setProcessingBookingId] = useState<string | null>(null);
+
+  const getAuthHeaders = useCallback(async () => {
+    const { data } = await supabase.auth.getSession();
+    const jwt = data.session?.access_token || '';
+    return {
+      'apikey': SUPABASE_ANON_KEY,
+      'Authorization': `Bearer ${jwt}`,
+      'Content-Type': 'application/json',
+    };
+  }, []);
+
+  const loadBookingRequests = useCallback(async () => {
+    if (!user?.id) return;
+    setLoadingRequests(true);
+    try {
+      const headers = await getAuthHeaders();
+
+      // 1. Get driver's trip IDs
+      const tripsRes = await fetch(
+        `${SUPABASE_URL}/rest/v1/trips?select=id,from_location,to_location,departure_date,departure_time&driver_id=eq.${user.id}&status=eq.upcoming`,
+        { headers }
+      );
+      if (!tripsRes.ok) return;
+      const driverTrips: any[] = await tripsRes.json();
+      if (!driverTrips.length) { setBookingRequests([]); setLoadingRequests(false); return; }
+
+      const tripIds = driverTrips.map(t => t.id);
+      const tripMap = new Map(driverTrips.map(t => [t.id, t]));
+
+      // 2. Get pending bookings for those trips
+      const bookRes = await fetch(
+        `${SUPABASE_URL}/rest/v1/bookings?trip_id=in.(${tripIds.join(',')})&status=eq.pending&order=created_at.desc&limit=50`,
+        { headers }
+      );
+      if (!bookRes.ok) { setLoadingRequests(false); return; }
+      const bookings: BookingRequest[] = await bookRes.json();
+      if (!bookings.length) { setBookingRequests([]); setLoadingRequests(false); return; }
+
+      // 3. Get passenger profiles
+      const passengerIds = [...new Set(bookings.map(b => b.passenger_id))];
+      const passRes = await fetch(
+        `${SUPABASE_URL}/rest/v1/profiles?select=id,name,avatar,rating,trips_count,is_verified,phone&id=in.(${passengerIds.join(',')})`,
+        { headers }
+      );
+      const passengerMap = new Map<string, any>();
+      if (passRes.ok) {
+        const passengers = await passRes.json();
+        passengers.forEach((p: any) => passengerMap.set(p.id, p));
+      }
+
+      const enriched = bookings.map(b => ({
+        ...b,
+        passenger: passengerMap.get(b.passenger_id),
+        trip: tripMap.get(b.trip_id),
+      }));
+
+      setBookingRequests(enriched);
+    } catch (e) { console.error('loadBookingRequests error:', e); }
+    setLoadingRequests(false);
+  }, [user?.id, getAuthHeaders]);
+
+  const handleAcceptBooking = async (booking: BookingRequest) => {
+    setProcessingBookingId(booking.id);
+    try {
+      const headers = await getAuthHeaders();
+
+      // 1. Update booking status → confirmed
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/bookings?id=eq.${booking.id}`, {
+        method: 'PATCH',
+        headers: { ...headers, 'Prefer': 'return=minimal' },
+        body: JSON.stringify({ status: 'confirmed' }),
+      });
+      if (!res.ok) throw new Error('Failed to confirm booking');
+
+      // 2. Decrease available_seats on the trip
+      const tripData = booking.trip as any;
+      if (booking.trip_id) {
+        const tripRes = await fetch(
+          `${SUPABASE_URL}/rest/v1/trips?select=available_seats&id=eq.${booking.trip_id}&limit=1`,
+          { headers }
+        );
+        if (tripRes.ok) {
+          const [t] = await tripRes.json();
+          if (t && typeof t.available_seats === 'number') {
+            await fetch(`${SUPABASE_URL}/rest/v1/trips?id=eq.${booking.trip_id}`, {
+              method: 'PATCH',
+              headers: { ...headers, 'Prefer': 'return=minimal' },
+              body: JSON.stringify({ available_seats: Math.max(0, t.available_seats - booking.seats) }),
+            });
+          }
+        }
+      }
+
+      // 3. Notify passenger
+      await fetch(`${SUPABASE_URL}/rest/v1/notifications`, {
+        method: 'POST',
+        headers: { ...headers, 'Prefer': 'return=minimal' },
+        body: JSON.stringify({
+          user_id: booking.passenger_id,
+          type: 'success',
+          title: 'Booking Confirmed ✅',
+          message: `Your booking for ${booking.seats} seat(s) on the trip ${tripData?.from_location || ''} → ${tripData?.to_location || ''} on ${tripData?.departure_date || ''} has been confirmed! Pay ${booking.total_price} MAD cash to the driver.`,
+          read: false,
+        }),
+      });
+
+      toast.success('Booking accepted! Passenger has been notified.');
+      setBookingRequests(prev => prev.filter(b => b.id !== booking.id));
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to accept booking');
+    }
+    setProcessingBookingId(null);
+  };
+
+  const handleRejectBooking = async (booking: BookingRequest) => {
+    setProcessingBookingId(booking.id);
+    try {
+      const headers = await getAuthHeaders();
+      const tripData = booking.trip as any;
+
+      // 1. Update booking status → cancelled
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/bookings?id=eq.${booking.id}`, {
+        method: 'PATCH',
+        headers: { ...headers, 'Prefer': 'return=minimal' },
+        body: JSON.stringify({ status: 'cancelled' }),
+      });
+      if (!res.ok) throw new Error('Failed to reject booking');
+
+      // 2. Notify passenger
+      await fetch(`${SUPABASE_URL}/rest/v1/notifications`, {
+        method: 'POST',
+        headers: { ...headers, 'Prefer': 'return=minimal' },
+        body: JSON.stringify({
+          user_id: booking.passenger_id,
+          type: 'warning',
+          title: 'Booking Not Accepted',
+          message: `Unfortunately your booking for the trip ${tripData?.from_location || ''} → ${tripData?.to_location || ''} on ${tripData?.departure_date || ''} was not accepted by the driver. Please try another trip.`,
+          read: false,
+        }),
+      });
+
+      toast.success('Booking rejected. Passenger has been notified.');
+      setBookingRequests(prev => prev.filter(b => b.id !== booking.id));
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to reject booking');
+    }
+    setProcessingBookingId(null);
+  };
 
   // Load trips
   useEffect(() => {
     if (!user?.id) return;
     loadTrips();
   }, [user?.id]);
+
+  // Load booking requests when tab opened or on mount
+  useEffect(() => {
+    if (!user?.id) return;
+    loadBookingRequests();
+  }, [loadBookingRequests]);
 
   async function loadTrips() {
     try {
@@ -442,10 +633,21 @@ export function DriverDashboard() {
         <div className="flex gap-1 p-1 bg-[#1B1F27] rounded-xl mb-6 border border-white/5">
           {([
             { key: 'upcoming' as const, label: t('passenger.upcoming') },
+            { key: 'requests' as const, label: `Requests${bookingRequests.length > 0 ? ` (${bookingRequests.length})` : ''}` },
             { key: 'past' as const, label: t('passenger.past') },
-            { key: 'vehicles' as const, label: t('driver.vehicle_info') },
+            { key: 'vehicles' as const, label: 'Vehicles' },
           ]).map(tab => (
-            <button key={tab.key} onClick={() => setActiveTab(tab.key)} className={`flex-1 py-3 text-sm font-medium rounded-lg transition-all ${activeTab === tab.key ? 'bg-[#FF6B00]/10 text-[#FF6B00]' : 'text-[#A0A0A0] hover:text-white'}`}>
+            <button
+              key={tab.key}
+              onClick={() => { setActiveTab(tab.key); if (tab.key === 'requests') loadBookingRequests(); }}
+              className={`flex-1 py-2.5 text-xs sm:text-sm font-medium rounded-lg transition-all ${
+                activeTab === tab.key
+                  ? tab.key === 'requests' && bookingRequests.length > 0
+                    ? 'bg-orange-500/10 text-orange-400'
+                    : 'bg-[#FF6B00]/10 text-[#FF6B00]'
+                  : 'text-[#A0A0A0] hover:text-white'
+              }`}
+            >
               {tab.label}
             </button>
           ))}
@@ -500,6 +702,112 @@ export function DriverDashboard() {
                       <ChevronRight className="w-4 h-4 text-[#A0A0A0] shrink-0" />
                     </motion.div>
                   ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Booking Requests */}
+          {activeTab === 'requests' && (
+            <div>
+              <div className="p-5 border-b border-white/5 flex items-center justify-between">
+                <h3 className="text-xs font-medium text-[#A0A0A0] uppercase tracking-wider">Booking Requests</h3>
+                <button onClick={loadBookingRequests} className="text-xs text-[#FF6B00] hover:underline flex items-center gap-1">
+                  {loadingRequests ? <Loader2 className="w-3 h-3 animate-spin" /> : null} Refresh
+                </button>
+              </div>
+
+              {loadingRequests ? (
+                <div className="p-8 text-center">
+                  <Loader2 className="w-6 h-6 animate-spin text-[#FF6B00] mx-auto" />
+                  <p className="text-sm text-[#A0A0A0] mt-2">Loading requests...</p>
+                </div>
+              ) : bookingRequests.length === 0 ? (
+                <div className="p-8 text-center">
+                  <Inbox className="w-12 h-12 text-[#A0A0A0] mx-auto mb-3" />
+                  <p className="text-sm text-[#A0A0A0]">No pending booking requests</p>
+                  <p className="text-xs text-[#A0A0A0] mt-1">Requests from passengers will appear here</p>
+                </div>
+              ) : (
+                <div className="divide-y divide-white/5">
+                  {bookingRequests.map((booking, idx) => {
+                    const p = booking.passenger;
+                    const t = booking.trip as any;
+                    const isProcessing = processingBookingId === booking.id;
+                    return (
+                      <motion.div
+                        key={booking.id}
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: idx * 0.04 }}
+                        className="p-4"
+                      >
+                        {/* Trip info */}
+                        <div className="flex items-center gap-2 mb-3 text-xs text-[#A0A0A0]">
+                          <MapPin className="w-3.5 h-3.5 text-[#FF6B00]" />
+                          <span className="text-white font-medium">{t?.from_location} → {t?.to_location}</span>
+                          <span>·</span>
+                          <Calendar className="w-3 h-3" />
+                          <span>{t?.departure_date} at {t?.departure_time}</span>
+                        </div>
+
+                        {/* Passenger profile */}
+                        <div className="flex items-center gap-3 bg-[#0F1115] rounded-xl p-3 mb-3">
+                          <div className="relative shrink-0">
+                            <img
+                              src={p?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${p?.name || booking.passenger_id}`}
+                              alt=""
+                              className="w-12 h-12 rounded-full object-cover"
+                            />
+                            {p?.is_verified && (
+                              <div className="absolute -bottom-0.5 -right-0.5 w-4.5 h-4.5 bg-green-500 rounded-full flex items-center justify-center">
+                                <ShieldCheck className="w-3 h-3 text-white" />
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm font-semibold text-white">{p?.name || 'Passenger'}</p>
+                              {p?.is_verified && (
+                                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-green-500/10 text-green-400">Verified</span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-1 mt-0.5">
+                              <Star className="w-3 h-3 text-[#FF6B00] fill-[#FF6B00]" />
+                              <span className="text-xs text-[#A0A0A0]">{(p?.rating || 5).toFixed(1)} · {p?.trips_count || 0} trips</span>
+                            </div>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <p className="text-sm font-bold text-[#FF6B00]">{booking.seats} seat(s)</p>
+                            <div className="flex items-center gap-1 text-xs text-[#A0A0A0]">
+                              <Banknote className="w-3 h-3" />
+                              <span>{booking.total_price} MAD</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Accept / Reject buttons */}
+                        <div className="flex gap-2">
+                          <Button
+                            onClick={() => handleAcceptBooking(booking)}
+                            disabled={isProcessing}
+                            className="flex-1 bg-green-500/10 hover:bg-green-500/20 text-green-400 border border-green-500/20 rounded-xl h-10 text-sm font-medium"
+                            variant="outline"
+                          >
+                            {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Check className="w-4 h-4 mr-1.5" />Accept</>}
+                          </Button>
+                          <Button
+                            onClick={() => handleRejectBooking(booking)}
+                            disabled={isProcessing}
+                            className="flex-1 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-xl h-10 text-sm font-medium"
+                            variant="outline"
+                          >
+                            {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <><X className="w-4 h-4 mr-1.5" />Decline</>}
+                          </Button>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
                 </div>
               )}
             </div>

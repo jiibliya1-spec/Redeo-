@@ -1,0 +1,60 @@
+2026-05-19T15:03:17.444809Z	Cloning repository...
+2026-05-19T15:03:18.764924Z	From https://github.com/jiibliya1-spec/Redeo-
+2026-05-19T15:03:18.765351Z	 * branch            f130797baff3c1013294783cd4ed2c34925c7333 -> FETCH_HEAD
+2026-05-19T15:03:18.765476Z	
+2026-05-19T15:03:19.005656Z	HEAD is now at f130797 feat: full i18n (EN/FR/AR) for BookingPage, MyTripsPage, SettingsPage + FR/AR translations for all new keys
+2026-05-19T15:03:19.005996Z	
+2026-05-19T15:03:19.050092Z	
+2026-05-19T15:03:19.050493Z	Using v2 root directory strategy
+2026-05-19T15:03:19.064474Z	Success: Finished cloning repository files
+2026-05-19T15:03:20.748141Z	Checking for configuration in a Wrangler configuration file (BETA)
+2026-05-19T15:03:20.748718Z	
+2026-05-19T15:03:20.748883Z	Found wrangler.toml file. Reading build configuration...
+2026-05-19T15:03:20.75495Z	pages_build_output_dir: dist
+2026-05-19T15:03:20.755101Z	Build environment variables: (none found)
+2026-05-19T15:03:21.857424Z	Successfully read the Wrangler configuration file.
+2026-05-19T15:03:22.044995Z	Detected the following tools from environment: pnpm@10.11.1, nodejs@22.16.0, npm@10.9.2
+2026-05-19T15:03:23.459874Z	Installing project dependencies: pnpm install
+2026-05-19T15:03:24.009093Z	Scope: all 8 workspace projects
+2026-05-19T15:03:24.135867Z	..                                       | Progress: resolved 1, reused 0, downloaded 0, added 0
+2026-05-19T15:03:24.207678Z	..                                       | +476 ++++++++++++++++++++++++++++++++
+2026-05-19T15:03:25.140108Z	..                                       | Progress: resolved 476, reused 0, downloaded 166, added 146
+2026-05-19T15:03:26.138763Z	..                                       | Progress: resolved 476, reused 0, downloaded 314, added 275
+2026-05-19T15:03:27.139057Z	..                                       | Progress: resolved 476, reused 0, downloaded 384, added 314
+2026-05-19T15:03:27.793046Z	..                                       | Progress: resolved 476, reused 0, downloaded 476, added 476, done
+2026-05-19T15:03:28.031718Z	.../esbuild@0.27.3/node_modules/esbuild postinstall$ node install.js
+2026-05-19T15:03:28.127667Z	.../esbuild@0.27.3/node_modules/esbuild postinstall: Done
+2026-05-19T15:03:28.511237Z	.. preinstall$ sh -c 'rm -f package-lock.json yarn.lock; case "$npm_config_user_agent" in pnpm/*) ;; *) echo "Use pnpm instead" >&2; exit 1 ;; esac'
+2026-05-19T15:03:28.526887Z	.. preinstall: Done
+2026-05-19T15:03:28.707816Z	Done in 5s using pnpm v10.11.1
+2026-05-19T15:03:28.750138Z	Executing user command: npm install && npm run build
+2026-05-19T15:03:41.817078Z	
+2026-05-19T15:03:41.817487Z	added 550 packages, and audited 551 packages in 13s
+2026-05-19T15:03:41.818074Z	
+2026-05-19T15:03:41.818141Z	73 packages are looking for funding
+2026-05-19T15:03:41.818185Z	  run `npm fund` for details
+2026-05-19T15:03:41.835804Z	
+2026-05-19T15:03:41.836263Z	9 vulnerabilities (3 moderate, 6 high)
+2026-05-19T15:03:41.83636Z	
+2026-05-19T15:03:41.83643Z	To address all issues, run:
+2026-05-19T15:03:41.836494Z	  npm audit fix
+2026-05-19T15:03:41.83653Z	
+2026-05-19T15:03:41.83656Z	Run `npm audit` for details.
+2026-05-19T15:03:42.422878Z	
+2026-05-19T15:03:42.42369Z	> my-app@0.0.0 build
+2026-05-19T15:03:42.423827Z	> tsc -b && vite build
+2026-05-19T15:03:42.423893Z	
+2026-05-19T15:03:44.597156Z	src/lib/i18n.ts(358,27): error TS1005: ',' expected.
+2026-05-19T15:03:44.59862Z	src/lib/i18n.ts(358,30): error TS1005: ',' expected.
+2026-05-19T15:03:44.599275Z	src/lib/i18n.ts(358,37): error TS1005: ',' expected.
+2026-05-19T15:03:44.599376Z	src/lib/i18n.ts(358,39): error TS1127: Invalid character.
+2026-05-19T15:03:44.599464Z	src/lib/i18n.ts(358,44): error TS1005: ',' expected.
+2026-05-19T15:03:44.599519Z	src/lib/i18n.ts(358,52): error TS1005: ',' expected.
+2026-05-19T15:03:44.599585Z	src/lib/i18n.ts(358,57): error TS1005: ',' expected.
+2026-05-19T15:03:44.599659Z	src/lib/i18n.ts(358,59): error TS1002: Unterminated string literal.
+2026-05-19T15:03:44.599707Z	src/lib/i18n.ts(359,5): error TS1005: ':' expected.
+2026-05-19T15:03:44.599752Z	src/lib/i18n.ts(359,23): error TS1005: ',' expected.
+2026-05-19T15:03:44.601199Z	src/lib/i18n.ts(359,42): error TS1005: ':' expected.
+2026-05-19T15:03:45.16097Z	Failed: Error while executing user command. Exited with error code: 2
+2026-05-19T15:03:45.169729Z	Failed: build command exited with code: 1
+2026-05-19T15:03:45.935315Z	Failed: error occurred while running build command

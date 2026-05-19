@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { Camera, Edit, Check, Shield, Star, Car, ChevronRight, Loader2, LogOut, Upload, Globe, Users, RefreshCw, Settings } from 'lucide-react';
+import { Camera, Edit, Check, Shield, Star, Car, ChevronRight, Loader2, LogOut, Upload, Globe, Users, RefreshCw, Settings, Clock } from 'lucide-react';
 
 const SUPABASE_URL = 'https://qhbiafoyhvmvyyzwdzhd.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoYmlhZm95aHZtdnl5endkemhkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3OTIwNDcsImV4cCI6MjA5NDM2ODA0N30.04MftiDjQUrnGegTeaL88WyES9ydDKxRrrmVua0rVbM';
@@ -266,8 +266,8 @@ export function ProfilePage() {
 
     if (status === 'pending' || status === 'submitted') {
       return (
-        <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 font-medium">
-          <Loader2 className="w-3 h-3 animate-spin" /> Pending
+        <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-yellow-500/10 text-yellow-400 font-medium">
+          <Clock className="w-3 h-3" /> {t('status.pending')}
         </span>
       );
     }
@@ -275,7 +275,7 @@ export function ProfilePage() {
     if (status === 'rejected') {
       return (
         <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-red-500/10 text-red-400 font-medium">
-          <Shield className="w-3 h-3" /> Rejected
+          <Shield className="w-3 h-3" /> {t('status.cancelled')}
         </span>
       );
     }
@@ -283,7 +283,7 @@ export function ProfilePage() {
     // Default: unverified
     return (
       <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-white/5 text-[#A0A0A0]">
-        <Shield className="w-3 h-3" /> Unverified
+        <Shield className="w-3 h-3" /> {t('verify.title')}
       </span>
     );
   };

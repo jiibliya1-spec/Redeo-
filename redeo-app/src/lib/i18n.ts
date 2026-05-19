@@ -355,7 +355,7 @@ const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     'book.per_seat': 'per seat',
     'book.cash_only': 'Cash payment only',
     'book.cash_note': 'Pay directly to the driver on travel day. No online payment required.',
-    'book.co2_save': 'You're saving CO₂ vs driving alone',
+    'book.co2_save': "You're saving CO\u2082 vs driving alone",
     'book.request_btn': 'Request Booking',
     'book.sent_title': 'Booking Sent!',
     'book.sent_desc': 'Waiting for driver approval.',

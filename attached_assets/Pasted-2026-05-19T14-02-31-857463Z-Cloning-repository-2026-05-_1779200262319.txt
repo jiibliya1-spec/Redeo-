@@ -1,0 +1,51 @@
+2026-05-19T14:02:31.857463Z	Cloning repository...
+2026-05-19T14:02:33.71259Z	From https://github.com/jiibliya1-spec/Redeo-
+2026-05-19T14:02:33.712991Z	 * branch            0f0e3127473f214b8cd2f1f70595512142389480 -> FETCH_HEAD
+2026-05-19T14:02:33.713061Z	
+2026-05-19T14:02:33.918822Z	HEAD is now at 0f0e312 fix: TripDetailsPage use supabase.from() with REST fallback — fixes Trip not found
+2026-05-19T14:02:33.91932Z	
+2026-05-19T14:02:33.972109Z	
+2026-05-19T14:02:33.972732Z	Using v2 root directory strategy
+2026-05-19T14:02:33.987447Z	Success: Finished cloning repository files
+2026-05-19T14:02:36.049295Z	Checking for configuration in a Wrangler configuration file (BETA)
+2026-05-19T14:02:36.049827Z	
+2026-05-19T14:02:36.050126Z	Found wrangler.toml file. Reading build configuration...
+2026-05-19T14:02:36.055472Z	pages_build_output_dir: dist
+2026-05-19T14:02:36.05561Z	Build environment variables: (none found)
+2026-05-19T14:02:37.174025Z	Successfully read the Wrangler configuration file.
+2026-05-19T14:02:37.405914Z	Detected the following tools from environment: pnpm@10.11.1, nodejs@22.16.0, npm@10.9.2
+2026-05-19T14:02:38.39471Z	Installing project dependencies: pnpm install
+2026-05-19T14:02:39.081405Z	Scope: all 8 workspace projects
+2026-05-19T14:02:39.23624Z	..                                       | Progress: resolved 1, reused 0, downloaded 0, added 0
+2026-05-19T14:02:39.331687Z	..                                       | +476 ++++++++++++++++++++++++++++++++
+2026-05-19T14:02:40.249811Z	..                                       | Progress: resolved 476, reused 0, downloaded 147, added 77
+2026-05-19T14:02:41.260391Z	..                                       | Progress: resolved 476, reused 0, downloaded 311, added 212
+2026-05-19T14:02:42.261442Z	..                                       | Progress: resolved 476, reused 0, downloaded 421, added 314
+2026-05-19T14:02:43.266899Z	..                                       | Progress: resolved 476, reused 0, downloaded 476, added 475
+2026-05-19T14:02:43.406202Z	..                                       | Progress: resolved 476, reused 0, downloaded 476, added 476, done
+2026-05-19T14:02:43.641704Z	.../esbuild@0.27.3/node_modules/esbuild postinstall$ node install.js
+2026-05-19T14:02:43.746578Z	.../esbuild@0.27.3/node_modules/esbuild postinstall: Done
+2026-05-19T14:02:44.198351Z	.. preinstall$ sh -c 'rm -f package-lock.json yarn.lock; case "$npm_config_user_agent" in pnpm/*) ;; *) echo "Use pnpm instead" >&2; exit 1 ;; esac'
+2026-05-19T14:02:44.213837Z	.. preinstall: Done
+2026-05-19T14:02:44.40634Z	Done in 5.7s using pnpm v10.11.1
+2026-05-19T14:02:44.451277Z	Executing user command: npm install && npm run build
+2026-05-19T14:02:58.503982Z	
+2026-05-19T14:02:58.504388Z	added 550 packages, and audited 551 packages in 14s
+2026-05-19T14:02:58.504492Z	
+2026-05-19T14:02:58.504565Z	73 packages are looking for funding
+2026-05-19T14:02:58.504616Z	  run `npm fund` for details
+2026-05-19T14:02:58.526974Z	
+2026-05-19T14:02:58.527692Z	9 vulnerabilities (3 moderate, 6 high)
+2026-05-19T14:02:58.527794Z	
+2026-05-19T14:02:58.527858Z	To address all issues, run:
+2026-05-19T14:02:58.527906Z	  npm audit fix
+2026-05-19T14:02:58.527939Z	
+2026-05-19T14:02:58.527982Z	Run `npm audit` for details.
+2026-05-19T14:02:58.970913Z	
+2026-05-19T14:02:58.971263Z	> my-app@0.0.0 build
+2026-05-19T14:02:58.972334Z	> tsc -b && vite build
+2026-05-19T14:02:58.972458Z	
+2026-05-19T14:03:08.815002Z	src/pages/TripDetailsPage.tsx(6,10): error TS6133: 'apiGet' is declared but its value is never read.
+2026-05-19T14:03:09.40135Z	Failed: Error while executing user command. Exited with error code: 2
+2026-05-19T14:03:09.409717Z	Failed: build command exited with code: 1
+2026-05-19T14:03:10.490907Z	Failed: error occurred while running build command

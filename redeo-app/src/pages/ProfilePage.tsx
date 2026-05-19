@@ -34,6 +34,7 @@ export function ProfilePage() {
   const [profileStatus, setProfileStatus] = useState<string>('unverified');
   const [profileVerified, setProfileVerified] = useState(false);
   const [profileRole, setProfileRole] = useState('passenger');
+  const profileVerifiedRef = useRef(false);
 
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -115,13 +116,18 @@ export function ProfilePage() {
     return () => clearInterval(interval);
   }, [user?.id, fetchFreshProfile]);
 
-  // ─── Realtime subscription for profile changes ───
+  // Keep ref in sync so the realtime callback can read latest value without causing re-subscription
+  useEffect(() => { profileVerifiedRef.current = profileVerified; }, [profileVerified]);
+
+  // ─── Realtime subscription for profile changes (only re-runs when user.id changes) ───
   useEffect(() => {
     if (!user?.id) return;
 
     const uid = user.id;
+    const channelName = `profile-page-${uid}`;
+
     const channel = supabase
-      .channel(`profile-${uid}`)
+      .channel(channelName)
       .on(
         'postgres_changes',
         {
@@ -132,26 +138,25 @@ export function ProfilePage() {
         },
         (payload) => {
           const p = payload.new as any;
-          console.log('[ProfilePage] Realtime update:', p);
-          if (p) {
-            setProfileVerified(p.is_verified === true);
-            setProfileStatus(p.verification_status || 'unverified');
-            if (p.role) setProfileRole(p.role);
+          if (!p) return;
 
-            // Update global user with FRESH user (avoid stale closure)
-            const freshUser = useStore.getState().user;
-            if (freshUser) {
-              setUser({
-                ...freshUser,
-                is_verified: p.is_verified === true,
-                verification_status: p.verification_status || 'unverified',
-                role: (p.role || freshUser.role) as 'passenger' | 'driver' | 'admin',
-              });
-            }
+          const wasVerified = profileVerifiedRef.current;
+          setProfileVerified(p.is_verified === true);
+          setProfileStatus(p.verification_status || 'unverified');
+          if (p.role) setProfileRole(p.role);
 
-            if (p.is_verified && !profileVerified) {
-              toast.success('Your account has been verified!');
-            }
+          const freshUser = useStore.getState().user;
+          if (freshUser) {
+            setUser({
+              ...freshUser,
+              is_verified: p.is_verified === true,
+              verification_status: p.verification_status || 'unverified',
+              role: (p.role || freshUser.role) as 'passenger' | 'driver' | 'admin',
+            });
+          }
+
+          if (p.is_verified && !wasVerified) {
+            toast.success('Your account has been verified!');
           }
         }
       )
@@ -160,7 +165,7 @@ export function ProfilePage() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user?.id, profileVerified, setUser]);
+  }, [user?.id, setUser]);
 
   const processAvatarFile = async (file: File) => {
     if (!user?.id) return;

@@ -364,7 +364,7 @@ export function ProfilePage() {
                   ) : (
                     <>
                       <img
-                        src={avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name}`}
+                        src={avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(user.id)}`}
                         alt={user.name}
                         className="w-20 h-20 rounded-full object-cover ring-2 ring-[#FF6B00]/30"
                       />

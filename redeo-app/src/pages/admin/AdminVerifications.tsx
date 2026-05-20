@@ -236,7 +236,16 @@ export function AdminVerifications() {
         }),
       });
 
-      toast.success(`✅ ${bundle.user_name} verified — all ${pendingDocs.length} document(s) approved`);
+      // Also send as a message from Support Team
+        await supabase.from('messages').insert({
+          sender_id: '00000000-0000-0000-0000-000000000000',
+          receiver_id: bundle.user_id,
+          content: '✅ Félicitations ! Votre vérification a été approuvée. Vous pouvez maintenant publier des trajets et utiliser toutes les fonctionnalités de WansniAuto. Bienvenue dans la communauté des conducteurs ! 🎉',
+          read: false,
+          created_at: new Date().toISOString(),
+        }).select();
+
+              toast.success(`✅ ${bundle.user_name} verified — all ${pendingDocs.length} document(s) approved`);
       setSelectedUserId(null);
       await loadVerifications(true);
     } catch (err: any) {
@@ -281,7 +290,16 @@ export function AdminVerifications() {
         }),
       });
 
-      toast.success(`❌ ${bundle.user_name}'s verification rejected`);
+      // Also send as a message from Support Team
+        await supabase.from('messages').insert({
+          sender_id: '00000000-0000-0000-0000-000000000000',
+          receiver_id: bundle.user_id,
+          content: `❌ Votre vérification a été refusée. Raison : ${rejectReason}. Veuillez corriger vos documents et soumettre à nouveau via la page de vérification. Notre équipe est disponible si vous avez des questions.`,
+          read: false,
+          created_at: new Date().toISOString(),
+        }).select();
+
+              toast.success(`❌ ${bundle.user_name}'s verification rejected`);
       setSelectedUserId(null);
       setRejectReason('');
       setShowRejectPanel(false);

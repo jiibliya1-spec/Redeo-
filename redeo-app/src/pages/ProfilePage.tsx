@@ -402,7 +402,13 @@ export function ProfilePage() {
                 <div className="flex items-center gap-2 mt-1 flex-wrap">
                   {renderBadge()}
                   <span className="flex items-center gap-1 text-xs text-[#A0A0A0]">
-                    <Star className="w-3 h-3 text-[#FF6B00] fill-[#FF6B00]" /> {user.rating || 5}
+                    {user.trips_count && user.trips_count > 0 && user.rating ? (
+                        <>
+                          <Star className="w-3 h-3 text-[#FF6B00] fill-[#FF6B00]" />
+                          <span>{user.rating.toFixed(1)}</span>
+                          <span className="text-[#555555]">({user.trips_count})</span>
+                        </>
+                      ) : null}
                   </span>
                   {/* Refresh button to force fresh fetch */}
                   <button
@@ -427,49 +433,6 @@ export function ProfilePage() {
                <Edit className="w-5 h-5 text-[#A0A0A0]" />}
             </button>
           </div>
-
-          {/* ─── Mode Switcher ─── */}
-          {user.role !== 'admin' && (
-            <div className="mb-5 bg-[#0F1115] rounded-xl border border-white/5 p-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${mode === 'driver' ? 'bg-[#FF6B00]/10' : 'bg-blue-500/10'}`}>
-                    {mode === 'driver' ? <Car className="w-5 h-5 text-[#FF6B00]" /> : <Users className="w-5 h-5 text-blue-400" />}
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-white">
-                      {mode === 'driver' ? t('mode.driver') : t('mode.passenger')}
-                    </p>
-                    <p className="text-xs text-[#A0A0A0]">
-                      {mode === 'driver' ? t('mode.switch_to_passenger') : t('mode.switch_to_driver')}
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={async () => {
-                    const newMode = mode === 'driver' ? 'passenger' : 'driver';
-                    setMode(newMode);
-                    // Persist new role to Supabase and sync local store
-                    if (user?.id) {
-                      try {
-                        await supabase
-                          .from('profiles')
-                          .update({ role: newMode })
-                          .eq('id', user.id);
-                        setUser({ ...user, role: newMode as 'passenger' | 'driver' });
-                        setProfileRole(newMode);
-                      } catch (e) {
-                        console.warn('Role sync failed:', e);
-                      }
-                    }
-                  }}
-                  className={`relative w-14 h-8 rounded-full transition-colors duration-300 ${mode === 'driver' ? 'bg-[#FF6B00]' : 'bg-blue-500'}`}
-                >
-                  <div className={`absolute top-1 w-6 h-6 bg-white rounded-full shadow-md transition-transform duration-300 ${mode === 'driver' ? 'translate-x-7' : 'translate-x-1'}`} />
-                </button>
-              </div>
-            </div>
-          )}
 
           <div className="mb-4">
             <Label className="text-sm text-[#A0A0A0] mb-2 block">{t('profile.bio')}</Label>

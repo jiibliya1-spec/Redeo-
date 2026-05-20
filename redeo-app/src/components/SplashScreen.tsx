@@ -1,8 +1,6 @@
 import { useEffect, useState } from 'react';
   import { motion, AnimatePresence } from 'framer-motion';
 
-  const ORANGE = '#FF6B00';
-
   interface SplashScreenProps {
     onComplete: () => void;
   }

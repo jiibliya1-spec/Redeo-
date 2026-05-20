@@ -19,6 +19,38 @@ import {
 const SUPABASE_URL = 'https://qhbiafoyhvmvyyzwdzhd.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoYmlhZm95aHZtdnl5endkemhkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3OTIwNDcsImV4cCI6MjA5NDM2ODA0N30.04MftiDjQUrnGegTeaL88WyES9ydDKxRrrmVua0rVbM';
 
+
+  // ─── Moroccan city distances (km, approximate) ───
+  const CITY_DISTANCES: Record<string, Record<string, number>> = {
+    'Casablanca': { 'Rabat': 90, 'Marrakech': 240, 'Tanger': 340, 'Agadir': 460, 'Fes': 290, 'Oujda': 540, 'Meknes': 240, 'El Jadida': 100, 'Safi': 185, 'Kenitra': 80, 'Tetouan': 380, 'Nador': 590 },
+    'Rabat':      { 'Casablanca': 90, 'Marrakech': 320, 'Tanger': 250, 'Agadir': 550, 'Fes': 200, 'Oujda': 490, 'Meknes': 145, 'El Jadida': 185, 'Safi': 280, 'Kenitra': 40, 'Tetouan': 290, 'Nador': 540 },
+    'Marrakech':  { 'Casablanca': 240, 'Rabat': 320, 'Tanger': 570, 'Agadir': 230, 'Fes': 530, 'Oujda': 760, 'Meknes': 465, 'El Jadida': 175, 'Safi': 155, 'Kenitra': 360, 'Tetouan': 610, 'Nador': 810 },
+    'Tanger':     { 'Casablanca': 340, 'Rabat': 250, 'Marrakech': 570, 'Agadir': 790, 'Fes': 310, 'Oujda': 620, 'Meknes': 295, 'El Jadida': 430, 'Safi': 520, 'Kenitra': 210, 'Tetouan': 60, 'Nador': 415 },
+    'Agadir':     { 'Casablanca': 460, 'Rabat': 550, 'Marrakech': 230, 'Tanger': 790, 'Fes': 730, 'Oujda': 970, 'Meknes': 670, 'El Jadida': 370, 'Safi': 270, 'Kenitra': 580, 'Tetouan': 840, 'Nador': 1020 },
+    'Fes':        { 'Casablanca': 290, 'Rabat': 200, 'Marrakech': 530, 'Tanger': 310, 'Agadir': 730, 'Oujda': 360, 'Meknes': 65, 'El Jadida': 370, 'Safi': 450, 'Kenitra': 160, 'Tetouan': 365, 'Nador': 375 },
+    'Oujda':      { 'Casablanca': 540, 'Rabat': 490, 'Marrakech': 760, 'Tanger': 620, 'Agadir': 970, 'Fes': 360, 'Meknes': 380, 'El Jadida': 625, 'Safi': 710, 'Kenitra': 455, 'Tetouan': 640, 'Nador': 155 },
+    'Meknes':     { 'Casablanca': 240, 'Rabat': 145, 'Marrakech': 465, 'Tanger': 295, 'Agadir': 670, 'Fes': 65, 'Oujda': 380, 'El Jadida': 320, 'Safi': 395, 'Kenitra': 130, 'Tetouan': 350, 'Nador': 440 },
+    'El Jadida':  { 'Casablanca': 100, 'Rabat': 185, 'Marrakech': 175, 'Tanger': 430, 'Agadir': 370, 'Fes': 370, 'Oujda': 625, 'Meknes': 320, 'Safi': 90, 'Kenitra': 175, 'Tetouan': 475, 'Nador': 680 },
+    'Safi':       { 'Casablanca': 185, 'Rabat': 280, 'Marrakech': 155, 'Tanger': 520, 'Agadir': 270, 'Fes': 450, 'Oujda': 710, 'Meknes': 395, 'El Jadida': 90, 'Kenitra': 265, 'Tetouan': 565, 'Nador': 760 },
+    'Kenitra':    { 'Casablanca': 80, 'Rabat': 40, 'Marrakech': 360, 'Tanger': 210, 'Agadir': 580, 'Fes': 160, 'Oujda': 455, 'Meknes': 130, 'El Jadida': 175, 'Safi': 265, 'Tetouan': 255, 'Nador': 500 },
+    'Tetouan':    { 'Casablanca': 380, 'Rabat': 290, 'Marrakech': 610, 'Tanger': 60, 'Agadir': 840, 'Fes': 365, 'Oujda': 640, 'Meknes': 350, 'El Jadida': 475, 'Safi': 565, 'Kenitra': 255, 'Nador': 470 },
+    'Nador':      { 'Casablanca': 590, 'Rabat': 540, 'Marrakech': 810, 'Tanger': 415, 'Agadir': 1020, 'Fes': 375, 'Oujda': 155, 'Meknes': 440, 'El Jadida': 680, 'Safi': 760, 'Kenitra': 500, 'Tetouan': 470 },
+  };
+
+  // ─── Suggest price per seat based on distance (MAD) ───
+  function getSuggestedPrice(from: string, to: string): { km: number; min: number; suggested: number; max: number } | null {
+    const km = CITY_DISTANCES[from]?.[to] ?? CITY_DISTANCES[to]?.[from];
+    if (!km) return null;
+    // Fuel: ~8L/100km at 11 MAD/L = 0.88 MAD/km total fuel cost
+    // Shared between avg 3 passengers → 0.29 MAD/km per seat
+    // Add amortization ~0.10 MAD/km per seat
+    // Min = pure fuel/amort cost, Suggested = fair price, Max = still ~40% below CTM bus
+    const min       = Math.max(20, Math.round((km * 0.39) / 5) * 5);
+    const suggested = Math.max(30, Math.round((km * 0.50) / 5) * 5);
+    const max       = Math.max(40, Math.round((km * 0.65) / 5) * 5);
+    return { km, min, suggested, max };
+  }
+  
 // All trips are stored in Supabase only - no localStorage
 
 export function PublishTripPage() {
@@ -36,14 +68,33 @@ export function PublishTripPage() {
   const [duration, setDuration] = useState('');
   const [isPublishing, setIsPublishing] = useState(false);
   const [recentTrips, setRecentTrips] = useState<Trip[]>([]);
+  const [priceSuggestion, setPriceSuggestion] = useState<{ km: number; min: number; suggested: number; max: number } | null>(null);
 
-  // ─── Verification check (fresh from Supabase) ───
+  // ─── Price suggestion when route is selected ───
+    useEffect(() => {
+      if (from && to && from !== to) {
+        setPriceSuggestion(getSuggestedPrice(from, to));
+      } else {
+        setPriceSuggestion(null);
+      }
+    }, [from, to]);
+
+    // ─── Verification check (fresh from Supabase) ───
   const [isChecking, setIsChecking] = useState(true);
   const [canPublish, setCanPublish] = useState(false);
   const [verifStatus, setVerifStatus] = useState<string>('unverified');
   const [verifMessage, setVerifMessage] = useState('');
 
-  // ─── Fetch verification status DIRECTLY from Supabase ───
+  // ─── Recalculate price suggestion when route changes ───
+    useEffect(() => {
+      if (from && to && from !== to) {
+        setPriceSuggestion(getSuggestedPrice(from, to));
+      } else {
+        setPriceSuggestion(null);
+      }
+    }, [from, to]);
+
+    // ─── Fetch verification status DIRECTLY from Supabase ───
   const checkVerification = useCallback(async () => {
     if (!user?.id) {
       setIsChecking(false);
@@ -363,7 +414,38 @@ export function PublishTripPage() {
               </div>
             </div>
 
-            {/* Distance & Duration */}
+            {/* ─── Price Suggestions ─── */}
+              {priceSuggestion && (
+                <div className="bg-[#0F1115] border border-[#FF6B00]/20 rounded-xl p-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-xs font-semibold text-[#FF6B00]">💡 Prix suggérés</span>
+                    <span className="text-xs text-[#A0A0A0]">— {priceSuggestion.km} km · moins cher que le bus</span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      { label: 'Économique', value: priceSuggestion.min, color: 'text-blue-400' },
+                      { label: 'Recommandé', value: priceSuggestion.suggested, color: 'text-[#FF6B00]' },
+                      { label: 'Confortable', value: priceSuggestion.max, color: 'text-green-400' },
+                    ].map((opt) => (
+                      <button
+                        key={opt.label}
+                        type="button"
+                        onClick={() => setPrice(String(opt.value))}
+                        className={`rounded-xl border p-2 text-center transition-all ${
+                          price === String(opt.value)
+                            ? 'border-[#FF6B00] bg-[#FF6B00]/10'
+                            : 'border-white/10 hover:border-white/20'
+                        }`}
+                      >
+                        <p className={`text-sm font-bold ${opt.color}`}>{opt.value} <span className="text-[10px] font-normal text-[#A0A0A0]">MAD</span></p>
+                        <p className="text-[10px] text-white mt-0.5 font-medium">{opt.label}</p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Distance & Duration */}
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label className="text-sm text-[#A0A0A0] mb-1.5 block">{t('driver.distance')}</Label>

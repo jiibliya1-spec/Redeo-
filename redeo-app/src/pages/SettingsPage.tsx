@@ -987,6 +987,7 @@ export function SettingsPage() {
                       setMode('passenger');
                       toast.success('Mode passager activé.');
                       setActiveDrawer(null);
+                      setTimeout(() => navigate('/dashboard'), 300);
                     } catch { toast.error('Erreur lors du changement de mode.'); }
                     setSwitchingMode(false);
                   }}

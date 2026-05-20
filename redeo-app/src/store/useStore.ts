@@ -165,7 +165,7 @@ export const useStore = create<AppState>()(
           // If Supabase returned a session immediately → email confirmation is disabled
           if (authData.session) {
             const user = buildUser(authData.user, { name, email, phone, role: role as any, is_verified: false, verification_status: 'unverified' as any });
-            set({ user, isAuthenticated: true });
+            set({ user, isAuthenticated: true, mode: initialMode });
             return { success: true, needsConfirmation: false };
           }
 
@@ -182,6 +182,8 @@ export const useStore = create<AppState>()(
           if (error) return { success: false, error: error.message };
           const freshProfile = await fetchProfile(data.user.id);
           const user = buildUser(data.user, freshProfile);
+            // Set mode based on actual role (driver → driver mode, others → passenger)
+            const initialMode = (freshProfile?.role === 'driver' || data.user.user_metadata?.role === 'driver') ? 'driver' : 'passenger';
           set({ user, isAuthenticated: true });
           return { success: true };
         } catch (err: any) {

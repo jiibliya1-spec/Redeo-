@@ -18,7 +18,7 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 export function BookingPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user } = useStore();
+  const { user, mode } = useStore();
   const { t, dir } = useI18n();
 
   const [trip, setTrip] = useState<Trip | null>(null);
@@ -120,7 +120,35 @@ export function BookingPage() {
     );
   }
 
-  if (!trip) {
+
+    /* ─── Driver cannot book trips ─── */
+    if (mode === 'driver') {
+      return (
+        <div className="min-h-screen bg-[#0F1115] flex flex-col items-center justify-center px-6 text-center gap-5">
+          <div className="w-16 h-16 rounded-2xl bg-[#FF6B00]/10 flex items-center justify-center mb-2">
+            <ArrowLeft className="w-8 h-8 text-[#FF6B00]" />
+          </div>
+          <h2 className="text-xl font-bold text-white">Mode conducteur actif</h2>
+          <p className="text-[#A0A0A0] text-sm leading-relaxed max-w-xs">
+            En tant que conducteur, vous ne pouvez pas réserver de trajets. Passez en mode passager depuis les Paramètres pour pouvoir réserver.
+          </p>
+          <button
+            onClick={() => navigate(-1)}
+            className="mt-2 px-6 py-3 bg-[#FF6B00] text-white rounded-xl text-sm font-semibold"
+          >
+            Retour
+          </button>
+          <button
+            onClick={() => navigate('/settings')}
+            className="text-xs text-[#A0A0A0] underline"
+          >
+            Aller aux Paramètres
+          </button>
+        </div>
+      );
+    }
+
+    if (!trip) {
     return (
       <div className="min-h-screen bg-[#0F1115] pt-20 flex items-center justify-center">
         <div className="text-center">

@@ -73,7 +73,7 @@ import { Spinner } from '@/components/ui/spinner';
 
 /* ─── Role-based redirect for /dashboard ─── */
 function DashboardRouter() {
-  const { user, isAuthenticated } = useStore();
+  const { user, isAuthenticated, mode } = useStore();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -85,7 +85,7 @@ function DashboardRouter() {
 
   if (!isAuthenticated) return <Navigate to="/login" />;
   if (user?.role === 'admin') return <Navigate to="/admin" replace />;
-  if (user?.role === 'driver') return <DriverDashboard />;
+  if (mode === 'driver') return <DriverDashboard />;
   return <PassengerDashboard />;
 }
 
@@ -197,8 +197,8 @@ function AppContent() {
           <Route path="/login" element={<ProtectedLogin />} />
           <Route path="/register" element={<ProtectedRegister />} />
           <Route path="/dashboard" element={<DashboardRouter />} />
-          <Route path="/driver" element={isAuthenticated && (user?.role === 'driver' || user?.role === 'admin') ? <DriverDashboard /> : <Navigate to="/login" />} />
-          <Route path="/publish-trip" element={isAuthenticated ? <PublishTripPage /> : <Navigate to="/login" />} />
+          <Route path="/driver" element={isAuthenticated && (mode === 'driver' || user?.role === 'admin') ? <DriverDashboard /> : <Navigate to="/dashboard" />} />
+          <Route path="/publish-trip" element={isAuthenticated ? (mode === 'driver' ? <PublishTripPage /> : <Navigate to="/dashboard" />) : <Navigate to="/login" />} />
           <Route path="/profile" element={isAuthenticated ? <ProfilePage /> : <Navigate to="/login" />} />
           <Route path="/verification" element={isAuthenticated ? <VerificationPage /> : <Navigate to="/login" />} />
           <Route path="/messages" element={isAuthenticated ? <MessagesPage /> : <Navigate to="/login" />} />

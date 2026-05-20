@@ -219,7 +219,7 @@ export function PassengerDashboard() {
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-4">
             <img
-              src={user?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(user?.name || 'user')}`}
+              src={user?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(user?.id || 'guest')}`}
               alt={user?.name}
               className="w-14 h-14 rounded-full object-cover ring-2 ring-[#FF6B00]/30"
             />

@@ -17,7 +17,7 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 export function ProfilePage() {
   const navigate = useNavigate();
-  const { user, signOut, setUser, mode, setMode } = useStore();
+  const { user, signOut, setUser } = useStore();
   const { lang, setLang, t } = useI18n();
 
   const [isEditing, setIsEditing] = useState(false);

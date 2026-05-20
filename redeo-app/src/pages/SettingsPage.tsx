@@ -13,7 +13,7 @@ import {
   ArrowLeft, Star, Users, MessageSquare, Moon, Lock, MapPin, Wallet,
   CreditCard, RefreshCcw, ThumbsUp, HelpCircle, FileText, Shield,
   LogOut, Trash2, ChevronRight, Loader2, X, Bell, Mail, Phone,
-  Check, ToggleLeft, ToggleRight, Send, Heart, MessageCircle,
+  Check, ToggleLeft, ToggleRight, Send, Heart, MessageCircle, Car,
 } from 'lucide-react';
 
 const SUPABASE_URL = 'https://qhbiafoyhvmvyyzwdzhd.supabase.co';
@@ -82,7 +82,7 @@ function Drawer({ open, onClose, title, children }: { open: boolean; onClose: ()
    ═══════════════════════════════════════════════════════════ */
 export function SettingsPage() {
   const navigate = useNavigate();
-  const { user, signOut } = useStore();
+  const { user, signOut, mode, setMode } = useStore();
   const { lang, setLang, t, dir } = useI18n();
 
   /* ─── Drawer state ─── */
@@ -418,6 +418,7 @@ export function SettingsPage() {
     { id: 'payments',      icon: CreditCard,  label: t('settings.payments'),      desc: `${paymentMethods.length} ${t('settings.payments_count')}`,    badge: paymentMethods.length || undefined },
     { id: 'refunds',       icon: RefreshCcw,  label: t('settings.refunds'),       desc: `${refunds.length} ${t('settings.refunds_count')}`,            badge: refunds.length || undefined },
     { id: 'rate',          icon: ThumbsUp,    label: t('settings.rate'),          desc: t('settings.rate_desc') },
+    { id: 'account_type', icon: Car, label: mode === 'driver' ? 'Passer en passager' : 'Passer en conducteur', desc: mode === 'driver' ? 'Basculer vers le mode passager' : 'Devenir conducteur (vérification requise)' },
     { id: 'help',          icon: HelpCircle,  label: t('settings.help'),          desc: t('settings.help_desc') },
     { id: 'terms',         icon: FileText,    label: t('settings.terms'),         desc: t('settings.terms_desc') },
     { id: 'privacy',       icon: Shield,      label: t('settings.privacy'),       desc: t('settings.privacy_desc') },
@@ -914,7 +915,90 @@ export function SettingsPage() {
         title={sections.find(s => s.id === activeDrawer)?.label || ''}
       >
         {renderDrawerContent()}
-      </Drawer>
+
+        {/* ─── Account Type Switch Drawer ─── */}
+        <Drawer open={activeDrawer === 'account_type'} onClose={() => setActiveDrawer(null)} title={mode === 'driver' ? 'Passer en passager' : 'Passer en conducteur'}>
+          <div className="space-y-5">
+            {/* Current mode */}
+            <div className="bg-[#1B1F27] rounded-xl p-4 flex items-center gap-3">
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${mode === 'driver' ? 'bg-[#FF6B00]/10' : 'bg-blue-500/10'}`}>
+                {mode === 'driver' ? <Car className="w-5 h-5 text-[#FF6B00]" /> : <Users className="w-5 h-5 text-blue-400" />}
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-white">Mode actuel : <span className={mode === 'driver' ? 'text-[#FF6B00]' : 'text-blue-400'}>{mode === 'driver' ? 'Conducteur' : 'Passager'}</span></p>
+                <p className="text-xs text-[#A0A0A0]">{mode === 'driver' ? 'Vous pouvez proposer des trajets' : 'Vous pouvez réserver des trajets'}</p>
+              </div>
+            </div>
+
+            {mode === 'passenger' ? (
+              /* Passenger → Driver */
+              <div className="space-y-4">
+                <div className="bg-[#FF6B00]/5 border border-[#FF6B00]/20 rounded-xl p-4">
+                  <p className="text-sm font-semibold text-[#FF6B00] mb-1">Devenir conducteur</p>
+                  <p className="text-xs text-[#A0A0A0] leading-relaxed">
+                    Pour proposer des trajets, vous devez soumettre vos documents de vérification conducteur (CIN, permis de conduire, assurance, photos du véhicule). Un administrateur examinera votre dossier avant de l'approuver.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  {[
+                    '✅ CIN (recto + verso)',
+                    '✅ Selfie avec CIN',
+                    '✅ Permis de conduire',
+                    '✅ Attestation d'assurance',
+                    '✅ Photos du véhicule',
+                  ].map((item) => (
+                    <p key={item} className="text-xs text-[#A0A0A0]">{item}</p>
+                  ))}
+                </div>
+                <Button
+                  disabled={switchingMode}
+                  onClick={async () => {
+                    setSwitchingMode(true);
+                    try {
+                      await supabase.from('profiles').update({ role: 'driver' }).eq('id', user!.id);
+                      setMode('driver');
+                      toast.success('Mode conducteur activé. Complétez votre vérification pour publier des trajets.');
+                      setActiveDrawer(null);
+                      navigate('/verification');
+                    } catch { toast.error('Erreur lors du changement de mode.'); }
+                    setSwitchingMode(false);
+                  }}
+                  className="w-full bg-[#FF6B00] text-white hover:bg-[#E56000] rounded-xl h-12 font-semibold"
+                >
+                  {switchingMode ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Commencer la vérification conducteur'}
+                </Button>
+              </div>
+            ) : (
+              /* Driver → Passenger */
+              <div className="space-y-4">
+                <div className="bg-blue-500/5 border border-blue-500/20 rounded-xl p-4">
+                  <p className="text-sm font-semibold text-blue-400 mb-1">Passer en mode passager</p>
+                  <p className="text-xs text-[#A0A0A0] leading-relaxed">
+                    Vous passerez en mode passager. Vous ne pourrez plus publier de trajets mais pourrez en réserver. Votre compte conducteur reste sauvegardé.
+                  </p>
+                </div>
+                <Button
+                  disabled={switchingMode}
+                  onClick={async () => {
+                    setSwitchingMode(true);
+                    try {
+                      await supabase.from('profiles').update({ role: 'passenger' }).eq('id', user!.id);
+                      setMode('passenger');
+                      toast.success('Mode passager activé.');
+                      setActiveDrawer(null);
+                    } catch { toast.error('Erreur lors du changement de mode.'); }
+                    setSwitchingMode(false);
+                  }}
+                  className="w-full bg-blue-500 text-white hover:bg-blue-600 rounded-xl h-12 font-semibold"
+                >
+                  {switchingMode ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Passer en mode passager'}
+                </Button>
+              </div>
+            )}
+          </div>
+        </Drawer>
+
+        </Drawer>
     </div>
   );
 }

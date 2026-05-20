@@ -129,7 +129,7 @@ function AdminRoutes() {
 
 /* ─── App content with conditional navbar ─── */
 function AppContent() {
-  const { isAuthenticated, user, isLoading, initAuth, refreshProfile, setUser } = useStore();
+  const { isAuthenticated, user, isLoading, initAuth, refreshProfile, setUser, mode } = useStore();
   const [showSplash, setShowSplash] = useState(true);
   const navigate = useNavigate();
 

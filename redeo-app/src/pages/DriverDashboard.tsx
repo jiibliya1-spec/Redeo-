@@ -183,7 +183,7 @@ export function DriverDashboard() {
   // Vehicles
   const [vehicles, setVehicles] = useState<Vehicle[]>(() => {
     try {
-      const raw = localStorage.getItem('wansniauto_vehicles');
+      const raw = localStorage.getItem(`wansniauto_vehicles_${user?.id || 'guest'}`);
       return raw ? JSON.parse(raw) : [];
     } catch { return []; }
   });
@@ -238,7 +238,7 @@ export function DriverDashboard() {
 
       // 2b. Merge with localStorage (covers when Supabase bookings table is missing)
       try {
-        const localAll: any[] = JSON.parse(localStorage.getItem('wansniauto_bookings') || '[]');
+        const localAll: any[] = JSON.parse(localStorage.getItem(`wansniauto_bookings_${user?.id || 'guest'}`) || '[]');
         const localPending = localAll.filter(
           (b: any) => tripIds.has(b.trip_id) && b.status === 'pending'
         );
@@ -282,15 +282,15 @@ export function DriverDashboard() {
   /** Patch a booking in localStorage */
   const patchLocalBooking = (id: string, patch: Record<string, unknown>) => {
     try {
-      const all = JSON.parse(localStorage.getItem('wansniauto_bookings') || '[]');
-      localStorage.setItem('wansniauto_bookings', JSON.stringify(
+      const all = JSON.parse(localStorage.getItem(`wansniauto_bookings_${user?.id || 'guest'}`) || '[]');
+      localStorage.setItem(`wansniauto_bookings_${user?.id || 'guest'}`, JSON.stringify(
         all.map((b: any) => b.id === id ? { ...b, ...patch } : b)
       ));
     } catch {}
   };
 
   /** Permanently mark a booking as processed so it never reappears in Requests */
-  const PROCESSED_KEY = 'wansniauto_processed_requests';
+  const PROCESSED_KEY = `wansniauto_processed_requests_${user?.id || 'guest'}`;
   const markBookingProcessed = (id: string) => {
     try {
       const existing: string[] = JSON.parse(localStorage.getItem(PROCESSED_KEY) || '[]');
@@ -524,14 +524,14 @@ export function DriverDashboard() {
   const handleAddVehicle = (v: Vehicle) => {
     const updated = [...vehicles, v];
     setVehicles(updated);
-    localStorage.setItem('wansniauto_vehicles', JSON.stringify(updated));
+    localStorage.setItem(`wansniauto_vehicles_${user?.id || 'guest'}`, JSON.stringify(updated));
     toast.success('Vehicle added!');
   };
 
   const handleRemoveVehicle = (id: string) => {
     const updated = vehicles.filter(v => v.id !== id);
     setVehicles(updated);
-    localStorage.setItem('wansniauto_vehicles', JSON.stringify(updated));
+    localStorage.setItem(`wansniauto_vehicles_${user?.id || 'guest'}`, JSON.stringify(updated));
   };
 
   const now = new Date().toISOString().split('T')[0];

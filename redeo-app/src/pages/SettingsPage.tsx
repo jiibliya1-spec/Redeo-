@@ -133,7 +133,8 @@ export function SettingsPage() {
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
 
   /* ─── Rate App ─── */
-  const [userRating, setUserRating] = useState(0);
+  const [switchingMode, setSwitchingMode] = useState(false);
+    const [userRating, setUserRating] = useState(0);
   const [ratingComment, setRatingComment] = useState('');
 
   /* ─── API helper ─── */

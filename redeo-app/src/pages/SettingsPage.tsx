@@ -944,7 +944,7 @@ export function SettingsPage() {
                     '✅ CIN (recto + verso)',
                     '✅ Selfie avec CIN',
                     '✅ Permis de conduire',
-                    '✅ Attestation d'assurance',
+                    `✅ Attestation d'assurance`,
                     '✅ Photos du véhicule',
                   ].map((item) => (
                     <p key={item} className="text-xs text-[#A0A0A0]">{item}</p>

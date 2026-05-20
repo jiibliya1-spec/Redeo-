@@ -111,7 +111,7 @@ export function Navbar() {
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button className="flex items-center gap-2.5 p-1.5 pr-3 rounded-xl hover:bg-white/5 transition-colors">
-                      <img src={user?.avatar || '/images/avatar-passenger-1.jpg'} alt={user?.name} className="w-8 h-8 rounded-full object-cover ring-2 ring-[#FF6B00]/40" />
+                      <img src={user?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(user?.id || 'guest')}`} alt={user?.name} className="w-8 h-8 rounded-full object-cover ring-2 ring-[#FF6B00]/40" />
                       <span className="text-sm text-white hidden sm:block font-medium">{user?.name?.split(' ')[0]}</span>
                       <ChevronDown className="w-4 h-4 text-[#A0A0A0] hidden sm:block" />
                     </button>

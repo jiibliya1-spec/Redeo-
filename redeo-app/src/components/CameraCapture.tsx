@@ -61,7 +61,7 @@
       } catch (e: any) {
         const msg = e.name === 'NotAllowedError'
           ? (ar ? 'لم يتم السماح بالوصول للكاميرا. اضغط السماح في المتصفح.'
-               : fr ? 'Accès caméra refusé. Autorisez l'accès dans le navigateur.'
+               : fr ? "Accès caméra refusé. Autorisez l\'accès dans le navigateur."
                : 'Camera access denied. Please allow camera access in your browser.')
           : e.message;
         setCamError(msg);

@@ -176,7 +176,7 @@
       color: 'red', emoji: '💡',
     };
     if (a.brightnessScore < 55) return {
-      message: ar ? 'الإضاءة يمكن أن تكون أفضل' : fr ? 'Améliorer l'éclairage' : 'Improve lighting slightly',
+      message: ar ? 'الإضاءة يمكن أن تكون أفضل' : fr ? 'Améliorer l’éclairage' : 'Improve lighting slightly',
       subMessage: ar ? 'تجنب الظلال على الوثيقة' : fr ? 'Évitez les ombres' : 'Avoid shadows on document',
       color: 'yellow', emoji: '🌤',
     };
@@ -186,7 +186,7 @@
       color: 'yellow', emoji: '🌟',
     };
     if (a.fraudScore > 60) return {
-      message: ar ? 'يبدو أن الوثيقة مصورة من شاشة' : fr ? 'Document semble être une copie d'écran' : 'Looks like a screen copy — use original',
+      message: ar ? 'يبدو أن الوثيقة مصورة من شاشة' : fr ? 'Document semble être une copie d’écran' : 'Looks like a screen copy — use original',
       subMessage: ar ? 'استخدم الوثيقة الأصلية' : fr ? 'Utilisez le document original' : 'Use original document',
       color: 'red', emoji: '⚠️',
     };

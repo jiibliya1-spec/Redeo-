@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 import {
   ShieldCheck, Check, X, Search, CreditCard, Camera, FileText,
   Shield, Clock, UserCheck, UserX, Eye, Loader2, Car,
-  ChevronRight, ZoomIn,
+  ChevronRight, ZoomIn, Brain, Sparkles, TrendingUp, AlertTriangle,
 } from 'lucide-react';
 
 const SUPABASE_URL = 'https://qhbiafoyhvmvyyzwdzhd.supabase.co';
@@ -24,6 +24,10 @@ interface VerificationRecord {
   storage_path?: string;
   admin_notes?: string | null;
   rejection_reason?: string | null;
+  ai_quality_score?: number | null;
+  blur_score?: number | null;
+  brightness_score?: number | null;
+  fraud_score?: number | null;
   created_at: string;
   updated_at: string;
   user_name: string;
@@ -44,6 +48,8 @@ interface UserBundle {
   approvedCount: number;
   rejectedCount: number;
   latestDate: string;
+  avgQualityScore: number;
+  avgFraudScore: number;
 }
 
 type StatusFilter = 'all' | 'pending' | 'approved' | 'rejected';
@@ -89,7 +95,7 @@ function buildBundles(verifications: VerificationRecord[]): UserBundle[] {
         user_id: v.user_id, user_name: v.user_name, user_email: v.user_email,
         user_avatar: v.user_avatar, user_role: v.user_role,
         docs: [], pendingCount: 0, approvedCount: 0, rejectedCount: 0,
-        latestDate: v.created_at,
+        latestDate: v.created_at, avgQualityScore: 0, avgFraudScore: 0,
       });
     }
     const b = map.get(v.user_id)!;
@@ -99,9 +105,17 @@ function buildBundles(verifications: VerificationRecord[]): UserBundle[] {
     else if (v.status === 'rejected') b.rejectedCount++;
     if (v.created_at > b.latestDate) b.latestDate = v.created_at;
   }
-  return [...map.values()].sort((a, b) =>
-    b.latestDate.localeCompare(a.latestDate)
-  );
+  for (const b of map.values()) {
+      const docsWithScore = b.docs.filter(d => d.ai_quality_score != null);
+      b.avgQualityScore = docsWithScore.length
+        ? Math.round(docsWithScore.reduce((s, d) => s + (d.ai_quality_score || 0), 0) / docsWithScore.length) : 0;
+      const docsWithFraud = b.docs.filter(d => d.fraud_score != null);
+      b.avgFraudScore = docsWithFraud.length
+        ? Math.round(docsWithFraud.reduce((s, d) => s + (d.fraud_score || 0), 0) / docsWithFraud.length) : 0;
+    }
+    return [...map.values()].sort((a, b) =>
+      b.latestDate.localeCompare(a.latestDate)
+    );
 }
 
 export function AdminVerifications() {
@@ -501,6 +515,43 @@ export function AdminVerifications() {
                 </button>
               </div>
 
+              {/* KYC AI Score Panel */}
+                 {selectedBundle.avgQualityScore > 0 && (
+                   <div className="px-5 pt-4">
+                     <div className="rounded-xl p-3 mb-3 border" style={{
+                       background: selectedBundle.avgFraudScore > 40 ? 'rgba(239,68,68,0.06)' : selectedBundle.avgQualityScore >= 75 ? 'rgba(34,197,94,0.06)' : 'rgba(255,107,0,0.06)',
+                       borderColor: selectedBundle.avgFraudScore > 40 ? 'rgba(239,68,68,0.25)' : selectedBundle.avgQualityScore >= 75 ? 'rgba(34,197,94,0.25)' : 'rgba(255,107,0,0.25)',
+                     }}>
+                       <div className="flex items-center gap-2 mb-2.5">
+                         <Brain className="w-4 h-4 text-[#FF6B00]" />
+                         <span className="text-xs font-semibold text-white">AI KYC Analysis</span>
+                         {selectedBundle.avgFraudScore > 40 && (
+                           <span className="ml-auto flex items-center gap-1 text-[10px] text-red-400 bg-red-500/10 px-2 py-0.5 rounded-full">
+                             <AlertTriangle className="w-2.5 h-2.5" />High Fraud Risk
+                           </span>
+                         )}
+                         {selectedBundle.avgQualityScore >= 75 && selectedBundle.avgFraudScore <= 20 && (
+                           <span className="ml-auto flex items-center gap-1 text-[10px] text-green-400 bg-green-500/10 px-2 py-0.5 rounded-full">
+                             <Sparkles className="w-2.5 h-2.5" />Auto-Verify Ready
+                           </span>
+                         )}
+                       </div>
+                       <div className="grid grid-cols-3 gap-2">
+                         {([
+                           { label: 'Quality Score', value: selectedBundle.avgQualityScore, color: selectedBundle.avgQualityScore >= 75 ? '#22c55e' : selectedBundle.avgQualityScore >= 50 ? '#FF6B00' : '#ef4444' },
+                           { label: 'Fraud Risk', value: selectedBundle.avgFraudScore, color: selectedBundle.avgFraudScore > 40 ? '#ef4444' : selectedBundle.avgFraudScore > 20 ? '#f59e0b' : '#22c55e' },
+                           { label: 'Docs Analyzed', value: selectedBundle.docs.filter((d: any) => d.ai_quality_score != null).length, color: '#FF6B00', raw: true },
+                         ] as any[]).map(({ label, value, color, raw }) => (
+                           <div key={label} className="bg-black/20 rounded-lg p-2 text-center">
+                             <p className="text-sm font-bold" style={{ color }}>{value}{raw ? '' : '/100'}</p>
+                             <p className="text-[9px] text-[#A0A0A0] mt-0.5">{label}</p>
+                           </div>
+                         ))}
+                       </div>
+                     </div>
+                   </div>
+                 )}
+  
               {/* Document grid */}
               <div className="flex-1 overflow-y-auto p-5">
                 <p className="text-xs font-semibold text-[#A0A0A0] uppercase tracking-wider mb-3">

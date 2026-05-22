@@ -1,7 +1,7 @@
 
   import { useRef, useState, useEffect, useCallback } from 'react';
   import { motion, AnimatePresence } from 'framer-motion';
-  import { Camera, X, RotateCcw, Check, ZoomIn, Scan } from 'lucide-react';
+  import { Camera, X, RotateCcw, Check, Scan } from 'lucide-react';
   import { analyzeCanvasFrame, getGuidanceInfo, type FrameAnalysis } from '@/services/kycService';
 
   interface Props {

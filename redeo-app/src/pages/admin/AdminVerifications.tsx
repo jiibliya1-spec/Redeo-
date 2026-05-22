@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 import {
   ShieldCheck, Check, X, Search, CreditCard, Camera, FileText,
   Shield, Clock, UserCheck, UserX, Eye, Loader2, Car,
-  ChevronRight, ZoomIn, Brain, Sparkles, TrendingUp, AlertTriangle,
+  ChevronRight, ZoomIn, Brain, Sparkles, AlertTriangle,
 } from 'lucide-react';
 
 const SUPABASE_URL = 'https://qhbiafoyhvmvyyzwdzhd.supabase.co';

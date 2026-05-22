@@ -172,7 +172,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
         if (finalAnalysis) allAnalyses.current[docId] = finalAnalysis;
 
         /* Upload to Supabase Storage */
-        const { data: uploadData, error: uploadError } = await supabase.storage
+        const { error: uploadError } = await supabase.storage
           .from(BUCKET)
           .upload(filePath, file, { upsert: true, contentType: file.type || 'image/jpeg' });
 

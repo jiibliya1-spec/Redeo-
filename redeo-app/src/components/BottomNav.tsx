@@ -16,7 +16,7 @@ export function BottomNav() {
   const isDriver = mode === 'driver';
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-[#0F1115]/95 backdrop-blur-xl border-t border-white/5 safe-area-pb md:hidden">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-[#0F1115] border-t border-white/5 safe-area-pb md:hidden">
       <div className="flex items-center justify-around px-2 py-1">
 
         {/* Search - BOTH roles (can search for trips) */}

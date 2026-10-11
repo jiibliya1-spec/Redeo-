@@ -41,7 +41,7 @@ export function Navbar() {
   return (
     <nav
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-      isLanding ? 'bg-transparent' : 'glass border-b border-white/5'
+      isLanding ? 'bg-transparent' : 'bg-[#0F1115] border-b border-white/5'
     }`}
       style={{ paddingTop: 'env(safe-area-inset-top)' }}
     >

@@ -141,7 +141,9 @@ function AdminRoutes() {
 /* ─── App content with conditional navbar ─── */
 function AppContent() {
   const { isAuthenticated, user, isLoading, initAuth, refreshProfile, setUser, mode } = useStore();
-  const [showSplash, setShowSplash] = useState(true);
+  const [showSplash, setShowSplash] = useState(() => {
+    try { return !sessionStorage.getItem('wa_splash_seen'); } catch { return true; }
+  });
   const navigate = useNavigate();
   const language = useStore((s) => s.language);
 
@@ -191,7 +193,7 @@ function AppContent() {
 
   // Show splash screen on first load (independent of auth state)
   if (showSplash) {
-    return <SplashScreen onComplete={() => setShowSplash(false)} />;
+    return <SplashScreen onComplete={() => { try { sessionStorage.setItem('wa_splash_seen', '1'); } catch { /* ignore */ } setShowSplash(false); }} />;
   }
 
   if (isLoading) {

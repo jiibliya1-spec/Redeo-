@@ -9,8 +9,8 @@ import { useEffect, useState } from 'react';
     const [exiting, setExiting] = useState(false);
 
     useEffect(() => {
-      const t1 = setTimeout(() => setExiting(true), 1300);
-      const t2 = setTimeout(() => onComplete(),      1900);
+      const t1 = setTimeout(() => setExiting(true), 700);
+      const t2 = setTimeout(() => onComplete(),      1100);
       return () => { clearTimeout(t1); clearTimeout(t2); };
     }, [onComplete]);
 

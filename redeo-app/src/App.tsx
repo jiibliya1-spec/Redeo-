@@ -140,6 +140,17 @@ function AppContent() {
     document.documentElement.dir = language === 'ar' ? 'rtl' : 'ltr';
   }, [language]);
 
+  // Apply the chosen theme (dark / light) to the whole document
+  const theme = useStore((s) => s.theme);
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.toggle('light', theme === 'light');
+    root.classList.toggle('dark', theme !== 'light');
+    root.style.colorScheme = theme === 'light' ? 'light' : 'dark';
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', theme === 'light' ? '#F4F5F7' : '#FF6B00');
+  }, [theme]);
+
   useEffect(() => {
     const boot = async () => {
       await initAuth();

@@ -15,6 +15,7 @@ interface AppState {
   selectedTrip: Trip | null;
   searchFilters: SearchFilters;
   language: 'en' | 'fr' | 'ar';
+  theme: 'dark' | 'light';
   bookings: Booking[];
   unreadCount: number;
 
@@ -24,6 +25,7 @@ interface AppState {
   setSelectedTrip: (trip: Trip | null) => void;
   setSearchFilters: (filters: SearchFilters) => void;
   setLanguage: (lang: 'en' | 'fr' | 'ar') => void;
+  setTheme: (theme: 'dark' | 'light') => void;
   addBooking: (booking: Booking) => void;
   setUnreadCount: (count: number) => void;
   incrementUnread: () => void;
@@ -85,6 +87,7 @@ export const useStore = create<AppState>()(
       selectedTrip: null,
       searchFilters: { from: '', to: '', date: '', passengers: 1 },
       language: 'en',
+      theme: 'dark',
       bookings: [],
       unreadCount: 0,
 
@@ -94,6 +97,7 @@ export const useStore = create<AppState>()(
       setSelectedTrip: (selectedTrip) => set({ selectedTrip }),
       setSearchFilters: (searchFilters) => set({ searchFilters }),
       setLanguage: (language) => set({ language }),
+      setTheme: (theme) => set({ theme }),
       addBooking: (booking) => set((s) => ({ bookings: [booking, ...s.bookings] })),
       setUnreadCount: (unreadCount) => set({ unreadCount }),
       incrementUnread: () => set((s) => ({ unreadCount: s.unreadCount + 1 })),
@@ -204,7 +208,7 @@ export const useStore = create<AppState>()(
     }),
     {
       name: 'wansniauto-storage',
-      partialize: (state) => ({ language: state.language, mode: state.mode }),
+      partialize: (state) => ({ language: state.language, mode: state.mode, theme: state.theme }),
     }
   )
 );

@@ -73,7 +73,7 @@ export function LandingPage() {
   return (
     <div className="min-h-screen bg-[#0F1115]">
       {/* Hero */}
-      <section className="relative min-h-screen flex items-center overflow-hidden">
+      <section className="keep-dark relative min-h-screen flex items-center overflow-hidden">
         {/* Background */}
         <div className="absolute inset-0">
           <img src="/images/car-1.jpg" alt="" className="w-full h-full object-cover opacity-30" />

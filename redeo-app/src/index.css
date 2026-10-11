@@ -140,3 +140,82 @@
     to { opacity: 1; transform: translateY(0); }
   }
 }
+
+/* ============================================================
+   LIGHT THEME
+   The app's components use dark colours hard-coded as Tailwind classes.
+   When <html> has the "light" class (Settings → Dark mode toggle), these
+   rules remap those colours. Sections marked .keep-dark stay dark (hero).
+   ============================================================ */
+html.light {
+  --background: 220 20% 96%;
+  --foreground: 222 20% 10%;
+  --card: 0 0% 100%;
+  --card-foreground: 222 20% 10%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222 20% 10%;
+  --secondary: 220 16% 92%;
+  --secondary-foreground: 222 20% 10%;
+  --muted: 220 16% 92%;
+  --muted-foreground: 218 11% 40%;
+  --border: 220 14% 86%;
+  --input: 220 14% 86%;
+}
+
+/* Backgrounds */
+html.light body,
+html.light .bg-\[\#0F1115\] { background-color: #F4F5F7 !important; }
+html.light .bg-\[\#111318\] { background-color: #FFFFFF !important; }
+html.light .bg-\[\#1B1F27\] { background-color: #FFFFFF !important; }
+html.light .bg-\[\#0A0C10\] { background-color: #E9ECF0 !important; }
+html.light .bg-\[\#0F1115\]\/95 { background-color: rgba(244, 245, 247, 0.95) !important; }
+html.light .bg-\[\#1B1F27\]\/90 { background-color: rgba(255, 255, 255, 0.92) !important; }
+html.light .bg-dark { background-color: #F4F5F7 !important; }
+html.light .bg-cards { background-color: #FFFFFF !important; }
+
+/* Text */
+html.light .text-white { color: #14171C !important; }
+html.light .text-white\/80 { color: rgba(20, 23, 28, 0.8) !important; }
+html.light .text-white\/70 { color: rgba(20, 23, 28, 0.7) !important; }
+html.light .text-white\/60 { color: rgba(20, 23, 28, 0.6) !important; }
+html.light .text-white\/50 { color: rgba(20, 23, 28, 0.5) !important; }
+html.light .text-white\/30 { color: rgba(20, 23, 28, 0.3) !important; }
+html.light .text-\[\#A0A0A0\] { color: #5B6470 !important; }
+html.light .text-\[\#A0A0A0\]\/60 { color: rgba(91, 100, 112, 0.75) !important; }
+html.light .text-\[\#A0A0A0\]\/50 { color: rgba(91, 100, 112, 0.65) !important; }
+html.light .text-\[\#A0A0A0\]\/40 { color: rgba(91, 100, 112, 0.55) !important; }
+html.light .text-\[\#A0A0A0\]\/30 { color: rgba(91, 100, 112, 0.45) !important; }
+html.light .text-\[\#A0A0A0\]\/20 { color: rgba(91, 100, 112, 0.3) !important; }
+html.light .text-secondary { color: #5B6470 !important; }
+html.light .placeholder\:text-\[\#A0A0A0\]\/40::placeholder { color: rgba(91, 100, 112, 0.55) !important; }
+
+/* Borders & subtle fills */
+html.light .border-white\/5 { border-color: rgba(20, 23, 28, 0.08) !important; }
+html.light .border-white\/10 { border-color: rgba(20, 23, 28, 0.12) !important; }
+html.light .border-white\/20 { border-color: rgba(20, 23, 28, 0.2) !important; }
+html.light .bg-white\/5 { background-color: rgba(20, 23, 28, 0.04) !important; }
+html.light .bg-white\/10 { background-color: rgba(20, 23, 28, 0.07) !important; }
+html.light .bg-white\/20 { background-color: rgba(20, 23, 28, 0.1) !important; }
+html.light .hover\:bg-white\/5:hover { background-color: rgba(20, 23, 28, 0.06) !important; }
+html.light .hover\:bg-white\/10:hover { background-color: rgba(20, 23, 28, 0.09) !important; }
+html.light .divide-white\/5 > :not([hidden]) ~ :not([hidden]) { border-color: rgba(20, 23, 28, 0.08) !important; }
+
+/* White text stays white on orange / dark surfaces */
+html.light .bg-\[\#FF6B00\].text-white,
+html.light .bg-\[\#FF6B00\] .text-white,
+html.light .bg-\[\#E56000\].text-white,
+html.light .bg-\[\#E56000\] .text-white,
+html.light [class*="bg-black"] .text-white,
+html.light [class*="bg-black"].text-white,
+html.light .keep-dark .text-white,
+html.light .keep-dark.text-white { color: #FFFFFF !important; }
+html.light .keep-dark .text-\[\#A0A0A0\] { color: #A0A0A0 !important; }
+html.light .keep-dark .border-white\/10 { border-color: rgba(255, 255, 255, 0.1) !important; }
+html.light .keep-dark .border-white\/5 { border-color: rgba(255, 255, 255, 0.05) !important; }
+html.light .keep-dark .bg-white\/5 { background-color: rgba(255, 255, 255, 0.05) !important; }
+html.light .keep-dark .bg-white\/10 { background-color: rgba(255, 255, 255, 0.1) !important; }
+html.light .keep-dark .bg-\[\#1B1F27\] { background-color: #1B1F27 !important; }
+html.light .keep-dark { background-color: #0F1115 !important; }
+
+/* Scrollbars / form controls follow the theme */
+html.light input, html.light textarea, html.light select { color-scheme: light; }

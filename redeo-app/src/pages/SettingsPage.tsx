@@ -107,7 +107,9 @@ export function SettingsPage() {
   });
 
   /* ─── Dark Mode ─── */
-  const [darkMode, setDarkMode] = useState(true);
+  const theme = useStore((st) => st.theme);
+  const setTheme = useStore((st) => st.setTheme);
+  const darkMode = theme === 'dark';
 
   /* ─── Change Password ─── */
   const [newPassword, setNewPassword] = useState('');
@@ -545,14 +547,13 @@ export function SettingsPage() {
                 <Moon className="w-5 h-5 text-[#FF6B00]" />
                 <div>
                   <p className="text-sm font-medium text-white">{t('ui.dark_mode_51b5')}</p>
-                  <p className="text-xs text-[#A0A0A0]">{darkMode ? 'Currently enabled' : 'Currently disabled'}</p>
+                  <p className="text-xs text-[#A0A0A0]">{darkMode ? t('settings.dark_mode_on') : t('settings.dark_mode_off')}</p>
                 </div>
               </div>
-              <button onClick={() => { setDarkMode(!darkMode); toast.success(darkMode ? 'Dark mode disabled' : 'Dark mode enabled'); }}>
+              <button onClick={() => { setTheme(darkMode ? 'light' : 'dark'); toast.success(darkMode ? t('settings.dark_toast_off') : t('settings.dark_toast_on')); }}>
                 {darkMode ? <ToggleRight className="w-8 h-8 text-[#FF6B00]" /> : <ToggleLeft className="w-8 h-8 text-[#A0A0A0]" />}
               </button>
             </div>
-            <p className="text-xs text-[#A0A0A0] text-center">{t('ui.this_app_is_63de')}</p>
           </div>
         );
 

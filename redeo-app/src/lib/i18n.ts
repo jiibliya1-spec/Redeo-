@@ -420,6 +420,8 @@ const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     'settings.language_desc': 'Choose your preferred language',
 
     // ─── UI strings (added) ───
+    'settings.dark_toast_on': 'Dark mode enabled',
+    'settings.dark_toast_off': 'Light mode enabled',
     'stats.users': 'Active Users',
     'stats.trips': 'Trips Completed',
     'stats.cities': 'Cities Connected',
@@ -1012,6 +1014,8 @@ const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     'settings.language_desc': 'Choisissez votre langue préférée',
 
     // ─── UI strings (added) ───
+    'settings.dark_toast_on': 'Mode sombre activé',
+    'settings.dark_toast_off': 'Mode clair activé',
     'stats.users': 'Utilisateurs actifs',
     'stats.trips': 'Trajets effectués',
     'stats.cities': 'Villes connectées',
@@ -1604,6 +1608,8 @@ const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     'settings.language_desc': 'اختر لغتك المفضلة',
 
     // ─── UI strings (added) ───
+    'settings.dark_toast_on': 'تم تفعيل الوضع الداكن',
+    'settings.dark_toast_off': 'تم تفعيل الوضع الفاتح',
     'stats.users': 'مستخدم نشط',
     'stats.trips': 'رحلة منجزة',
     'stats.cities': 'مدينة مرتبطة',

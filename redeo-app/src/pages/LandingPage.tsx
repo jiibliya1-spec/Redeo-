@@ -341,7 +341,7 @@ export function LandingPage() {
                 <span className="text-lg font-semibold text-white">Wansni<span className="text-[#FF6B00]">Auto</span></span>
               </Link>
               <p className="text-sm text-[#A0A0A0]">&ldquo;سافر بسهولة وشارك الطريق&rdquo;</p>
-              <p className="text-xs text-[#A0A0A0]/60 mt-2"> Morocco's trusted ride-sharing platform connecting drivers and passengers across 13+ cities.</p>
+              <p className="text-xs text-[#A0A0A0]/60 mt-2">{t('footer.tagline_desc')}</p>
             </div>
 
             {/* Company */}

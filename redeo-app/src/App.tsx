@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { useEffect, useState, Component, type ReactNode, type ErrorInfo } from 'react';
 
 /* ─── Error Boundary: catches component crashes, shows friendly message instead of blank screen ─── */
@@ -110,6 +110,15 @@ function ProtectedRegister() {
 }
 
 /* ─── Admin pages wrapper ─── */
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    document.querySelectorAll<HTMLElement>('main, [data-scroll-root]').forEach((el) => { el.scrollTop = 0; });
+  }, [pathname]);
+  return null;
+}
+
 function AdminRoutes() {
   return (
     <AdminRouteGuard>
@@ -199,6 +208,7 @@ function AppContent() {
   return (
     <div className="min-h-screen bg-[#0F1115] text-white font-sans">
       {/* Show navbar only for non-admin users */}
+      <ScrollToTop />
       {!isAdmin && <Navbar />}
 
       <main className={isAdmin ? '' : 'pb-20 md:pb-0'}>

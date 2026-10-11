@@ -1,4 +1,4 @@
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, FileText, Shield, Cookie, Car } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
@@ -6,7 +6,9 @@ import { useI18n } from '@/lib/i18n';
 export default function LegalPage() {
   const { t, dir } = useI18n();
   const [searchParams, setSearchParams] = useSearchParams();
-  const activeTab = searchParams.get('tab') || 'terms';
+  const { pathname } = useLocation();
+  const pathTab = pathname.startsWith('/privacy') ? 'privacy' : pathname.startsWith('/cookies') ? 'cookies' : pathname.startsWith('/driver-agreement') ? 'driver' : 'terms';
+  const activeTab = searchParams.get('tab') || pathTab;
 
   const TABS = [
     { id: 'terms', labelKey: 'legal.terms_tab', icon: FileText },
@@ -44,48 +46,48 @@ export default function LegalPage() {
         return (
           <div className="space-y-4 text-sm text-[#A0A0A0] leading-relaxed">
             <p>{t('legal.privacy_intro')}</p>
-            <h3 className="text-white font-medium mt-4">1. Données Collectées</h3>
-            <p>Nous collectons: données d'identité, données de vérification (conducteurs), données de trajet, données de paiement (traitées par nos partenaires), données techniques, et communications.</p>
-            <h3 className="text-white font-medium mt-4">2. Utilisation des Données</h3>
-            <p>Fournir nos services, vérifier les identités, traiter les paiements, envoyer des confirmations, assurer la sécurité, respecter les obligations légales.</p>
-            <h3 className="text-white font-medium mt-4">3. Partage des Données</h3>
-            <p>Données limitées entre utilisateurs pour la coordination des trajets. Partage avec: processeurs de paiement, services de vérification, autorités (lorsque requis par la loi). Nous ne vendons jamais vos données.</p>
-            <h3 className="text-white font-medium mt-4">4. Sécurité</h3>
-            <p>Chiffrement TLS 1.3, serveurs sécurisés, audits réguliers. Accès restreint au personnel autorisé uniquement.</p>
-            <h3 className="text-white font-medium mt-4">5. Vos Droits</h3>
-            <p>Droit d'accès, de rectification, de suppression (avec limitations), d'opposition et de retrait du consentement.</p>
+            <h3 className="text-white font-medium mt-4">{t('legal.privacy_1_h')}</h3>
+            <p>{t('legal.privacy_1_b')}</p>
+            <h3 className="text-white font-medium mt-4">{t('legal.privacy_2_h')}</h3>
+            <p>{t('legal.privacy_2_b')}</p>
+            <h3 className="text-white font-medium mt-4">{t('legal.privacy_3_h')}</h3>
+            <p>{t('legal.privacy_3_b')}</p>
+            <h3 className="text-white font-medium mt-4">{t('legal.privacy_4_h')}</h3>
+            <p>{t('legal.privacy_4_b')}</p>
+            <h3 className="text-white font-medium mt-4">{t('legal.privacy_5_h')}</h3>
+            <p>{t('legal.privacy_5_b')}</p>
             <p className="text-xs text-[#A0A0A0]/50 mt-6">{t('legal.last_updated')}</p>
           </div>
         );
       case 'cookies':
         return (
           <div className="space-y-4 text-sm text-[#A0A0A0] leading-relaxed">
-            <h3 className="text-white font-medium mt-4">1. Cookies Essentiels</h3>
-            <p>Nécessaires au fonctionnement de la plateforme: sessions de connexion, sécurité, processus de réservation. Ne peuvent pas être désactivés.</p>
-            <h3 className="text-white font-medium mt-4">2. Cookies Analytiques</h3>
-            <p>Nous aident à comprendre comment les utilisateurs interagissent avec notre plateforme (Google Analytics). Données anonymisées.</p>
-            <h3 className="text-white font-medium mt-4">3. Cookies de Préférences</h3>
-            <p>Mémorisent vos paramètres: préférence linguistique, options d'affichage, informations de passagers sauvegardées.</p>
-            <h3 className="text-white font-medium mt-4">4. Gestion des Cookies</h3>
-            <p>Vous pouvez contrôler les cookies via les paramètres de votre navigateur. La désactivation des cookies essentiels peut empêcher la plateforme de fonctionner correctement.</p>
+            <h3 className="text-white font-medium mt-4">{t('legal.cookies_1_h')}</h3>
+            <p>{t('legal.cookies_1_b')}</p>
+            <h3 className="text-white font-medium mt-4">{t('legal.cookies_2_h')}</h3>
+            <p>{t('legal.cookies_2_b')}</p>
+            <h3 className="text-white font-medium mt-4">{t('legal.cookies_3_h')}</h3>
+            <p>{t('legal.cookies_3_b')}</p>
+            <h3 className="text-white font-medium mt-4">{t('legal.cookies_4_h')}</h3>
+            <p>{t('legal.cookies_4_b')}</p>
             <p className="text-xs text-[#A0A0A0]/50 mt-6">{t('legal.last_updated')}</p>
           </div>
         );
       case 'driver':
         return (
           <div className="space-y-4 text-sm text-[#A0A0A0] leading-relaxed">
-            <h3 className="text-white font-medium mt-4">1. Statut d'Indépendant</h3>
-            <p>Vous êtes un entrepreneur indépendant, pas un employé de WansniAuto. Vous contrôlez votre emploi du temps, itinéraires et tarification.</p>
-            <h3 className="text-white font-medium mt-4">2. Exigences du Véhicule</h3>
-            <p>Véhicule immatriculé au Maroc, assurance valide couvrant le transport de passagers, âge du véhicule ≤ 15 ans, état propre et sûr.</p>
-            <h3 className="text-white font-medium mt-4">3. Conduite du Conducteur</h3>
-            <p>Arriver à l'heure, communiquer clairement, conduire en sécurité, respecter les lois, ne pas discriminer, ne pas utiliser la plateforme pour du taxi commercial.</p>
-            <h3 className="text-white font-medium mt-4">4. Tarification et Paiements</h3>
-            <p>Vous fixez vos prix. WansniAuto déduit 5% de frais de service. Paiements transférés sous 3-5 jours ouvrables après le trajet. Vous êtes responsable de vos déclarations fiscales.</p>
-            <h3 className="text-white font-medium mt-4">5. Politique d'Annulation</h3>
-            <p>Évitez les annulations. Annulations d'urgence uniquement — annulations fréquentes = pénalités. Annulation &lt; 2h avant le départ = pénalités.</p>
-            <h3 className="text-white font-medium mt-4">6. Sécurité des Passagers</h3>
-            <p>Conduite sûre, ceintures fonctionnelles, respect du code de la route, comportement approprié. Tout accident doit être signalé sous 24h.</p>
+            <h3 className="text-white font-medium mt-4">{t('legal.driver_1_h')}</h3>
+            <p>{t('legal.driver_1_b')}</p>
+            <h3 className="text-white font-medium mt-4">{t('legal.driver_2_h')}</h3>
+            <p>{t('legal.driver_2_b')}</p>
+            <h3 className="text-white font-medium mt-4">{t('legal.driver_3_h')}</h3>
+            <p>{t('legal.driver_3_b')}</p>
+            <h3 className="text-white font-medium mt-4">{t('legal.driver_4_h')}</h3>
+            <p>{t('legal.driver_4_b')}</p>
+            <h3 className="text-white font-medium mt-4">{t('legal.driver_5_h')}</h3>
+            <p>{t('legal.driver_5_b')}</p>
+            <h3 className="text-white font-medium mt-4">{t('legal.driver_6_h')}</h3>
+            <p>{t('legal.driver_6_b')}</p>
             <p className="text-xs text-[#A0A0A0]/50 mt-6">{t('legal.last_updated')}</p>
           </div>
         );

@@ -62,7 +62,7 @@ function Drawer({ open, onClose, title, children }: { open: boolean; onClose: ()
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
             className="fixed right-0 top-0 bottom-0 w-full max-w-md bg-[#0F1115] z-[70] overflow-y-auto border-l border-white/5"
           >
-            <div className="sticky top-0 bg-[#0F1115]/95 backdrop-blur-md border-b border-white/5 px-5 py-4 flex items-center gap-3 z-10">
+            <div className="safe-top-sticky sticky top-0 bg-[#0F1115]/95 backdrop-blur-md border-b border-white/5 px-5 py-4 flex items-center gap-3 z-10">
               <button onClick={onClose} className="p-2 rounded-xl hover:bg-white/5 transition-colors">
                 <X className="w-5 h-5 text-[#A0A0A0]" />
               </button>

@@ -53,7 +53,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
 
       {/* Sidebar */}
       <aside
-        className={`fixed lg:static inset-y-0 left-0 z-50 w-64 bg-[#111318] border-r border-white/5 flex flex-col transition-transform duration-300 lg:translate-x-0 ${
+        className={`safe-top fixed lg:static inset-y-0 left-0 z-50 w-64 bg-[#111318] border-r border-white/5 flex flex-col transition-transform duration-300 lg:translate-x-0 ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
@@ -127,7 +127,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
       {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top bar */}
-        <header className="sticky top-0 z-30 bg-[#0A0C10]/80 backdrop-blur-xl border-b border-white/5 px-4 sm:px-6 py-4">
+        <header className="safe-top-sticky sticky top-0 z-30 bg-[#0A0C10]/80 backdrop-blur-xl border-b border-white/5 px-4 sm:px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <button

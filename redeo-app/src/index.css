@@ -219,3 +219,28 @@ html.light .keep-dark { background-color: #0F1115 !important; }
 
 /* Scrollbars / form controls follow the theme */
 html.light input, html.light textarea, html.light select { color-scheme: light; }
+
+/* ============================================================
+   SAFE AREAS (iPhone notch / status bar in installed PWA)
+   The top navbar is fixed and already adds the status-bar inset to its own
+   padding, so everything that sits below it must be pushed down by the same
+   amount, otherwise page content and sticky headers slide under the clock/Wi-Fi.
+   ============================================================ */
+:root { --nav-h: calc(4rem + env(safe-area-inset-top, 0px)); }
+
+.safe-area-pb { padding-bottom: env(safe-area-inset-bottom, 0px); }
+
+/* page wrappers that start below the fixed navbar */
+.pt-16 { padding-top: calc(4rem + env(safe-area-inset-top, 0px)); }
+.pt-20 { padding-top: calc(5rem + env(safe-area-inset-top, 0px)); }
+.pt-24 { padding-top: calc(6rem + env(safe-area-inset-top, 0px)); }
+
+/* sticky sub-headers must stick just under the navbar, not behind it */
+.sticky.top-0:not(.safe-top-sticky) { top: var(--nav-h); }
+
+/* sticky headers of full-screen drawers / admin (no navbar above them) */
+.safe-top-sticky { top: 0; padding-top: calc(1rem + env(safe-area-inset-top, 0px)) !important; }
+.safe-top { padding-top: env(safe-area-inset-top, 0px); }
+
+/* toast notifications must not sit under the status bar */
+[data-sonner-toaster][data-y-position="top"] { top: calc(env(safe-area-inset-top, 0px) + 12px) !important; }

@@ -228,7 +228,7 @@ export function MyTripsPage() {
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-3">
                       <img
-                        src={resolveAvatar(b.driver?.avatar, b.driver?.id || (b as any).driver_id)}
+                        src={resolveAvatar(b.driver?.avatar, (b.driver as any)?.id || (b.trip as any)?.driver_id || (b as any).driver_id)}
                         alt=""
                         className="w-10 h-10 rounded-full ring-2 ring-[#FF6B00]/20"
                       />

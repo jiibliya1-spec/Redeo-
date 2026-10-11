@@ -195,16 +195,28 @@ export const useStore = create<AppState>()(
 
       signOut: async () => {
         const { user } = get();
-        await supabase.auth.signOut();
-        // Clear all user-specific caches to prevent data leakage between accounts
-        localStorage.removeItem('wansniauto-storage');
-        localStorage.removeItem('wansniauto_bookings');
-        localStorage.removeItem('wansniauto_notifications');
-        // Also clear user-scoped notification cache if we have user id
-        if (user?.id) {
-          localStorage.removeItem(`wansniauto_notifications_${user.id}`);
-        }
+        // 1) Update the UI immediately so logout never feels stuck
         set({ user: null, isAuthenticated: false, selectedTrip: null, mode: 'passenger', unreadCount: 0, bookings: [] });
+        // 2) Clear user-specific caches (keep language/theme preferences)
+        try {
+          localStorage.removeItem('wansniauto_bookings');
+          localStorage.removeItem('wansniauto_notifications');
+          if (user?.id) localStorage.removeItem(`wansniauto_notifications_${user.id}`);
+        } catch { /* ignore */ }
+        // 3) End the Supabase session without ever blocking on the network
+        try {
+          await Promise.race([
+            supabase.auth.signOut(),
+            new Promise((resolve) => setTimeout(resolve, 1500)),
+          ]);
+        } catch { /* ignore */ }
+        // 4) Make sure no stale session token survives (otherwise the app logs back in)
+        try {
+          await supabase.auth.signOut({ scope: 'local' }).catch(() => {});
+          Object.keys(localStorage)
+            .filter((k) => k.startsWith('sb-') && k.endsWith('-auth-token'))
+            .forEach((k) => localStorage.removeItem(k));
+        } catch { /* ignore */ }
       },
     }),
     {

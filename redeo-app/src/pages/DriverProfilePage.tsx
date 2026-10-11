@@ -10,7 +10,7 @@ import type { Trip, User } from '@/types';
 import {
   ArrowLeft, Star, ShieldCheck, MessageCircle, Car, Calendar,
   MapPin, Clock, Users, Loader2, Shield, Award, ThumbsUp,
-  Phone, Mail,
+
 } from 'lucide-react';
 
 
@@ -46,7 +46,7 @@ export function DriverProfilePage() {
 
         // Fetch driver profile
         const profileRes = await fetch(
-          `${SUPABASE_URL}/rest/v1/profiles?select=*&id=eq.${id}&limit=1`,
+          `${SUPABASE_URL}/rest/v1/public_profiles?select=*&id=eq.${id}&limit=1`,
           { headers }
         );
         let driverProfile: User | null = null;
@@ -191,20 +191,6 @@ export function DriverProfilePage() {
           {driver.bio && (
             <p className="text-sm text-[#A0A0A0] mb-4 leading-relaxed">{driver.bio}</p>
           )}
-
-          {/* Contact Info */}
-          <div className="space-y-2 mb-5">
-            {driver.phone && (
-              <div className="flex items-center gap-2 text-sm text-[#A0A0A0]">
-                <Phone className="w-4 h-4 text-[#FF6B00]" />
-                {driver.phone}
-              </div>
-            )}
-            <div className="flex items-center gap-2 text-sm text-[#A0A0A0]">
-              <Mail className="w-4 h-4 text-[#FF6B00]" />
-              {driver.email}
-            </div>
-          </div>
 
           {/* Actions */}
           {me?.id !== driver.id && (

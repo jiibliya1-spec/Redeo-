@@ -119,7 +119,7 @@ export function MessagesPage() {
         // Fetch contact info
         if (partnerIds.size > 0) {
           const { data: profiles } = await supabase
-            .from('profiles')
+            .from('public_profiles')
             .select('id, name, avatar')
             .in('id', Array.from(partnerIds));
 

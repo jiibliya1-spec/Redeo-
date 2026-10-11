@@ -43,8 +43,8 @@ export function BookingPage() {
           const tr = trips[0] as Trip;
           setTrip(tr);
           const { data: profiles } = await supabase
-            .from('profiles')
-            .select('*')
+            .from('public_profiles')
+            .select('id, name, avatar, bio, role, is_verified, verification_status, passenger_verified, rating, trips_count, created_at')
             .eq('id', tr.driver_id)
             .limit(1);
           if (profiles?.[0]) setDriver(profiles[0] as unknown as User);

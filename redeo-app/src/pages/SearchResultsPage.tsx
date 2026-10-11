@@ -125,7 +125,7 @@ export function SearchResultsPage() {
       // Fetch all driver profiles in one batch
       const idsFilter = driverIds.map(id => `id=eq.${id}`).join(',');
       const res = await fetch(
-        `${SUPABASE_URL}/rest/v1/profiles?select=id,name,email,avatar,bio,phone,is_verified,verification_status,rating,trips_count,role&or=(${idsFilter})&limit=500`,
+        `${SUPABASE_URL}/rest/v1/public_profiles?select=id,name,avatar,bio,is_verified,verification_status,rating,trips_count,role&or=(${idsFilter})&limit=500`,
         {
           headers: {
             'apikey': SUPABASE_ANON_KEY,
@@ -147,7 +147,6 @@ export function SearchResultsPage() {
               driver: {
                 id: dp.id,
                 name: dp.name,
-                email: dp.email,
                 avatar: dp.avatar,
                 role: 'driver' as const,
                 is_verified: dp.is_verified,

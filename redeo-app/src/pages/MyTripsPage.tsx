@@ -76,7 +76,7 @@ export function MyTripsPage() {
           const driverIds = [...new Set(trips.map(tr => tr.driver_id).filter(Boolean))];
           const driverMap = new Map<string, any>();
           if (driverIds.length) {
-            const { data: drivers } = await supabase.from('profiles').select('id, name, avatar').in('id', driverIds);
+            const { data: drivers } = await supabase.from('public_profiles').select('id, name, avatar').in('id', driverIds);
             drivers?.forEach(d => driverMap.set(d.id, d));
           }
           data = data.map(b => {

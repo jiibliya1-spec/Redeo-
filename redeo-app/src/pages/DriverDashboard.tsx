@@ -259,7 +259,7 @@ export function DriverDashboard() {
       const passengerMap = new Map<string, any>();
       try {
         const passRes = await fetch(
-          `${SUPABASE_URL}/rest/v1/profiles?select=id,name,avatar,rating,trips_count,is_verified,phone&id=in.(${passengerIds.join(',')})`,
+          `${SUPABASE_URL}/rest/v1/public_profiles?select=id,name,avatar,rating,trips_count,is_verified&id=in.(${passengerIds.join(',')})`,
           { headers }
         );
         if (passRes.ok) {

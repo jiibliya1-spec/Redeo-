@@ -78,8 +78,8 @@ export function TripDetailsPage() {
         // 2. Fetch driver profile
         if (tripData.driver_id) {
           const { data: profiles } = await supabase
-            .from('profiles')
-            .select('*')
+            .from('public_profiles')
+            .select('id, name, avatar, bio, role, is_verified, verification_status, passenger_verified, rating, trips_count, created_at')
             .eq('id', tripData.driver_id)
             .limit(1);
 

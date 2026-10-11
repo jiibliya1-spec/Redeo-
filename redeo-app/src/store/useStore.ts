@@ -3,9 +3,8 @@ import { persist } from 'zustand/middleware';
 import type { User, Trip, Booking, SearchFilters } from '@/types';
 import { supabase } from '@/lib/supabase';
 
-const SUPABASE_URL = 'https://qhbiafoyhvmvyyzwdzhd.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoYmlhZm95aHZtdnl5endkemhkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg3OTIwNDcsImV4cCI6MjA5NDM2ODA0N30.04MftiDjQUrnGegTeaL88WyES9ydDKxRrrmVua0rVbM';
 
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from '@/lib/supabase';
 export type AppMode = 'passenger' | 'driver';
 
 interface AppState {
@@ -37,10 +36,10 @@ interface AppState {
   signOut: () => Promise<void>;
 }
 
-const ADMIN_EMAILS = ['admin@wansniauto.com', 'admin@wansniauto.ma'];
-function isAdminEmail(email: string): boolean {
-  const e = email.toLowerCase().trim();
-  return ADMIN_EMAILS.includes(e);
+/** Admin role is stored in public.profiles.role and enforced by RLS in the database.
+ *  Client-side checks are only for UI; user metadata can never grant admin. */
+function safeRole(role: unknown): 'passenger' | 'driver' {
+  return role === 'driver' ? 'driver' : 'passenger';
 }
 
 async function fetchProfile(userId: string): Promise<Partial<User> | null> {
@@ -59,13 +58,12 @@ async function fetchProfile(userId: string): Promise<Partial<User> | null> {
 
 function buildUser(sessionUser: any, profileData: Partial<User> | null): User {
   const email = sessionUser.email || '';
-  const isAdmin = isAdminEmail(email);
   return {
     id: sessionUser.id,
     name: profileData?.name || sessionUser.user_metadata?.name || email.split('@')[0] || 'User',
     email,
     phone: profileData?.phone || sessionUser.user_metadata?.phone || '',
-    role: isAdmin ? 'admin' : (profileData?.role || sessionUser.user_metadata?.role || 'passenger'),
+    role: profileData?.role === 'admin' ? 'admin' : safeRole(profileData?.role ?? sessionUser.user_metadata?.role),
     is_verified: profileData?.is_verified === true,
     verification_status: (profileData?.verification_status as any) || 'unverified',
     passenger_verified: (profileData as any)?.passenger_verified === true,
@@ -121,14 +119,12 @@ export const useStore = create<AppState>()(
         if (!currentUser?.id) return;
         const freshProfile = await fetchProfile(currentUser.id);
         if (freshProfile) {
-          const email = currentUser.email;
-          const isAdmin = isAdminEmail(email);
           set({
             user: {
               ...currentUser,
               is_verified: freshProfile.is_verified === true,
               verification_status: (freshProfile.verification_status as any) || 'unverified',
-              role: isAdmin ? 'admin' : ((freshProfile.role as any) || currentUser.role),
+              role: freshProfile.role === 'admin' ? 'admin' : ((freshProfile.role as any) || (currentUser.role === 'admin' ? 'passenger' : currentUser.role)),
               name: freshProfile.name || currentUser.name,
               avatar: freshProfile.avatar || currentUser.avatar,
               phone: freshProfile.phone || currentUser.phone,

@@ -100,11 +100,19 @@ import { useState, useEffect, useCallback, useRef } from 'react';
         if (error) { console.warn('[Verify] load error:', error.message); return; }
         if (!docs?.length) return;
 
+        // Private bucket: build short-lived signed URLs for the user's own previews
+        const paths = docs.map((d: any) => d.storage_path).filter(Boolean) as string[];
+        const signedByPath = new Map<string, string>();
+        if (paths.length) {
+          const { data: signed } = await supabase.storage.from(BUCKET).createSignedUrls(paths, 3600);
+          (signed || []).forEach((x) => { if (x.path && x.signedUrl) signedByPath.set(x.path, x.signedUrl); });
+        }
+
         setSteps((prev) =>
           prev.map((s) => {
             const d = docs.find((doc: any) => doc.doc_type === s.id);
             if (!d) return s;
-            const url = d.public_url || d.url || undefined;
+            const url = (d.storage_path && signedByPath.get(d.storage_path)) || undefined;
             return {
               ...s,
               status: d.status as DocStep['status'],
@@ -178,16 +186,13 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 
         if (uploadError) throw new Error(`Storage: ${uploadError.message}`);
 
-        const { data: urlData } = supabase.storage.from(BUCKET).getPublicUrl(filePath);
-        const publicUrl = urlData.publicUrl;
-
+        // Bucket is private: only the storage path is stored. Admins get short-lived signed URLs.
         /* Save to DB with KYC quality data */
         const dbPayload: any = {
           user_id: uid,
           doc_type: docId,
           status: 'uploaded',
           storage_path: filePath,
-          public_url: publicUrl,
           updated_at: new Date().toISOString(),
         };
         if (finalAnalysis) {
@@ -208,13 +213,13 @@ import { useState, useEffect, useCallback, useRef } from 'react';
           /* Retry without new columns */
           await supabase.from('verifications').upsert({
             user_id: uid, doc_type: docId, status: 'uploaded',
-            storage_path: filePath, public_url: publicUrl,
+            storage_path: filePath,
             updated_at: new Date().toISOString(),
           }, { onConflict: 'user_id,doc_type' });
         }
 
         setSteps((prev) =>
-          prev.map((s) => s.id === docId ? { ...s, status: 'uploaded' as const, url: publicUrl, filePath, errorMsg: undefined, analysis: finalAnalysis } : s)
+          prev.map((s) => s.id === docId ? { ...s, status: 'uploaded' as const, url: URL.createObjectURL(file), filePath, errorMsg: undefined, analysis: finalAnalysis } : s)
         );
         toast.success(lang === 'ar' ? '✅ تم تحميل الوثيقة بنجاح!' : lang === 'fr' ? '✅ Document téléchargé!' : '✅ Document uploaded successfully!');
 

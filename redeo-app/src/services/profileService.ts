@@ -47,19 +47,18 @@ export async function uploadDocument(userId: string, docType: string, file: File
 
   if (uploadError) throw uploadError;
 
-  const { data } = supabase.storage.from('documents').getPublicUrl(filePath);
-
+  // 'documents' is a private bucket: store the path only; resolve with createSignedUrl when needed.
   const { error: docError } = await supabase
     .from('verifications')
     .upsert({
       user_id: userId,
       doc_type: docType,
       status: 'pending',
-      url: data.publicUrl,
-    });
+      storage_path: filePath,
+    }, { onConflict: 'user_id,doc_type' });
 
   if (docError) throw docError;
-  return data.publicUrl;
+  return filePath;
 }
 
 export async function fetchVerificationDocs(userId: string) {

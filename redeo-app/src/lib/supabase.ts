@@ -1,21 +1,21 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://qhbiafoyhvmvyyzwdzhd.supabase.co';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoYmlhZm95aHZtdnl5endkemhkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3OTIwNDcsImV4cCI6MjA5NDM2ODA0N30.04MftiDjQUrnGegTeaL88WyES9ydDKxRrrmVua0rVbM';
+export const SUPABASE_URL: string = import.meta.env.VITE_SUPABASE_URL || 'https://qhbiafoyhvmvyyzwdzhd.supabase.co';
+export const SUPABASE_ANON_KEY: string = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoYmlhZm95aHZtdnl5endkemhkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3OTIwNDcsImV4cCI6MjA5NDM2ODA0N30.04MftiDjQUrnGegTeaL88WyES9ydDKxRrrmVua0rVbM';
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // ─── Supabase REST API helpers with AUTH (JWT token) ───
 // These use the user's JWT token so RLS policies work correctly
 
-const REST_API = `${supabaseUrl}/rest/v1`;
+const REST_API = `${SUPABASE_URL}/rest/v1`;
 
 /** Get headers with the CURRENT USER's JWT token */
 async function getAuthHeaders() {
   const { data } = await supabase.auth.getSession();
-  const jwt = data.session?.access_token || supabaseAnonKey;
+  const jwt = data.session?.access_token || SUPABASE_ANON_KEY;
   return {
-    'apikey': supabaseAnonKey,
+    'apikey': SUPABASE_ANON_KEY,
     'Authorization': `Bearer ${jwt}`,
     'Content-Type': 'application/json',
     'Prefer': 'return=representation',

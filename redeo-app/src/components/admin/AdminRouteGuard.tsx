@@ -28,11 +28,9 @@ export function AdminRouteGuard({ children }: AdminRouteGuardProps) {
 
   // Logged in but not admin → home
   if (user?.role !== 'admin') {
-    console.log('[AdminRouteGuard] Access denied. User role:', user?.role, 'Expected: admin');
     return <Navigate to="/" replace />;
   }
 
   // Admin confirmed → show admin content
-  console.log('[AdminRouteGuard] Admin access granted for:', user?.name);
   return <>{children}</>;
 }

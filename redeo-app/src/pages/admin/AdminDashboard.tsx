@@ -7,9 +7,8 @@ import {
   Users, ShieldCheck, Car, MessageSquare, UserCheck, UserX, Clock, ChevronRight,
 } from 'lucide-react';
 
-const SUPABASE_URL = 'https://qhbiafoyhvmvyyzwdzhd.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoYmlhZm95aHZtdnl5endkemhkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3OTIwNDcsImV4cCI6MjA5NDM2ODA0N30.04MftiDjQUrnGegTeaL88WyES9ydDKxRrrmVua0rVbM';
 
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from '@/lib/supabase';
 interface Stats {
   totalUsers: number;
   totalDrivers: number;

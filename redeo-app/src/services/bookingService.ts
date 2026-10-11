@@ -25,7 +25,7 @@ export async function fetchDriverBookings(driverId: string) {
   const { data, error } = await supabase
     .from('bookings')
     .select('*, trip:trips(*), passenger:profiles(*)')
-    .eq('trip.driver_id', driverId)
+    .eq('driver_id', driverId)
     .order('created_at', { ascending: false });
   if (error) throw error;
   return data as Booking[];

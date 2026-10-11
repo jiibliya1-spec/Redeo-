@@ -12,9 +12,8 @@ import {
   MapPin, Clock, Calendar, Star, ShieldCheck, Leaf, Banknote,
 } from 'lucide-react';
 
-const SUPABASE_URL = 'https://qhbiafoyhvmvyyzwdzhd.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoYmlhZm95aHZtdnl5endkemhkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3OTIwNDcsImV4cCI6MjA5NDM2ODA0N30.04MftiDjQUrnGegTeaL88WyES9ydDKxRrrmVua0rVbM';
 
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from '@/lib/supabase';
 export function BookingPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -63,6 +62,7 @@ export function BookingPage() {
       const bookingData = {
         trip_id: trip.id,
         passenger_id: user.id,
+        driver_id: trip.driver_id,
         seats,
         status: 'pending',
         total_price: trip.price * seats,
@@ -75,7 +75,11 @@ export function BookingPage() {
         .select()
         .single();
 
-      const bookingId = inserted?.id || crypto.randomUUID();
+      if (error || !inserted) {
+        // The database validates seats/availability (trigger) and returns a readable message
+        throw new Error(error?.message || 'Booking failed');
+      }
+      const bookingId = inserted.id;
 
       try {
         const all: any[] = JSON.parse(localStorage.getItem('wansniauto_bookings') || '[]');
@@ -85,8 +89,6 @@ export function BookingPage() {
           driver: driver ? { name: driver.name, avatar: driver.avatar } : null,
         }, ...all.filter(b => b.id !== bookingId)]));
       } catch {}
-
-      if (error) console.warn('bookings table not ready:', error.message);
 
       if (trip.driver_id) {
         const { data: s } = await supabase.auth.getSession();

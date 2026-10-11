@@ -11,9 +11,8 @@ import {
   ChevronRight, ZoomIn, Brain, Sparkles, AlertTriangle,
 } from 'lucide-react';
 
-const SUPABASE_URL = 'https://qhbiafoyhvmvyyzwdzhd.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoYmlhZm95aHZtdnl5endkemhkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3OTIwNDcsImV4cCI6MjA5NDM2ODA0N30.04MftiDjQUrnGegTeaL88WyES9ydDKxRrrmVua0rVbM';
 
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from '@/lib/supabase';
 interface VerificationRecord {
   id: string;
   user_id: string;
@@ -75,7 +74,9 @@ function getDocUrl(v: VerificationRecord): string | null { return v.public_url |
 
 const CACHE_KEY = 'admin_verifications_cache';
 function saveCache(data: VerificationRecord[]) {
-  try { localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), data })); } catch {}
+  // Never persist document links (signed URLs) in localStorage
+  const safe = data.map((v) => ({ ...v, url: undefined, public_url: undefined }));
+  try { localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), data: safe })); } catch {}
 }
 function loadCache(): VerificationRecord[] {
   try {
@@ -185,8 +186,16 @@ export function AdminVerifications() {
         };
       });
 
-      setVerifications(combined);
       saveCache(combined);
+
+      // Documents live in a private bucket: create short-lived signed URLs (1h) for admin preview
+      const paths = combined.map((v) => v.storage_path).filter((p): p is string => !!p);
+      if (paths.length > 0) {
+        const { data: signed } = await supabase.storage.from('documents').createSignedUrls(paths, 3600);
+        const byPath = new Map((signed || []).map((x) => [x.path, x.signedUrl]));
+        combined.forEach((v) => { if (v.storage_path) v.public_url = byPath.get(v.storage_path) || undefined; });
+      }
+      setVerifications(combined);
     } catch (err: any) {
       toast.error('Failed to load: ' + err.message);
     }

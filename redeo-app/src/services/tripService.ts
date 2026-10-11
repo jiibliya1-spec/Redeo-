@@ -4,7 +4,7 @@ import type { Trip, SearchFilters } from '@/types';
 export async function fetchTrips(filters?: SearchFilters) {
   let query = supabase
     .from('trips')
-    .select('*, driver:profiles(*), vehicle:vehicles(*)')
+    .select('*, driver:profiles(*), vehicle:vehicle_profiles(*)')
     .order('departure_date', { ascending: true });
 
   if (filters?.from) {
@@ -25,7 +25,7 @@ export async function fetchTrips(filters?: SearchFilters) {
 export async function fetchTripById(id: string) {
   const { data, error } = await supabase
     .from('trips')
-    .select('*, driver:profiles(*), vehicle:vehicles(*)')
+    .select('*, driver:profiles(*), vehicle:vehicle_profiles(*)')
     .eq('id', id)
     .single();
   if (error) throw error;
@@ -42,10 +42,4 @@ export async function createTrip(trip: Partial<Trip>) {
   return data as Trip;
 }
 
-export async function updateTripSeats(tripId: string, seats: number) {
-  const { error } = await supabase
-    .from('trips')
-    .update({ available_seats: seats })
-    .eq('id', tripId);
-  if (error) throw error;
-}
+// Seat counts are managed by the database (bookings trigger). Never write available_seats from the client.

@@ -797,7 +797,7 @@ export function DriverDashboard() {
                 <div className="divide-y divide-white/5">
                   {bookingRequests.map((booking, idx) => {
                     const p = booking.passenger;
-                    const t = booking.trip as any;
+                    const bTrip = booking.trip as any;
                     const isProcessing = processingBookingId === booking.id;
                     return (
                       <motion.div
@@ -810,10 +810,10 @@ export function DriverDashboard() {
                         {/* Trip info */}
                         <div className="flex items-center gap-2 mb-3 text-xs text-[#A0A0A0]">
                           <MapPin className="w-3.5 h-3.5 text-[#FF6B00]" />
-                          <span className="text-white font-medium">{t?.from_location} → {t?.to_location}</span>
+                          <span className="text-white font-medium">{bTrip?.from_location} → {bTrip?.to_location}</span>
                           <span>·</span>
                           <Calendar className="w-3 h-3" />
-                          <span>{t?.departure_date} at {t?.departure_time}</span>
+                          <span>{bTrip?.departure_date} at {bTrip?.departure_time}</span>
                         </div>
 
                         {/* Passenger profile */}

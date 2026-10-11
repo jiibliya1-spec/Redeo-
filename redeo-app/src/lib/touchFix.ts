@@ -15,6 +15,24 @@ export function installTouchFix() {
   };
   document.addEventListener('touchend', onTouchEnd, { capture: true, passive: true });
 
+  // iOS standalone sometimes lays the page out against a stale viewport at launch (content jumps
+  // ~status-bar-height after the first drag) and touches on fields land in the wrong place.
+  // Nudge the viewport so WebKit recomputes layout and hit-testing.
+  const nudge = () => {
+    try {
+      window.dispatchEvent(new Event('resize'));
+      const y = window.scrollY;
+      if (y === 0) {
+        window.scrollTo(0, 1);
+        requestAnimationFrame(() => window.scrollTo(0, 0));
+      }
+    } catch { /* ignore */ }
+  };
+  [50, 300, 900, 2200].forEach((ms) => setTimeout(nudge, ms));
+  window.addEventListener('pageshow', nudge);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) nudge(); });
+  window.addEventListener('orientationchange', () => setTimeout(nudge, 200));
+
   let debug = false;
   try { debug = /[?&]debug=1/.test(location.search) || localStorage.getItem('wa_debug') === '1'; } catch { /* ignore */ }
   if (!debug) return;

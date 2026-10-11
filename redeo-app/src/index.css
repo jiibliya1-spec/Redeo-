@@ -33,6 +33,7 @@
   * {
     @apply border-border;
   }
+  html, body { overscroll-behavior-y: none; }
   body {
     @apply bg-[#0F1115] text-[#ffffff] antialiased;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
@@ -249,3 +250,8 @@ html.light input, html.light textarea, html.light select { color-scheme: light; 
 
 /* toast notifications must not sit under the status bar */
 [data-sonner-toaster][data-y-position="top"] { top: calc(env(safe-area-inset-top, 0px) + 12px) !important; }
+
+/* iOS: 100vh is taller than the visible area in installed apps; prefer the dynamic viewport unit */
+@supports (height: 100dvh) {
+  .min-h-screen { min-height: 100dvh; }
+}

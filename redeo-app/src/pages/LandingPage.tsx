@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Logo } from '@/components/Logo';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useStore } from '@/store/useStore';
@@ -335,9 +336,7 @@ export function LandingPage() {
             {/* Brand */}
             <div className="col-span-2 md:col-span-1">
               <Link to="/" className="flex items-center gap-2 mb-3">
-                <div className="w-8 h-8 rounded-lg bg-[#FF6B00] flex items-center justify-center">
-                  <Car className="w-4 h-4 text-white" />
-                </div>
+                <Logo className="w-8 h-8" />
                 <span className="text-lg font-semibold text-white">Wansni<span className="text-[#FF6B00]">Auto</span></span>
               </Link>
               <p className="text-sm text-[#A0A0A0]">&ldquo;سافر بسهولة وشارك الطريق&rdquo;</p>

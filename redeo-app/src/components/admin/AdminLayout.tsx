@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Logo } from '@/components/Logo';
 import { resolveAvatar } from '@/lib/utils';
 import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -61,9 +62,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
         {/* Header */}
         <div className="p-6 border-b border-white/5">
           <Link to="/admin" className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-[#FF6B00] rounded-xl flex items-center justify-center">
-              <Car className="w-5 h-5 text-white" />
-            </div>
+            <Logo className="w-9 h-9" />
             <div>
               <h1 className="text-sm font-bold text-white">WansniAuto</h1>
               <p className="text-[10px] text-[#FF6B00] uppercase tracking-wider font-semibold">Admin Panel</p>

@@ -34,7 +34,9 @@ export function installTouchFix() {
   window.addEventListener('orientationchange', () => setTimeout(nudge, 200));
 
   let debug = false;
-  try { debug = /[?&]debug=1/.test(location.search) || localStorage.getItem('wa_debug') === '1'; } catch { /* ignore */ }
+  try {
+    debug = /[?&]debug=1/.test(location.search) || localStorage.getItem('wa_debug') === '1' || (navigator as any).standalone === true;
+  } catch { /* ignore */ }
   if (!debug) return;
   try { localStorage.setItem('wa_debug', '1'); } catch { /* ignore */ }
 
@@ -42,6 +44,16 @@ export function installTouchFix() {
   bar.style.cssText =
     'position:fixed;left:0;right:0;bottom:0;z-index:2147483647;pointer-events:none;background:rgba(0,0,0,.85);color:#7CFC00;font:11px/1.35 monospace;padding:6px 8px;white-space:pre-wrap;direction:ltr;text-align:left';
   document.body.appendChild(bar);
+  // plain native field, outside React: if THIS opens the keyboard the app code is at fault,
+  // if not it is an iOS / home-screen environment problem
+  const raw = document.createElement('input');
+  raw.type = 'text';
+  raw.placeholder = 'TEST: tap here';
+  raw.style.cssText =
+    'position:fixed;left:8px;right:8px;bottom:calc(env(safe-area-inset-bottom,0px) + 96px);z-index:2147483647;height:44px;font-size:16px;padding:0 10px;border-radius:8px;border:2px solid #7CFC00;background:#fff;color:#000;pointer-events:auto';
+  raw.addEventListener('focus', () => { info.rawfield = 'FOCUSED'; render(); });
+  raw.addEventListener('blur', () => { info.rawfield = 'blurred'; render(); });
+  document.body.appendChild(raw);
   const info: Record<string, string> = {
     standalone: String((navigator as any).standalone),
     ua: navigator.userAgent.replace(/.*OS ([\d_]+).*/, 'iOS $1'),

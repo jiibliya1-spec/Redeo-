@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { resolveAvatar } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useStore } from '@/store/useStore';
@@ -819,7 +820,7 @@ export function DriverDashboard() {
                         <div className="flex items-center gap-3 bg-[#0F1115] rounded-xl p-3 mb-3">
                           <div className="relative shrink-0">
                             <img
-                              src={p?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${p?.name || booking.passenger_id}`}
+                              src={resolveAvatar(p?.avatar, booking.passenger_id)}
                               alt=""
                               className="w-12 h-12 rounded-full object-cover"
                             />

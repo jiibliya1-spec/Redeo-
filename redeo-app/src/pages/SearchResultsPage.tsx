@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { resolveAvatar } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useStore } from '@/store/useStore';
@@ -33,7 +34,7 @@ function TripCard({ trip, index }: { trip: Trip; index: number }) {
         <div className="flex items-center gap-3">
           <div className="relative">
             <img
-              src={driver?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${driver?.name || 'driver'}`}
+              src={resolveAvatar(driver?.avatar, driver?.id || trip.driver_id)}
               alt={driver?.name}
               className="w-12 h-12 rounded-full object-cover ring-2 ring-[#FF6B00]/20 bg-[#1B1F27]"
             />

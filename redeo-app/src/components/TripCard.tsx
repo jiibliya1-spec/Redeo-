@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import { resolveAvatar } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
 import type { Trip } from '@/types';
 import {
@@ -82,7 +83,7 @@ export function TripCard({ trip, index = 0 }: TripCardProps) {
           <div className="flex items-center gap-3">
             <div className="relative">
               <img
-                src={driver?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${driver?.name || 'driver'}`}
+                src={resolveAvatar(driver?.avatar, driver?.id || trip.driver_id)}
                 alt={driver?.name}
                 className="w-10 h-10 rounded-full object-cover ring-2 ring-[#FF6B00]/20"
               />

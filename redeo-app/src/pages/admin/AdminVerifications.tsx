@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { resolveAvatar } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { supabase } from '@/lib/supabase';
@@ -149,7 +150,7 @@ export function AdminVerifications() {
       ...v,
       user_name: u?.name || v.user_name || 'Unknown',
       user_email: u?.email || v.user_email || '',
-      user_avatar: u?.avatar || v.user_avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${v.user_id}`,
+      user_avatar: resolveAvatar(u?.avatar || v.user_avatar, v.user_id),
       user_role: u?.role || v.user_role || 'passenger',
     };
   }, []);
@@ -181,7 +182,7 @@ export function AdminVerifications() {
         return {
           ...v,
           user_name: u?.name || 'Unknown', user_email: u?.email || '',
-          user_avatar: u?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${v.user_id}`,
+          user_avatar: resolveAvatar(u?.avatar, v.user_id),
           user_role: u?.role || 'passenger',
         };
       });

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { resolveAvatar } from '@/lib/utils';
 import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useStore } from '@/store/useStore';
@@ -98,7 +99,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
           {/* Admin profile */}
           <div className="flex items-center gap-3 px-3 py-2">
             <img
-              src={user?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.id}`}
+              src={resolveAvatar(user?.avatar, user?.id)}
               alt=""
               className="w-9 h-9 rounded-full bg-[#1B1F27]"
             />

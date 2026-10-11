@@ -1,4 +1,5 @@
 import { useParams, useNavigate } from 'react-router-dom';
+import { resolveAvatar } from '@/lib/utils';
 import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { useStore } from '@/store/useStore';
@@ -105,7 +106,7 @@ export function TripDetailsPage() {
       state: {
         contactId: trip.driver_id,
         contactName: driver?.name || 'Driver',
-        contactAvatar: driver?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${trip.driver_id}`,
+        contactAvatar: resolveAvatar(driver?.avatar, trip.driver_id),
       }
     });
   };
@@ -294,7 +295,7 @@ export function TripDetailsPage() {
           <div className="flex items-center gap-4 mb-5 cursor-pointer" onClick={handleViewDriver}>
             <div className="relative shrink-0">
               <img
-                src={driver?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${trip.driver_id}`}
+                src={resolveAvatar(driver?.avatar, trip.driver_id)}
                 alt={driver?.name}
                 className="w-16 h-16 rounded-full object-cover ring-2 ring-[#FF6B00]/30"
               />

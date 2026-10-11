@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { resolveAvatar } from '@/lib/utils';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useStore } from '@/store/useStore';
@@ -227,7 +228,7 @@ export function BookingPage() {
           {driver && (
             <div className="flex items-center gap-3 pt-4 border-t border-white/5">
               <img
-                src={driver.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${driver.name}`}
+                src={resolveAvatar(driver.avatar, driver.id)}
                 alt={driver.name}
                 className="w-10 h-10 rounded-full"
               />

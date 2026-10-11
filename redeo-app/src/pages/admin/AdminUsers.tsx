@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { resolveAvatar } from '@/lib/utils';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { supabase } from '@/lib/supabase';
 import { Input } from '@/components/ui/input';
@@ -100,7 +101,7 @@ export function AdminUsers() {
           doc_count: userVerifs.length,
           is_verified: p.is_verified || false,
           verification_status: p.verification_status || 'unverified',
-          avatar: p.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${p.id}`,
+          avatar: resolveAvatar(p.avatar, p.id),
         };
       });
 

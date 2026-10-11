@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { resolveAvatar } from '@/lib/utils';
 import { persist } from 'zustand/middleware';
 import type { User, Trip, Booking, SearchFilters } from '@/types';
 import { supabase } from '@/lib/supabase';
@@ -72,7 +73,7 @@ function buildUser(sessionUser: any, profileData: Partial<User> | null): User {
     passenger_verification_status: (profileData as any)?.passenger_verification_status || 'unverified',
     rating: profileData?.rating || 5.0,
     trips_count: profileData?.trips_count || 0,
-    avatar: profileData?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${sessionUser.id}`,
+    avatar: resolveAvatar(profileData?.avatar, sessionUser.id),
     bio: profileData?.bio || '',
   };
 }

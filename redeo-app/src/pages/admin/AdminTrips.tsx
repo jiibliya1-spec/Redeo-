@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { resolveAvatar } from '@/lib/utils';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { supabase } from '@/lib/supabase';
 import { Input } from '@/components/ui/input';
@@ -72,7 +73,7 @@ export function AdminTrips() {
         return {
           ...t,
           driver_name: driver?.name || 'Unknown',
-          driver_avatar: driver?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${t.driver_id}`,
+          driver_avatar: resolveAvatar(driver?.avatar, t.driver_id),
         };
       });
 

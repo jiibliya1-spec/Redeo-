@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { resolveAvatar } from '@/lib/utils';
 // motion
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { supabase } from '@/lib/supabase';
@@ -53,7 +54,7 @@ export function AdminMessages() {
         return {
           ...m,
           sender_name: sender?.name || 'Unknown',
-          sender_avatar: sender?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${m.sender_id}`,
+          sender_avatar: resolveAvatar(sender?.avatar, m.sender_id),
           receiver_name: receiver?.name || 'Unknown',
         };
       });

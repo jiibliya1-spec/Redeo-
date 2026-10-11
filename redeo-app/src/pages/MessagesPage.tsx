@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { resolveAvatar } from '@/lib/utils';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useStore } from '@/store/useStore';
@@ -76,7 +77,7 @@ export function MessagesPage() {
     }
 
     const name = contactName || 'User';
-    const avatar = contactAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${contactId}`;
+    const avatar = resolveAvatar(contactAvatar, contactId);
     setContactNames(prev => ({ ...prev, [contactId]: { name, avatar } }));
 
     setConversations(prev => {
@@ -125,7 +126,7 @@ export function MessagesPage() {
           if (profiles) {
             const map: Record<string, { name: string; avatar: string }> = {};
             profiles.forEach((p: any) => {
-              map[p.id] = { name: p.name || 'User', avatar: p.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${p.id}` };
+              map[p.id] = { name: p.name || 'User', avatar: resolveAvatar(p.avatar, p.id) };
             });
             setContactNames(map);
             setConversations(buildConvs(user.id, grouped, map));
@@ -175,7 +176,7 @@ export function MessagesPage() {
           return [{
             user_id: partnerId,
             name: contactNames[partnerId]?.name || 'User',
-            avatar: contactNames[partnerId]?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${partnerId}`,
+            avatar: resolveAvatar(contactNames[partnerId]?.avatar, partnerId),
             last_message: msg.content.startsWith('[Image]') ? '\u{1F4F7} Photo' : msg.content,
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             unread: 1,
@@ -220,7 +221,7 @@ export function MessagesPage() {
     Object.entries(msgs).forEach(([key, list]) => {
       const last = [...list].sort((a, b) => +new Date(a.created_at) - +new Date(b.created_at)).at(-1);
       if (!last) return;
-      const c = names[key] || { name: 'User', avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${key}` };
+      const c = names[key] || { name: 'User', avatar: resolveAvatar(null, key) };
       map[key] = {
         user_id: key, name: c.name, avatar: c.avatar,
         last_message: last.content.startsWith('[Image]') ? '\u{1F4F7} Photo' : last.content,

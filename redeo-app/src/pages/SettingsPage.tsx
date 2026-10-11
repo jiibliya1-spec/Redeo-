@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { resolveAvatar } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useStore } from '@/store/useStore';
@@ -830,7 +831,7 @@ export function SettingsPage() {
         {/* User Summary Card */}
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-gradient-to-r from-[#FF6B00]/10 to-transparent rounded-2xl border border-[#FF6B00]/20 p-5 mb-6 flex items-center gap-4">
           <img
-            src={user.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.id}`}
+            src={resolveAvatar(user.avatar, user.id)}
             alt={user.name}
             className="w-14 h-14 rounded-full object-cover ring-2 ring-[#FF6B00]/30"
           />

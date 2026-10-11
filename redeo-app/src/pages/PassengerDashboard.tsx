@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { resolveAvatar } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useStore } from '@/store/useStore';
@@ -219,7 +220,7 @@ export function PassengerDashboard() {
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-4">
             <img
-              src={user?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(user?.id || 'guest')}`}
+              src={resolveAvatar(user?.avatar, user?.id || 'guest')}
               alt={user?.name}
               className="w-14 h-14 rounded-full object-cover ring-2 ring-[#FF6B00]/30"
             />

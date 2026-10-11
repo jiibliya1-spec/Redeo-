@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { resolveAvatar } from '@/lib/utils';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useStore } from '@/store/useStore';
@@ -88,7 +89,7 @@ export function DriverProfilePage() {
       state: {
         contactId: id,
         contactName: driver?.name || 'Driver',
-        contactAvatar: driver?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${id}`,
+        contactAvatar: resolveAvatar(driver?.avatar, id),
       }
     });
   };
@@ -138,7 +139,7 @@ export function DriverProfilePage() {
           <div className="flex items-center gap-4 mb-5">
             <div className="relative">
               <img
-                src={driver.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${driver.id}`}
+                src={resolveAvatar(driver.avatar, driver.id)}
                 alt={driver.name}
                 className="w-20 h-20 rounded-full object-cover ring-2 ring-[#FF6B00]/30"
               />

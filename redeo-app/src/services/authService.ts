@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { defaultAvatar } from '@/lib/utils';
 import type { User } from '@/types';
 
 /**
@@ -59,7 +60,7 @@ export async function signUp(
         is_verified: false,
         rating: 5.0,
         trips_count: 0,
-        avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(userData.name)}`,
+        avatar: defaultAvatar(authData.user.id),
       },
       { onConflict: 'id' }
     );
@@ -137,7 +138,7 @@ export async function getCurrentUser(): Promise<User | null> {
       name: data.user.user_metadata?.name || data.user.email || 'User',
       email: data.user.email || '',
       phone: data.user.user_metadata?.phone || '',
-      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(data.user.email || '')}`,
+      avatar: defaultAvatar(data.user.id),
       role: data.user.user_metadata?.role || 'passenger',
       is_verified: false,
       rating: 5.0,
@@ -184,7 +185,7 @@ export function onAuthStateChange(
           'User',
         email: session.user.email || '',
         phone: session.user.user_metadata?.phone || '',
-        avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(session.user.email || '')}`,
+        avatar: defaultAvatar(session.user.id),
         role: session.user.user_metadata?.role || 'passenger',
         is_verified: false,
         rating: 5.0,

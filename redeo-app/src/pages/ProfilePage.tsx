@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { resolveAvatar } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useStore } from '@/store/useStore';
@@ -363,7 +364,7 @@ export function ProfilePage() {
                   ) : (
                     <>
                       <img
-                        src={avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(user.id)}`}
+                        src={resolveAvatar(avatarUrl, user.id)}
                         alt={user.name}
                         className="w-20 h-20 rounded-full object-cover ring-2 ring-[#FF6B00]/30"
                       />

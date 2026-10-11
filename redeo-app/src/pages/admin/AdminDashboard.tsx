@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { resolveAvatar } from '@/lib/utils';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { AdminLayout } from '@/components/admin/AdminLayout';
@@ -103,7 +104,7 @@ export function AdminDashboard() {
         is_verified: u.is_verified || false,
         verification_status: u.verification_status || 'unverified',
         created_at: u.created_at,
-        avatar: u.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${u.id}`,
+        avatar: resolveAvatar(u.avatar, u.id),
       })));
 
       // O(1) user lookup with Map
@@ -119,7 +120,7 @@ export function AdminDashboard() {
           created_at: v.created_at,
           user_name: user?.name || 'Unknown',
           user_email: user?.email || '',
-          user_avatar: user?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${v.user_id}`,
+          user_avatar: resolveAvatar(user?.avatar, v.user_id),
         };
       });
       setPendingVerifications(pendingWithUsers);

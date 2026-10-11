@@ -70,7 +70,7 @@ export function MessagesPage() {
     const { contactId, contactName, contactAvatar } = navState;
     if (!contactId || contactId === user.id) {
       if (contactId === user.id) {
-        toast.error('Cannot chat with yourself!');
+        toast.error(t('ui.cannot_chat_with_f0d9'));
       }
       return;
     }
@@ -234,7 +234,7 @@ export function MessagesPage() {
   /* ─── SEND TEXT MESSAGE ─── */
   const handleSend = async () => {
     if (!messageText.trim() || !activeConv || !user?.id) return;
-    if (activeConv === user.id) { toast.error('Cannot message yourself!'); return; }
+    if (activeConv === user.id) { toast.error(t('ui.cannot_message_yourself_2fe6')); return; }
 
     setIsSending(true);
     const text = messageText.trim();
@@ -257,13 +257,13 @@ export function MessagesPage() {
       const result = await res.json();
       data = result[0] || null;
     } catch (err: any) {
-      toast.error('Failed to send: ' + err.message);
+      toast.error(t('ui.failed_to_send_6834') + err.message);
       setIsSending(false);
       return;
     }
 
     if (!data) {
-      toast.error('No response from server');
+      toast.error(t('ui.no_response_from_c363'));
       setIsSending(false);
       return;
     }
@@ -288,7 +288,7 @@ export function MessagesPage() {
   /* ─── SEND IMAGE ─── */
   const handleSendImage = async (dataUrl: string) => {
     if (!activeConv || !user?.id) return;
-    if (activeConv === user.id) { toast.error('Cannot message yourself!'); return; }
+    if (activeConv === user.id) { toast.error(t('ui.cannot_message_yourself_2fe6')); return; }
 
     setIsUploading(true);
 
@@ -305,7 +305,7 @@ export function MessagesPage() {
       if (!res.ok) throw new Error(await res.text());
       const result = await res.json();
       data = result[0] || null;
-    } catch { toast.error('Failed to send image'); setIsUploading(false); return; }
+    } catch { toast.error(t('ui.failed_to_send_d496')); setIsUploading(false); return; }
 
     if (data) {
       setMessages(prev => ({ ...prev, [activeConv]: [...(prev[activeConv] || []), data] }));
@@ -369,7 +369,7 @@ export function MessagesPage() {
                 <div className="p-8 text-center">
                   <User className="w-8 h-8 text-[#A0A0A0] mx-auto mb-2" />
                   <p className="text-sm text-[#A0A0A0]">{t('chat.no_contacts')}</p>
-                  <p className="text-xs text-[#A0A0A0] mt-1">Start a chat from a trip detail page</p>
+                  <p className="text-xs text-[#A0A0A0] mt-1">{t('ui.start_a_chat_9fc5')}</p>
                 </div>
               ) : (
                 conversations.map((conv, i) => (
@@ -411,7 +411,7 @@ export function MessagesPage() {
                   <img src={activeConversation.avatar} alt="" className="w-10 h-10 rounded-full object-cover bg-[#1B1F27]" />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-white truncate">{activeConversation.name}</p>
-                    <p className="text-xs text-green-400">Online</p>
+                    <p className="text-xs text-green-400">{t('ui.online_54f6')}</p>
                   </div>
                 </div>
 
@@ -458,7 +458,7 @@ export function MessagesPage() {
                     <div className="relative inline-block">
                       <img src={previewImage} alt="Preview" className="h-20 rounded-lg" />
                       <button onClick={() => setPreviewImage(null)} className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center"><X className="w-3 h-3 text-white" /></button>
-                      <button onClick={() => handleSendImage(previewImage)} className="absolute -bottom-2 right-0 px-2 py-0.5 bg-[#FF6B00] text-white text-xs rounded-md">Send</button>
+                      <button onClick={() => handleSendImage(previewImage)} className="absolute -bottom-2 right-0 px-2 py-0.5 bg-[#FF6B00] text-white text-xs rounded-md">{t('ui.send_9496')}</button>
                     </div>
                   </div>
                 )}

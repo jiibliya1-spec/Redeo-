@@ -101,7 +101,7 @@ export default function LegalPage() {
           <Link to="/" className="p-2 rounded-xl hover:bg-white/5 transition-colors">
             <ArrowLeft className="w-5 h-5 text-[#A0A0A0]" />
           </Link>
-          <h1 className="text-2xl font-bold text-white">Legal</h1>
+          <h1 className="text-2xl font-bold text-white">{t('footer.legal')}</h1>
         </div>
 
         {/* Tabs */}

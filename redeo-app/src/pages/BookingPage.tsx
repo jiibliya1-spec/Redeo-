@@ -130,9 +130,9 @@ export function BookingPage() {
           <div className="w-16 h-16 rounded-2xl bg-[#FF6B00]/10 flex items-center justify-center mb-2">
             <ArrowLeft className="w-8 h-8 text-[#FF6B00]" />
           </div>
-          <h2 className="text-xl font-bold text-white">Mode conducteur actif</h2>
+          <h2 className="text-xl font-bold text-white">{t('ui.driver_mode_active_bdc4')}</h2>
           <p className="text-[#A0A0A0] text-sm leading-relaxed max-w-xs">
-            En tant que conducteur, vous ne pouvez pas réserver de trajets. Passez en mode passager depuis les Paramètres pour pouvoir réserver.
+            {t('ui.as_a_driver_5d0c')}
           </p>
           <button
             onClick={() => navigate(-1)}

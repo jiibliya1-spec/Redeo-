@@ -193,13 +193,13 @@ export function PublishTripPage() {
 
     // Double-check before publishing
     if (!canPublish) {
-      toast.error('Please complete verification before publishing rides.');
+      toast.error(t('ui.please_complete_verification_fa77'));
       navigate('/verification');
       return;
     }
 
     if (from === to) {
-      toast.error('Departure and arrival must be different');
+      toast.error(t('ui.departure_and_arrival_d020'));
       return;
     }
 
@@ -225,7 +225,7 @@ export function PublishTripPage() {
         throw new Error('Failed to save trip to database');
       }
 
-      toast.success('Trip published!');
+      toast.success(t('ui.trip_published_13be'));
       setFrom(''); setTo(''); setDate(''); setTime(''); setPrice(''); setSeats('3'); setDistance(''); setDuration('');
     } catch (err: any) {
       toast.error(err.message || 'Failed to publish');
@@ -239,7 +239,7 @@ export function PublishTripPage() {
       <div className="min-h-screen bg-[#0F1115] pt-20 pb-24 flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="w-8 h-8 text-[#FF6B00] animate-spin mx-auto mb-4" />
-          <p className="text-[#A0A0A0]">Checking verification status...</p>
+          <p className="text-[#A0A0A0]">{t('ui.checking_verification_status_4319')}</p>
         </div>
       </div>
     );
@@ -255,8 +255,8 @@ export function PublishTripPage() {
               <ArrowLeft className="w-5 h-5 text-[#A0A0A0]" />
             </button>
             <div>
-              <h1 className="text-2xl font-bold text-white" dir={dir}>Offer a ride</h1>
-              <p className="text-sm text-[#A0A0A0]">Share your journey and save money</p>
+              <h1 className="text-2xl font-bold text-white" dir={dir}>{t('ui.offer_a_ride_de07')}</h1>
+              <p className="text-sm text-[#A0A0A0]">{t('ui.share_your_journey_6220')}</p>
             </div>
           </div>
 
@@ -343,8 +343,8 @@ export function PublishTripPage() {
             <ArrowLeft className="w-5 h-5 text-[#A0A0A0]" />
           </button>
           <div>
-            <h1 className="text-2xl font-bold text-white" dir={dir}>Offer a ride</h1>
-            <p className="text-sm text-[#A0A0A0]">Share your journey and save money</p>
+            <h1 className="text-2xl font-bold text-white" dir={dir}>{t('ui.offer_a_ride_de07')}</h1>
+            <p className="text-sm text-[#A0A0A0]">{t('ui.share_your_journey_6220')}</p>
           </div>
           {/* Verified Badge */}
           <div className="ml-auto">
@@ -423,8 +423,8 @@ export function PublishTripPage() {
                   <div className="grid grid-cols-3 gap-2">
                     {[
                       { label: 'Économique', value: priceSuggestion.min, color: 'text-blue-400' },
-                      { label: 'Recommandé', value: priceSuggestion.suggested, color: 'text-[#FF6B00]' },
-                      { label: 'Confortable', value: priceSuggestion.max, color: 'text-green-400' },
+                      { label: t('ui.recommended_6548'), value: priceSuggestion.suggested, color: 'text-[#FF6B00]' },
+                      { label: t('ui.comfortable_2416'), value: priceSuggestion.max, color: 'text-green-400' },
                     ].map((opt) => (
                       <button
                         key={opt.label}
@@ -458,7 +458,7 @@ export function PublishTripPage() {
 
             {/* Publish Button */}
             <Button type="submit" disabled={isPublishing} className="w-full bg-[#FF6B00] text-white hover:bg-[#E56000] rounded-xl h-13 text-base font-semibold disabled:opacity-50 mt-2 shadow-lg shadow-[#FF6B00]/20">
-              {isPublishing ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Plus className="w-5 h-5 mr-2" /> Publish Ride</>}
+              {isPublishing ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Plus className="w-5 h-5 mr-2" /> {t('ui.publish_ride_4d05')}</>}
             </Button>
 
             <p className="text-center text-xs text-[#A0A0A0] mt-2">
@@ -470,7 +470,7 @@ export function PublishTripPage() {
         {/* Recent Published */}
         {recentTrips.length > 0 && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="mt-8">
-            <h2 className="text-lg font-bold text-white mb-4">Recently Published</h2>
+            <h2 className="text-lg font-bold text-white mb-4">{t('ui.recently_published_b30b')}</h2>
             <div className="space-y-3">
               {recentTrips.map((trip, idx) => (
                 <motion.div

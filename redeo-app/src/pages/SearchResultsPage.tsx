@@ -47,7 +47,7 @@ function TripCard({ trip, index }: { trip: Trip; index: number }) {
             <div className="flex items-center gap-2">
               <p className="text-sm font-medium text-white">{driver?.name || 'Driver'}</p>
               {driver?.is_verified && (
-                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-green-500/10 text-green-400 font-medium">Verified</span>
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-green-500/10 text-green-400 font-medium">{t('ui.verified_3f68')}</span>
               )}
             </div>
             <div className="flex items-center gap-1">

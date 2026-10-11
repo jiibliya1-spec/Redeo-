@@ -54,7 +54,7 @@ interface ScreenshotFile {
 export function ContactSupportPage() {
   const navigate = useNavigate();
   const { user } = useStore();
-  const { lang, dir } = useI18n();
+  const { lang, dir, t } = useI18n();
 
   /* ─── Form state ─── */
   const [name, setName] = useState(user?.name || '');
@@ -221,7 +221,7 @@ export function ContactSupportPage() {
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.size > 5 * 1024 * 1024) {
-      toast.error('File too large (max 5MB)');
+      toast.error(t('ui.file_too_large_02d6'));
       return;
     }
     const reader = new FileReader();
@@ -535,7 +535,7 @@ export function ContactSupportPage() {
                 className="w-full flex items-center justify-center gap-2 p-4 rounded-xl border border-dashed border-white/10 hover:border-[#FF6B00]/30 hover:bg-[#FF6B00]/5 transition-all"
               >
                 <Paperclip className="w-4 h-4 text-[#A0A0A0]" />
-                <span className="text-sm text-[#A0A0A0]">Click to attach a screenshot</span>
+                <span className="text-sm text-[#A0A0A0]">{t('ui.click_to_attach_2099')}</span>
               </button>
             ) : (
               <div className="relative rounded-xl overflow-hidden border border-white/10">
@@ -557,7 +557,7 @@ export function ContactSupportPage() {
           {/* Spam protection indicator */}
           <div className="flex items-center gap-2 text-[10px] text-[#A0A0A0]/40">
             <Shield className="w-3 h-3" />
-            <span>Protected by spam detection</span>
+            <span>{t('ui.protected_by_spam_d5b6')}</span>
           </div>
 
           {/* Submit Button */}

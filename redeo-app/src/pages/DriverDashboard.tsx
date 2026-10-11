@@ -358,7 +358,7 @@ export function DriverDashboard() {
         }),
       }).catch(() => {});
 
-      toast.success('Booking accepted! Passenger has been notified.');
+      toast.success(t('ui.booking_accepted_passenger_0b1a'));
       setBookingRequests(prev => prev.filter(b => b.id !== booking.id));
     } catch (e: any) {
       toast.error(e.message || 'Failed to accept booking');
@@ -400,7 +400,7 @@ export function DriverDashboard() {
         }),
       }).catch(() => {});
 
-      toast.success('Booking declined. Passenger has been notified.');
+      toast.success(t('ui.booking_declined_passenger_1692'));
       setBookingRequests(prev => prev.filter(b => b.id !== booking.id));
     } catch (e: any) {
       toast.error(e.message || 'Failed to decline booking');
@@ -472,11 +472,11 @@ export function DriverDashboard() {
     }
 
     if (from === to) {
-      toast.error('Departure and arrival must be different');
+      toast.error(t('ui.departure_and_arrival_d020'));
       return;
     }
     if (!vehicles.length) {
-      toast.error('Please add a vehicle first');
+      toast.error(t('ui.please_add_a_8536'));
       return;
     }
 
@@ -511,7 +511,7 @@ export function DriverDashboard() {
       setTrips(prev => [...prev, newTrip]);
       setTotalTrips(prev => prev + 1);
 
-      toast.success('Trip published successfully!');
+      toast.success(t('ui.trip_published_successfully_835e'));
       setShowPublish(false);
       setFrom(''); setTo(''); setDate(''); setTime(''); setPrice(''); setSeats('3'); setDistance(''); setDuration('');
     } catch (err: any) {
@@ -524,7 +524,7 @@ export function DriverDashboard() {
     const updated = [...vehicles, v];
     setVehicles(updated);
     localStorage.setItem(`wansniauto_vehicles_${user?.id || 'guest'}`, JSON.stringify(updated));
-    toast.success('Vehicle added!');
+    toast.success(t('ui.vehicle_added_418e'));
   };
 
   const handleRemoveVehicle = (id: string) => {
@@ -699,7 +699,7 @@ export function DriverDashboard() {
             { key: 'upcoming' as const, label: t('passenger.upcoming') },
             { key: 'requests' as const, label: `Requests${bookingRequests.length > 0 ? ` (${bookingRequests.length})` : ''}` },
             { key: 'past' as const, label: t('passenger.past') },
-            { key: 'vehicles' as const, label: 'Vehicles' },
+            { key: 'vehicles' as const, label: t('ui.vehicles_8346') },
           ]).map(tab => (
             <button
               key={tab.key}
@@ -735,7 +735,7 @@ export function DriverDashboard() {
                 <div className="p-8 text-center">
                   <Car className="w-12 h-12 text-[#A0A0A0] mx-auto mb-3" />
                   <p className="text-sm text-[#A0A0A0] mb-2">{t('driver.no_trips')}</p>
-                  <p className="text-xs text-[#A0A0A0]">Start earning by publishing your first trip!</p>
+                  <p className="text-xs text-[#A0A0A0]">{t('ui.start_earning_by_d08a')}</p>
                   <Button onClick={() => {
                     const isVerified = user?.is_verified || user?.verification_status === 'verified' || user?.verification_status === 'approved';
                     if (!isVerified) { setShowVerifyAlert(true); return; }
@@ -775,7 +775,7 @@ export function DriverDashboard() {
           {activeTab === 'requests' && (
             <div>
               <div className="p-5 border-b border-white/5 flex items-center justify-between">
-                <h3 className="text-xs font-medium text-[#A0A0A0] uppercase tracking-wider">Booking Requests</h3>
+                <h3 className="text-xs font-medium text-[#A0A0A0] uppercase tracking-wider">{t('ui.booking_requests_b500')}</h3>
                 <button onClick={loadBookingRequests} className="text-xs text-[#FF6B00] hover:underline flex items-center gap-1">
                   {loadingRequests ? <Loader2 className="w-3 h-3 animate-spin" /> : null} Refresh
                 </button>
@@ -784,13 +784,13 @@ export function DriverDashboard() {
               {loadingRequests ? (
                 <div className="p-8 text-center">
                   <Loader2 className="w-6 h-6 animate-spin text-[#FF6B00] mx-auto" />
-                  <p className="text-sm text-[#A0A0A0] mt-2">Loading requests...</p>
+                  <p className="text-sm text-[#A0A0A0] mt-2">{t('ui.loading_requests_810c')}</p>
                 </div>
               ) : bookingRequests.length === 0 ? (
                 <div className="p-8 text-center">
                   <Inbox className="w-12 h-12 text-[#A0A0A0] mx-auto mb-3" />
-                  <p className="text-sm text-[#A0A0A0]">No pending booking requests</p>
-                  <p className="text-xs text-[#A0A0A0] mt-1">Requests from passengers will appear here</p>
+                  <p className="text-sm text-[#A0A0A0]">{t('ui.no_pending_booking_6295')}</p>
+                  <p className="text-xs text-[#A0A0A0] mt-1">{t('ui.requests_from_passengers_c660')}</p>
                 </div>
               ) : (
                 <div className="divide-y divide-white/5">
@@ -833,7 +833,7 @@ export function DriverDashboard() {
                             <div className="flex items-center gap-2">
                               <p className="text-sm font-semibold text-white">{p?.name || 'Passenger'}</p>
                               {p?.is_verified && (
-                                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-green-500/10 text-green-400">Verified</span>
+                                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-green-500/10 text-green-400">{t('ui.verified_3f68')}</span>
                               )}
                             </div>
                             <div className="flex items-center gap-1 mt-0.5">
@@ -858,7 +858,7 @@ export function DriverDashboard() {
                             className="flex-1 bg-green-500/10 hover:bg-green-500/20 text-green-400 border border-green-500/20 rounded-xl h-10 text-sm font-medium"
                             variant="outline"
                           >
-                            {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Check className="w-4 h-4 mr-1.5" />Accept</>}
+                            {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Check className="w-4 h-4 mr-1.5" />{t('ui.accept_c440')}</>}
                           </Button>
                           <Button
                             onClick={() => handleRejectBooking(booking)}
@@ -866,7 +866,7 @@ export function DriverDashboard() {
                             className="flex-1 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-xl h-10 text-sm font-medium"
                             variant="outline"
                           >
-                            {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <><X className="w-4 h-4 mr-1.5" />Decline</>}
+                            {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <><X className="w-4 h-4 mr-1.5" />{t('ui.decline_0d36')}</>}
                           </Button>
                         </div>
                       </motion.div>

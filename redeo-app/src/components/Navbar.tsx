@@ -97,7 +97,7 @@ export function Navbar() {
                 <button
                   onClick={() => navigate('/notifications')}
                   className="relative p-2.5 rounded-xl hover:bg-white/5 transition-colors"
-                  title="Notifications"
+                  title={t('nav.notifications')}
                 >
                   <Bell className="w-5 h-5 text-[#A0A0A0]" />
                   {unreadCount > 0 && (

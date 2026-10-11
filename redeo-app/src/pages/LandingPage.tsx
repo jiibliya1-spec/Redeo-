@@ -26,10 +26,10 @@ const POPULAR_ROUTES = [
 ];
 
 const STATS = [
-  { label: 'Active Users', value: '1M+' },
-  { label: 'Trips Completed', value: '500K+' },
-  { label: 'Cities Connected', value: '13' },
-  { label: 'CO2 Saved', value: '2.5K tons' },
+  { label: 'stats.users', value: '1M+' },
+  { label: 'stats.trips', value: '500K+' },
+  { label: 'stats.cities', value: '13' },
+  { label: 'stats.co2', value: '2.5K tons' },
 ];
 
 const TESTIMONIALS = [
@@ -183,7 +183,7 @@ export function LandingPage() {
               <FadeUp key={s.label} delay={i * 0.1}>
                 <div className="bg-[#1B1F27] border border-white/5 rounded-2xl p-6 text-center card-hover">
                   <p className="text-3xl font-bold text-[#FF6B00]">{s.value}</p>
-                  <p className="text-sm text-[#A0A0A0] mt-1">{s.label}</p>
+                  <p className="text-sm text-[#A0A0A0] mt-1">{t(s.label)}</p>
                 </div>
               </FadeUp>
             ))}
@@ -346,40 +346,40 @@ export function LandingPage() {
 
             {/* Company */}
             <div>
-              <h4 className="text-sm font-semibold text-white mb-3">Company</h4>
+              <h4 className="text-sm font-semibold text-white mb-3">{t('footer.company')}</h4>
               <div className="space-y-2">
-                <Link to="/about" className="block text-sm text-[#A0A0A0] hover:text-[#FF6B00] transition-colors">About Us</Link>
-                <Link to="/how-it-works" className="block text-sm text-[#A0A0A0] hover:text-[#FF6B00] transition-colors">How it Works</Link>
-                <Link to="/careers" className="block text-sm text-[#A0A0A0] hover:text-[#FF6B00] transition-colors">Careers</Link>
+                <Link to="/about" className="block text-sm text-[#A0A0A0] hover:text-[#FF6B00] transition-colors">{t('footer.about')}</Link>
+                <Link to="/how-it-works" className="block text-sm text-[#A0A0A0] hover:text-[#FF6B00] transition-colors">{t('footer.how_it_works')}</Link>
+                <Link to="/careers" className="block text-sm text-[#A0A0A0] hover:text-[#FF6B00] transition-colors">{t('footer.careers')}</Link>
                 <a href="https://instagram.com/wansniauto" target="_blank" rel="noopener noreferrer" className="block text-sm text-[#A0A0A0] hover:text-[#FF6B00] transition-colors">Instagram</a>
               </div>
             </div>
 
             {/* Support */}
             <div>
-              <h4 className="text-sm font-semibold text-white mb-3">Support</h4>
+              <h4 className="text-sm font-semibold text-white mb-3">{t('footer.support')}</h4>
               <div className="space-y-2">
-                <Link to="/support" className="block text-sm text-[#A0A0A0] hover:text-[#FF6B00] transition-colors">Help Center</Link>
-                <Link to="/contact" className="block text-sm text-[#A0A0A0] hover:text-[#FF6B00] transition-colors">Contact Us</Link>
-                <Link to="/safety" className="block text-sm text-[#A0A0A0] hover:text-[#FF6B00] transition-colors">Safety</Link>
-                <Link to="/faq" className="block text-sm text-[#A0A0A0] hover:text-[#FF6B00] transition-colors">FAQs</Link>
+                <Link to="/support" className="block text-sm text-[#A0A0A0] hover:text-[#FF6B00] transition-colors">{t('footer.help')}</Link>
+                <Link to="/contact" className="block text-sm text-[#A0A0A0] hover:text-[#FF6B00] transition-colors">{t('footer.contact')}</Link>
+                <Link to="/safety" className="block text-sm text-[#A0A0A0] hover:text-[#FF6B00] transition-colors">{t('footer.safety')}</Link>
+                <Link to="/faq" className="block text-sm text-[#A0A0A0] hover:text-[#FF6B00] transition-colors">{t('footer.faq')}</Link>
               </div>
             </div>
 
             {/* Legal */}
             <div>
-              <h4 className="text-sm font-semibold text-white mb-3">Legal</h4>
+              <h4 className="text-sm font-semibold text-white mb-3">{t('footer.legal')}</h4>
               <div className="space-y-2">
-                <Link to="/terms" className="block text-sm text-[#A0A0A0] hover:text-[#FF6B00] transition-colors">Terms & Conditions</Link>
-                <Link to="/privacy" className="block text-sm text-[#A0A0A0] hover:text-[#FF6B00] transition-colors">Privacy Policy</Link>
-                <Link to="/cookies" className="block text-sm text-[#A0A0A0] hover:text-[#FF6B00] transition-colors">Cookie Policy</Link>
-                <Link to="/driver-agreement" className="block text-sm text-[#A0A0A0] hover:text-[#FF6B00] transition-colors">Driver Agreement</Link>
+                <Link to="/terms" className="block text-sm text-[#A0A0A0] hover:text-[#FF6B00] transition-colors">{t('footer.terms')}</Link>
+                <Link to="/privacy" className="block text-sm text-[#A0A0A0] hover:text-[#FF6B00] transition-colors">{t('footer.privacy')}</Link>
+                <Link to="/cookies" className="block text-sm text-[#A0A0A0] hover:text-[#FF6B00] transition-colors">{t('footer.cookies')}</Link>
+                <Link to="/driver-agreement" className="block text-sm text-[#A0A0A0] hover:text-[#FF6B00] transition-colors">{t('footer.driver_agreement')}</Link>
               </div>
             </div>
           </div>
 
           <div className="border-t border-white/5 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
-            <p className="text-sm text-[#A0A0A0]">&copy; 2025 WansniAuto. All rights reserved.</p>
+            <p className="text-sm text-[#A0A0A0]">{t('ui.2025_wansniauto_all_6607')}</p>
             <div className="flex items-center gap-4">
               <button onClick={() => setLang('en')} className={`text-sm transition-colors ${lang === 'en' ? 'text-[#FF6B00] font-bold' : 'text-[#A0A0A0] hover:text-[#FF6B00]'}`}>EN</button>
               <button onClick={() => setLang('fr')} className={`text-sm transition-colors ${lang === 'fr' ? 'text-[#FF6B00] font-bold' : 'text-[#A0A0A0] hover:text-[#FF6B00]'}`}>FR</button>

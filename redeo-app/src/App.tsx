@@ -132,6 +132,13 @@ function AppContent() {
   const { isAuthenticated, user, isLoading, initAuth, refreshProfile, setUser, mode } = useStore();
   const [showSplash, setShowSplash] = useState(true);
   const navigate = useNavigate();
+  const language = useStore((s) => s.language);
+
+  // Apply the chosen language to the whole document (text direction + lang attribute)
+  useEffect(() => {
+    document.documentElement.lang = language;
+    document.documentElement.dir = language === 'ar' ? 'rtl' : 'ltr';
+  }, [language]);
 
   useEffect(() => {
     const boot = async () => {

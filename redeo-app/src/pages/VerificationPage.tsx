@@ -79,7 +79,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 
   export default function VerificationPage() {
     const { user, setUser } = useStore();
-    const { lang } = useI18n();
+    const { lang, t } = useI18n();
     const [steps, setSteps] = useState<DocStep[]>([...ALL_DOCS]);
     const [submitting, setSubmitting] = useState(false);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -255,7 +255,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
         delete allAnalyses.current[docId];
         setSteps((prev) => prev.map((s) => s.id === docId ? { ...s, status: 'not_uploaded' as const, url: undefined, filePath: undefined, errorMsg: undefined, analysis: undefined } : s));
         toast.success(lang === 'ar' ? 'تم حذف الوثيقة' : 'Document removed');
-      } catch (e: any) { toast.error('Failed: ' + e.message); }
+      } catch (e: any) { toast.error(t('ui.failed_6a7d') + e.message); }
     };
 
     /* ─── Submit for Review ─── */
@@ -276,7 +276,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
         const currentUser = useStore.getState().user;
         if (currentUser) setUser({ ...currentUser, verification_status: 'submitted', is_verified: false });
         toast.success(lang === 'ar' ? '📤 تم إرسال الوثائق للمراجعة!' : lang === 'fr' ? '📤 Documents soumis!' : '📤 Documents submitted for review!');
-      } catch (err: any) { toast.error('Submit failed: ' + err.message); }
+      } catch (err: any) { toast.error(t('ui.submit_failed_7fba') + err.message); }
       setSubmitting(false);
     };
 

@@ -227,14 +227,14 @@ export function ProfilePage() {
         await apiPatch('profiles', 'id', user.id, { avatar: url });
       } catch { /* silent */ }
       setUser({ ...user, avatar: url });
-      toast.success('Avatar uploaded!');
+      toast.success(t('ui.avatar_uploaded_e37f'));
     } catch {
       const reader = new FileReader();
       reader.onload = (e) => {
         const dataUrl = e.target?.result as string;
         setAvatarUrl(dataUrl);
         setUser({ ...user!, avatar: dataUrl });
-        toast.success('Avatar saved locally!');
+        toast.success(t('ui.avatar_saved_locally_9e55'));
       };
       reader.readAsDataURL(file);
     } finally {
@@ -262,14 +262,14 @@ export function ProfilePage() {
     const updates = { name, bio, phone, avatar: avatarUrl };
     try {
       await apiPatch('profiles', 'id', user.id, updates);
-      toast.success('Profile saved!');
+      toast.success(t('ui.profile_saved_4b15'));
     } catch {
       try {
         const stored = localStorage.getItem('wansniauto_profile_data');
         const existing = stored ? JSON.parse(stored) : {};
         localStorage.setItem('wansniauto_profile_data', JSON.stringify({ ...existing, ...updates }));
       } catch { /* silent */ }
-      toast.success('Profile saved locally');
+      toast.success(t('ui.profile_saved_locally_7702'));
     }
     setUser({ ...user, ...updates });
     setIsEditing(false);
@@ -332,15 +332,15 @@ export function ProfilePage() {
   // ─── (debug removed) ───
 
   const menuItems = profileRole === 'admin' ? [
-    { icon: Shield, label: 'Admin Panel', desc: 'Manage platform', action: () => navigate('/admin') },
-    { icon: Users, label: 'Users', desc: 'View all users', action: () => navigate('/admin/users') },
-    { icon: Shield, label: 'Verifications', desc: 'Review driver docs', action: () => navigate('/admin/verifications') },
-    { icon: Car, label: 'All Trips', desc: 'Manage trips', action: () => navigate('/admin/trips') },
+    { icon: Shield, label: t('admin.panel'), desc: t('ui.manage_platform_0809'), action: () => navigate('/admin') },
+    { icon: Users, label: t('admin.users'), desc: t('ui.view_all_users_23d6'), action: () => navigate('/admin/users') },
+    { icon: Shield, label: t('admin.verifications'), desc: t('ui.review_driver_docs_e9c7'), action: () => navigate('/admin/verifications') },
+    { icon: Car, label: t('ui.all_trips_50cd'), desc: t('ui.manage_trips_aee7'), action: () => navigate('/admin/trips') },
   ] : [
     { icon: Shield, label: t('verify.title'), desc: t('verify.subtitle'), action: () => navigate('/verification') },
     { icon: Car, label: t('passenger.title'), desc: t('passenger.title'), action: () => navigate('/dashboard') },
     { icon: Star, label: t('profile.my_reviews'), desc: t('profile.my_reviews'), action: () => toast.info(t('common.favorite_routes')) },
-    { icon: Settings, label: 'Settings', desc: 'Account & preferences', action: () => navigate('/settings') },
+    { icon: Settings, label: t('nav.settings'), desc: t('ui.account_preferences_e8f6'), action: () => navigate('/settings') },
   ];
 
   return (
@@ -380,12 +380,12 @@ export function ProfilePage() {
                     <button onClick={() => { galleryInputRef.current?.click(); setShowUploadMenu(false); }}
                       className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition-colors text-left">
                       <Upload className="w-4 h-4 text-[#FF6B00]" />
-                      <span className="text-sm text-white">Gallery</span>
+                      <span className="text-sm text-white">{t('ui.gallery_5c93')}</span>
                     </button>
                     <button onClick={() => { cameraInputRef.current?.click(); setShowUploadMenu(false); }}
                       className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition-colors text-left border-t border-white/5">
                       <Camera className="w-4 h-4 text-[#FF6B00]" />
-                      <span className="text-sm text-white">Camera</span>
+                      <span className="text-sm text-white">{t('ui.camera_967d')}</span>
                     </button>
                   </motion.div>
                 )}
@@ -414,7 +414,7 @@ export function ProfilePage() {
                     onClick={fetchFreshProfile}
                     disabled={isRefreshing}
                     className="p-1 rounded-lg hover:bg-white/5 transition-colors"
-                    title="Refresh status"
+                    title={t('ui.refresh_status_2700')}
                   >
                     <RefreshCw className={`w-3 h-3 text-[#A0A0A0] ${isRefreshing ? 'animate-spin' : ''}`} />
                   </button>

@@ -30,11 +30,11 @@ export function RegisterPage() {
 
     if (step === 1) {
       if (!name.trim() || !email.trim() || !phone.trim() || !password.trim()) {
-        toast.error('Please fill in all fields.');
+        toast.error(t('ui.please_fill_in_18f5'));
         return;
       }
       if (password.length < 6) {
-        toast.error('Password must be at least 6 characters.');
+        toast.error(t('ui.password_must_be_d2a8'));
         return;
       }
       setStep(2);
@@ -42,7 +42,7 @@ export function RegisterPage() {
     }
 
     if (!agreed) {
-      toast.error('Please agree to the terms.');
+      toast.error(t('ui.please_agree_to_bc88'));
       return;
     }
 
@@ -55,7 +55,7 @@ export function RegisterPage() {
         setStep(3);
       } else {
         // Auto-confirmed — go to dashboard directly
-        toast.success('Account created! Welcome to WansniAuto.');
+        toast.success(t('ui.account_created_welcome_a49a'));
         if (role === 'driver') navigate('/driver');
         else navigate('/dashboard');
       }
@@ -74,9 +74,9 @@ export function RegisterPage() {
       options: { emailRedirectTo: window.location.origin + '/dashboard' },
     });
     if (error) {
-      toast.error('Failed to resend: ' + error.message);
+      toast.error(t('ui.failed_to_resend_9329') + error.message);
     } else {
-      toast.success('Confirmation email resent!');
+      toast.success(t('ui.confirmation_email_resent_5633'));
     }
     setResending(false);
   };
@@ -154,7 +154,7 @@ export function RegisterPage() {
                 <Mail className="w-12 h-12 text-[#FF6B00]" />
               </motion.div>
 
-              <h2 className="text-2xl font-bold text-white mb-2">Check your inbox</h2>
+              <h2 className="text-2xl font-bold text-white mb-2">{t('ui.check_your_inbox_a11e')}</h2>
               <p className="text-[#A0A0A0] text-sm mb-1">We sent a confirmation link to:</p>
               <p className="text-white font-semibold mb-6 text-base">{email}</p>
 
@@ -181,7 +181,7 @@ export function RegisterPage() {
               >
                 {resending
                   ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Sending…</>
-                  : <><RefreshCw className="w-4 h-4 mr-2" />Resend confirmation email</>
+                  : <><RefreshCw className="w-4 h-4 mr-2" />{t('ui.resend_confirmation_email_c2e8')}</>
                 }
               </Button>
 
@@ -243,7 +243,7 @@ export function RegisterPage() {
 
                   <div>
                     <Label className="text-sm text-[#A0A0A0] mb-2 block">{t('auth.name')}</Label>
-                    <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" className="bg-[#1B1F27] border-white/10 text-white placeholder:text-[#A0A0A0]/40 h-12 rounded-xl" required />
+                    <Input value={name} onChange={(e) => setName(e.target.value)} placeholder={t('ui.your_name_221e')} className="bg-[#1B1F27] border-white/10 text-white placeholder:text-[#A0A0A0]/40 h-12 rounded-xl" required />
                   </div>
                   <div>
                     <Label className="text-sm text-[#A0A0A0] mb-2 block">{t('auth.email')}</Label>
@@ -260,7 +260,7 @@ export function RegisterPage() {
                         type={showPassword ? 'text' : 'password'}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        placeholder="Min 6 characters"
+                        placeholder={t('ui.min_6_characters_9c51')}
                         className="bg-[#1B1F27] border-white/10 text-white placeholder:text-[#A0A0A0]/40 h-12 rounded-xl pr-10"
                         required minLength={6}
                       />

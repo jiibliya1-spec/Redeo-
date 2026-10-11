@@ -255,18 +255,18 @@ export function SettingsPage() {
   /* ─── Change Password ─── */
   const handleChangePassword = async () => {
     if (!newPassword || newPassword.length < 6) {
-      toast.error('Password must be at least 6 characters');
+      toast.error(t('ui.password_must_be_82c7'));
       return;
     }
     if (newPassword !== confirmPassword) {
-      toast.error('Passwords do not match');
+      toast.error(t('ui.passwords_do_not_867c'));
       return;
     }
     setLoadingSections(prev => ({ ...prev, password: true }));
     try {
       const { error } = await supabase.auth.updateUser({ password: newPassword });
       if (error) throw error;
-      toast.success('Password updated successfully!');
+      toast.success(t('ui.password_updated_successfully_18eb'));
       setNewPassword('');
       setConfirmPassword('');
       setActiveDrawer(null);
@@ -278,7 +278,7 @@ export function SettingsPage() {
 
   /* ─── Save Passenger ─── */
   const handleSavePassenger = () => {
-    if (!newPassengerName.trim()) { toast.error('Name is required'); return; }
+    if (!newPassengerName.trim()) { toast.error(t('ui.name_is_required_ff0f')); return; }
     const newP: SavedPassenger = {
       id: `sp-${Date.now()}`,
       name: newPassengerName.trim(),
@@ -292,7 +292,7 @@ export function SettingsPage() {
     }
     setNewPassengerName('');
     setNewPassengerPhone('');
-    toast.success('Passenger saved!');
+    toast.success(t('ui.passenger_saved_e4b2'));
   };
 
   const handleDeletePassenger = (id: string) => {
@@ -301,7 +301,7 @@ export function SettingsPage() {
     if (user?.id) {
       localStorage.setItem(`wansniauto_saved_passengers_${user.id}`, JSON.stringify(updated));
     }
-    toast.success('Passenger removed');
+    toast.success(t('ui.passenger_removed_3e7e'));
   };
 
   /* ─── Save Address ─── */
@@ -309,7 +309,7 @@ export function SettingsPage() {
     if (user?.id) {
       localStorage.setItem(`wansniauto_address_${user.id}`, JSON.stringify(address));
     }
-    toast.success('Address saved!');
+    toast.success(t('ui.address_saved_2b51'));
   };
 
   /* ─── Save Comm Prefs ─── */
@@ -317,13 +317,13 @@ export function SettingsPage() {
     if (user?.id) {
       localStorage.setItem(`wansniauto_comm_prefs_${user.id}`, JSON.stringify(commPrefs));
     }
-    toast.success('Preferences saved!');
+    toast.success(t('ui.preferences_saved_1b99'));
   };
 
   /* ─── Add Payment Method ─── */
   const handleAddCard = () => {
-    if (!newCardNumber || newCardNumber.length < 16) { toast.error('Valid card number required'); return; }
-    if (!newCardExpiry || !newCardCVV) { toast.error('Expiry and CVV required'); return; }
+    if (!newCardNumber || newCardNumber.length < 16) { toast.error(t('ui.valid_card_number_5e85')); return; }
+    if (!newCardExpiry || !newCardCVV) { toast.error(t('ui.expiry_and_cvv_42d3')); return; }
 
     const newMethod: PaymentMethod = {
       id: `card-${Date.now()}`,
@@ -342,7 +342,7 @@ export function SettingsPage() {
     setNewCardExpiry('');
     setNewCardCVV('');
     setNewCardLabel('');
-    toast.success('Card added!');
+    toast.success(t('ui.card_added_1f31'));
   };
 
   const handleSetDefaultPayment = (id: string) => {
@@ -359,12 +359,12 @@ export function SettingsPage() {
     if (user?.id) {
       localStorage.setItem(`wansniauto_payment_methods_${user.id}`, JSON.stringify(updated));
     }
-    toast.success('Payment method removed');
+    toast.success(t('ui.payment_method_removed_7132'));
   };
 
   /* ─── Rate App ─── */
   const handleRateApp = () => {
-    if (userRating === 0) { toast.error('Please select a rating'); return; }
+    if (userRating === 0) { toast.error(t('ui.please_select_a_39b3')); return; }
     const ratings = JSON.parse(localStorage.getItem('wansniauto_app_ratings') || '[]');
     ratings.push({ user_id: user?.id, rating: userRating, comment: ratingComment, date: new Date().toISOString() });
     localStorage.setItem('wansniauto_app_ratings', JSON.stringify(ratings));
@@ -377,7 +377,7 @@ export function SettingsPage() {
   /* ─── Delete Account ─── */
   const handleDeleteAccount = async () => {
     if (deleteConfirmText !== 'DELETE') {
-      toast.error('Please type DELETE to confirm');
+      toast.error(t('ui.please_type_delete_e3e3'));
       return;
     }
     setLoadingSections(prev => ({ ...prev, delete: true }));
@@ -388,10 +388,10 @@ export function SettingsPage() {
 
       // Sign out
       await signOut();
-      toast.success('Your account has been deleted.');
+      toast.success(t('ui.your_account_has_cdac'));
       navigate('/');
     } catch (e) {
-      toast.error('Failed to delete account. Please contact support.');
+      toast.error(t('ui.failed_to_delete_b942'));
     }
     setLoadingSections(prev => ({ ...prev, delete: false }));
   };
@@ -399,7 +399,7 @@ export function SettingsPage() {
   /* ─── Logout ─── */
   const handleLogout = async () => {
     await signOut();
-    toast.success('Logged out successfully');
+    toast.success(t('ui.logged_out_successfully_f780'));
     navigate('/');
   };
 
@@ -441,7 +441,7 @@ export function SettingsPage() {
             ) : reviews.length === 0 ? (
               <div className="text-center py-10">
                 <Star className="w-12 h-12 text-[#A0A0A0]/30 mx-auto mb-3" />
-                <p className="text-[#A0A0A0]">No reviews yet</p>
+                <p className="text-[#A0A0A0]">{t('ui.no_reviews_yet_bc6e')}</p>
               </div>
             ) : (
               reviews.map((r: any) => (
@@ -467,9 +467,9 @@ export function SettingsPage() {
           <div className="space-y-4">
             {/* Add new */}
             <div className="bg-[#1B1F27] rounded-xl p-4 border border-white/5 space-y-3">
-              <h3 className="text-sm font-medium text-white">Add Passenger</h3>
-              <Input value={newPassengerName} onChange={e => setNewPassengerName(e.target.value)} placeholder="Full name" className="bg-[#0F1115] border-white/10 text-white rounded-xl" />
-              <Input value={newPassengerPhone} onChange={e => setNewPassengerPhone(e.target.value)} placeholder="Phone number" className="bg-[#0F1115] border-white/10 text-white rounded-xl" />
+              <h3 className="text-sm font-medium text-white">{t('ui.add_passenger_f2d7')}</h3>
+              <Input value={newPassengerName} onChange={e => setNewPassengerName(e.target.value)} placeholder={t('ui.full_name_f11b')} className="bg-[#0F1115] border-white/10 text-white rounded-xl" />
+              <Input value={newPassengerPhone} onChange={e => setNewPassengerPhone(e.target.value)} placeholder={t('ui.phone_number_1f82')} className="bg-[#0F1115] border-white/10 text-white rounded-xl" />
               <Button onClick={handleSavePassenger} className="w-full bg-[#FF6B00] hover:bg-[#E56000] text-white rounded-xl">
                 <Heart className="w-4 h-4 mr-2" /> Save Passenger
               </Button>
@@ -478,7 +478,7 @@ export function SettingsPage() {
             {savedPassengers.length === 0 ? (
               <div className="text-center py-8">
                 <Users className="w-10 h-10 text-[#A0A0A0]/30 mx-auto mb-2" />
-                <p className="text-[#A0A0A0] text-sm">No saved passengers</p>
+                <p className="text-[#A0A0A0] text-sm">{t('ui.no_saved_passengers_b3ac')}</p>
               </div>
             ) : (
               savedPassengers.map(p => (
@@ -506,10 +506,10 @@ export function SettingsPage() {
         return (
           <div className="space-y-4">
             {[
-              { key: 'pushNotifications' as const, icon: Bell, label: 'Push Notifications', desc: 'Receive push notifications' },
-              { key: 'emailNotifications' as const, icon: Mail, label: 'Email Notifications', desc: 'Receive email updates' },
-              { key: 'smsNotifications' as const, icon: Phone, label: 'SMS Notifications', desc: 'Receive text messages' },
-              { key: 'marketingEmails' as const, icon: MessageSquare, label: 'Marketing Emails', desc: 'Promotions and offers' },
+              { key: 'pushNotifications' as const, icon: Bell, label: t('ui.push_notifications_3157'), desc: t('ui.receive_push_notifications_e769') },
+              { key: 'emailNotifications' as const, icon: Mail, label: t('ui.email_notifications_3caa'), desc: t('ui.receive_email_updates_cd50') },
+              { key: 'smsNotifications' as const, icon: Phone, label: t('ui.sms_notifications_73af'), desc: t('ui.receive_text_messages_c529') },
+              { key: 'marketingEmails' as const, icon: MessageSquare, label: t('ui.marketing_emails_0f52'), desc: t('ui.promotions_and_offers_707c') },
             ].map(item => (
               <div key={item.key} className="bg-[#1B1F27] rounded-xl p-4 border border-white/5 flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -544,7 +544,7 @@ export function SettingsPage() {
               <div className="flex items-center gap-3">
                 <Moon className="w-5 h-5 text-[#FF6B00]" />
                 <div>
-                  <p className="text-sm font-medium text-white">Dark Mode</p>
+                  <p className="text-sm font-medium text-white">{t('ui.dark_mode_51b5')}</p>
                   <p className="text-xs text-[#A0A0A0]">{darkMode ? 'Currently enabled' : 'Currently disabled'}</p>
                 </div>
               </div>
@@ -552,7 +552,7 @@ export function SettingsPage() {
                 {darkMode ? <ToggleRight className="w-8 h-8 text-[#FF6B00]" /> : <ToggleLeft className="w-8 h-8 text-[#A0A0A0]" />}
               </button>
             </div>
-            <p className="text-xs text-[#A0A0A0] text-center">This app is designed with dark mode by default for better night visibility.</p>
+            <p className="text-xs text-[#A0A0A0] text-center">{t('ui.this_app_is_63de')}</p>
           </div>
         );
 
@@ -561,15 +561,15 @@ export function SettingsPage() {
         return (
           <div className="space-y-4">
             <div className="bg-[#1B1F27] rounded-xl p-4 border border-white/5 space-y-3">
-              <h3 className="text-sm font-medium text-white mb-2">New Password</h3>
-              <Input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="New password (min 6 chars)" className="bg-[#0F1115] border-white/10 text-white rounded-xl" />
-              <Input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="Confirm new password" className="bg-[#0F1115] border-white/10 text-white rounded-xl" />
+              <h3 className="text-sm font-medium text-white mb-2">{t('ui.new_password_ae3b')}</h3>
+              <Input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder={t('ui.new_password_min_0463')} className="bg-[#0F1115] border-white/10 text-white rounded-xl" />
+              <Input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder={t('ui.confirm_new_password_6ab9')} className="bg-[#0F1115] border-white/10 text-white rounded-xl" />
               <Button
                 onClick={handleChangePassword}
                 disabled={loadingSections.password}
                 className="w-full bg-[#FF6B00] hover:bg-[#E56000] text-white rounded-xl"
               >
-                {loadingSections.password ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Lock className="w-4 h-4 mr-2" /> Update Password</>}
+                {loadingSections.password ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Lock className="w-4 h-4 mr-2" /> {t('ui.update_password_bb78')}</>}
               </Button>
             </div>
           </div>
@@ -580,9 +580,9 @@ export function SettingsPage() {
         return (
           <div className="space-y-4">
             <div className="bg-[#1B1F27] rounded-xl p-4 border border-white/5 space-y-3">
-              <Input value={address.street} onChange={e => setAddress(p => ({ ...p, street: e.target.value }))} placeholder="Street address" className="bg-[#0F1115] border-white/10 text-white rounded-xl" />
-              <Input value={address.city} onChange={e => setAddress(p => ({ ...p, city: e.target.value }))} placeholder="City" className="bg-[#0F1115] border-white/10 text-white rounded-xl" />
-              <Input value={address.postalCode} onChange={e => setAddress(p => ({ ...p, postalCode: e.target.value }))} placeholder="Postal code" className="bg-[#0F1115] border-white/10 text-white rounded-xl" />
+              <Input value={address.street} onChange={e => setAddress(p => ({ ...p, street: e.target.value }))} placeholder={t('ui.street_address_669a')} className="bg-[#0F1115] border-white/10 text-white rounded-xl" />
+              <Input value={address.city} onChange={e => setAddress(p => ({ ...p, city: e.target.value }))} placeholder={t('ui.city_57d0')} className="bg-[#0F1115] border-white/10 text-white rounded-xl" />
+              <Input value={address.postalCode} onChange={e => setAddress(p => ({ ...p, postalCode: e.target.value }))} placeholder={t('ui.postal_code_572e')} className="bg-[#0F1115] border-white/10 text-white rounded-xl" />
               <Button onClick={handleSaveAddress} className="w-full bg-[#FF6B00] hover:bg-[#E56000] text-white rounded-xl">
                 <Check className="w-4 h-4 mr-2" /> Save Address
               </Button>
@@ -596,16 +596,16 @@ export function SettingsPage() {
           <div className="space-y-4">
             <div className="bg-gradient-to-r from-[#FF6B00]/10 to-[#FF6B00]/5 rounded-xl p-5 border border-[#FF6B00]/20 text-center">
               <Wallet className="w-10 h-10 text-[#FF6B00] mx-auto mb-2" />
-              <p className="text-sm text-[#A0A0A0]">Available Balance</p>
+              <p className="text-sm text-[#A0A0A0]">{t('ui.available_balance_d6df')}</p>
               <p className="text-3xl font-bold text-white mt-1">0 MAD</p>
             </div>
             <div className="bg-[#1B1F27] rounded-xl p-4 border border-white/5">
-              <p className="text-sm font-medium text-white mb-3">Payout Method</p>
+              <p className="text-sm font-medium text-white mb-3">{t('ui.payout_method_44ca')}</p>
               <div className="flex items-center gap-3 p-3 rounded-lg bg-[#0F1115] border border-white/5">
                 <CreditCard className="w-5 h-5 text-[#FF6B00]" />
                 <div>
-                  <p className="text-sm text-white">Bank Transfer</p>
-                  <p className="text-xs text-[#A0A0A0]">Coming soon</p>
+                  <p className="text-sm text-white">{t('ui.bank_transfer_3726')}</p>
+                  <p className="text-xs text-[#A0A0A0]">{t('ui.coming_soon_8115')}</p>
                 </div>
               </div>
             </div>
@@ -630,9 +630,9 @@ export function SettingsPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  {m.is_default && <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#FF6B00]/10 text-[#FF6B00] font-medium">Default</span>}
+                  {m.is_default && <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#FF6B00]/10 text-[#FF6B00] font-medium">{t('ui.default_7a19')}</span>}
                   {!m.is_default && (
-                    <button onClick={() => handleSetDefaultPayment(m.id)} className="text-xs text-[#FF6B00] hover:underline">Set default</button>
+                    <button onClick={() => handleSetDefaultPayment(m.id)} className="text-xs text-[#FF6B00] hover:underline">{t('ui.set_default_ab22')}</button>
                   )}
                   <button onClick={() => handleDeletePayment(m.id)} className="p-1.5 rounded-lg hover:bg-red-500/10">
                     <Trash2 className="w-3.5 h-3.5 text-red-400" />
@@ -642,15 +642,15 @@ export function SettingsPage() {
             ))}
             {/* Add new card */}
             <div className="bg-[#1B1F27] rounded-xl p-4 border border-white/5 space-y-3">
-              <h3 className="text-sm font-medium text-white">Add Card</h3>
-              <Input value={newCardNumber} onChange={e => setNewCardNumber(e.target.value)} placeholder="Card number" maxLength={16} className="bg-[#0F1115] border-white/10 text-white rounded-xl" />
+              <h3 className="text-sm font-medium text-white">{t('ui.add_card_1dd1')}</h3>
+              <Input value={newCardNumber} onChange={e => setNewCardNumber(e.target.value)} placeholder={t('ui.card_number_a442')} maxLength={16} className="bg-[#0F1115] border-white/10 text-white rounded-xl" />
               <div className="grid grid-cols-2 gap-2">
                 <Input value={newCardExpiry} onChange={e => setNewCardExpiry(e.target.value)} placeholder="MM/YY" maxLength={5} className="bg-[#0F1115] border-white/10 text-white rounded-xl" />
                 <Input value={newCardCVV} onChange={e => setNewCardCVV(e.target.value)} placeholder="CVV" maxLength={4} type="password" className="bg-[#0F1115] border-white/10 text-white rounded-xl" />
               </div>
-              <Input value={newCardLabel} onChange={e => setNewCardLabel(e.target.value)} placeholder="Label (optional)" className="bg-[#0F1115] border-white/10 text-white rounded-xl" />
+              <Input value={newCardLabel} onChange={e => setNewCardLabel(e.target.value)} placeholder={t('ui.label_optional_9a0d')} className="bg-[#0F1115] border-white/10 text-white rounded-xl" />
               <Button onClick={handleAddCard} className="w-full bg-[#FF6B00] hover:bg-[#E56000] text-white rounded-xl">
-                <CreditCard className="w-4 h-4 mr-2" /> Add Card
+                <CreditCard className="w-4 h-4 mr-2" /> {t('ui.add_card_1dd1')}
               </Button>
             </div>
           </div>
@@ -665,7 +665,7 @@ export function SettingsPage() {
             ) : refunds.length === 0 ? (
               <div className="text-center py-10">
                 <RefreshCcw className="w-10 h-10 text-[#A0A0A0]/30 mx-auto mb-2" />
-                <p className="text-[#A0A0A0]">No refund requests</p>
+                <p className="text-[#A0A0A0]">{t('ui.no_refund_requests_2f53')}</p>
               </div>
             ) : (
               refunds.map((r: any) => (
@@ -686,7 +686,7 @@ export function SettingsPage() {
         return (
           <div className="space-y-4">
             <div className="text-center py-4">
-              <p className="text-white font-medium mb-3">How is your experience with WansniAuto?</p>
+              <p className="text-white font-medium mb-3">{t('ui.how_is_your_ad82')}</p>
               <div className="flex items-center justify-center gap-2">
                 {[1,2,3,4,5].map(i => (
                   <button key={i} onClick={() => setUserRating(i)} className="transition-transform hover:scale-110">
@@ -696,7 +696,7 @@ export function SettingsPage() {
               </div>
               <p className="text-xs text-[#A0A0A0] mt-2">{userRating > 0 ? ['', 'Poor', 'Fair', 'Good', 'Very Good', 'Excellent'][userRating] : 'Tap a star to rate'}</p>
             </div>
-            <Textarea value={ratingComment} onChange={e => setRatingComment(e.target.value)} placeholder="Tell us what you like or what we can improve..." className="bg-[#0F1115] border-white/10 text-white rounded-xl min-h-[100px]" />
+            <Textarea value={ratingComment} onChange={e => setRatingComment(e.target.value)} placeholder={t('ui.tell_us_what_8f0d')} className="bg-[#0F1115] border-white/10 text-white rounded-xl min-h-[100px]" />
             <Button onClick={handleRateApp} disabled={userRating === 0} className="w-full bg-[#FF6B00] hover:bg-[#E56000] text-white rounded-xl">
               <ThumbsUp className="w-4 h-4 mr-2" /> Submit Rating
             </Button>
@@ -725,8 +725,8 @@ export function SettingsPage() {
             {/* Contact Support Button - navigates to full support page */}
             <div className="bg-gradient-to-r from-[#FF6B00]/10 to-transparent rounded-xl p-5 border border-[#FF6B00]/20 text-center space-y-3">
               <MessageCircle className="w-8 h-8 text-[#FF6B00] mx-auto" />
-              <p className="text-sm text-white font-medium">Need more help?</p>
-              <p className="text-xs text-[#A0A0A0]">Our support team is ready to assist you.</p>
+              <p className="text-sm text-white font-medium">{t('ui.need_more_help_2101')}</p>
+              <p className="text-xs text-[#A0A0A0]">{t('ui.our_support_team_6300')}</p>
               <Button
                 onClick={() => { setActiveDrawer(null); setTimeout(() => navigate('/support'), 300); }}
                 className="w-full bg-[#FF6B00] hover:bg-[#E56000] text-white rounded-xl"
@@ -741,17 +741,17 @@ export function SettingsPage() {
       case 'terms':
         return (
           <div className="space-y-4 text-sm text-[#A0A0A0] leading-relaxed">
-            <h3 className="text-white font-medium text-base">Terms & Conditions</h3>
-            <p>By using WansniAuto, you agree to these terms. WansniAuto is a ride-sharing platform connecting drivers and passengers in Morocco.</p>
-            <h4 className="text-white font-medium mt-3">1. User Responsibilities</h4>
-            <p>Users must provide accurate information, maintain valid documentation, and comply with Moroccan traffic laws.</p>
-            <h4 className="text-white font-medium mt-3">2. Driver Requirements</h4>
-            <p>Drivers must have a valid license, insurance, and a registered vehicle. All drivers undergo verification.</p>
-            <h4 className="text-white font-medium mt-3">3. Payments</h4>
-            <p>Fares are set by drivers and displayed before booking. A 5% service fee applies to each booking.</p>
-            <h4 className="text-white font-medium mt-3">4. Cancellations</h4>
-            <p>Cancellations within 2 hours of departure may incur a fee. Refunds are processed within 5-7 business days.</p>
-            <p className="text-xs text-[#A0A0A0]/60 mt-4">Last updated: May 2026</p>
+            <h3 className="text-white font-medium text-base">{t('ui.terms_conditions_1d8c')}</h3>
+            <p>{t('ui.by_using_wansniauto_89d9')}</p>
+            <h4 className="text-white font-medium mt-3">{t('ui.1_user_responsibilities_69ce')}</h4>
+            <p>{t('ui.users_must_provide_9169')}</p>
+            <h4 className="text-white font-medium mt-3">{t('ui.2_driver_requirements_8b9b')}</h4>
+            <p>{t('ui.drivers_must_have_bd51')}</p>
+            <h4 className="text-white font-medium mt-3">{t('ui.3_payments_4e9b')}</h4>
+            <p>{t('ui.fares_are_set_d985')}</p>
+            <h4 className="text-white font-medium mt-3">{t('ui.4_cancellations_1c8b')}</h4>
+            <p>{t('ui.cancellations_within_2_e0fa')}</p>
+            <p className="text-xs text-[#A0A0A0]/60 mt-4">{t('ui.last_updated_may_5215')}</p>
           </div>
         );
 
@@ -759,17 +759,17 @@ export function SettingsPage() {
       case 'privacy':
         return (
           <div className="space-y-4 text-sm text-[#A0A0A0] leading-relaxed">
-            <h3 className="text-white font-medium text-base">Privacy Policy</h3>
-            <p>WansniAuto is committed to protecting your personal data in accordance with Moroccan Law 09-08 on data protection.</p>
-            <h4 className="text-white font-medium mt-3">1. Data We Collect</h4>
-            <p>We collect your name, email, phone, profile photo, ID documents (for drivers), trip history, and payment information.</p>
-            <h4 className="text-white font-medium mt-3">2. How We Use Your Data</h4>
-            <p>Your data is used to provide ride-sharing services, process payments, verify identities, and improve our platform.</p>
-            <h4 className="text-white font-medium mt-3">3. Data Sharing</h4>
-            <p>We only share necessary information between drivers and passengers for trip coordination. We never sell your data.</p>
-            <h4 className="text-white font-medium mt-3">4. Your Rights</h4>
-            <p>You can access, modify, or delete your personal data at any time through your account settings.</p>
-            <p className="text-xs text-[#A0A0A0]/60 mt-4">Last updated: May 2026</p>
+            <h3 className="text-white font-medium text-base">{t('ui.privacy_policy_fa2e')}</h3>
+            <p>{t('ui.wansniauto_is_committed_7e28')}</p>
+            <h4 className="text-white font-medium mt-3">{t('ui.1_data_we_23c8')}</h4>
+            <p>{t('ui.we_collect_your_729d')}</p>
+            <h4 className="text-white font-medium mt-3">{t('ui.2_how_we_30b4')}</h4>
+            <p>{t('ui.your_data_is_b1d5')}</p>
+            <h4 className="text-white font-medium mt-3">{t('ui.3_data_sharing_28a8')}</h4>
+            <p>{t('ui.we_only_share_60de')}</p>
+            <h4 className="text-white font-medium mt-3">{t('ui.4_your_rights_40f3')}</h4>
+            <p>{t('ui.you_can_access_0bb9')}</p>
+            <p className="text-xs text-[#A0A0A0]/60 mt-4">{t('ui.last_updated_may_5215')}</p>
           </div>
         );
 
@@ -778,18 +778,18 @@ export function SettingsPage() {
         return (
           <div className="space-y-4">
             <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4">
-              <h3 className="text-red-400 font-medium mb-2">Delete Your Account</h3>
-              <p className="text-sm text-[#A0A0A0]">This action cannot be undone. All your data including trips, bookings, and messages will be permanently deleted.</p>
+              <h3 className="text-red-400 font-medium mb-2">{t('ui.delete_your_account_e208')}</h3>
+              <p className="text-sm text-[#A0A0A0]">{t('ui.this_action_cannot_7d2c')}</p>
             </div>
             <div className="bg-[#1B1F27] rounded-xl p-4 border border-white/5 space-y-3">
               <p className="text-sm text-white">Type <span className="font-mono text-red-400">DELETE</span> to confirm:</p>
-              <Input value={deleteConfirmText} onChange={e => setDeleteConfirmText(e.target.value)} placeholder="Type DELETE" className="bg-[#0F1115] border-red-500/30 text-white rounded-xl font-mono" />
+              <Input value={deleteConfirmText} onChange={e => setDeleteConfirmText(e.target.value)} placeholder={t('ui.type_delete_0130')} className="bg-[#0F1115] border-red-500/30 text-white rounded-xl font-mono" />
               <Button
                 onClick={handleDeleteAccount}
                 disabled={loadingSections.delete || deleteConfirmText !== 'DELETE'}
                 className="w-full bg-red-500 hover:bg-red-600 text-white rounded-xl disabled:opacity-30"
               >
-                {loadingSections.delete ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Trash2 className="w-4 h-4 mr-2" /> Permanently Delete Account</>}
+                {loadingSections.delete ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Trash2 className="w-4 h-4 mr-2" /> {t('ui.permanently_delete_account_4a3e')}</>}
               </Button>
             </div>
           </div>
@@ -807,7 +807,7 @@ export function SettingsPage() {
   if (!user) {
     return (
       <div className="min-h-screen bg-[#0F1115] pt-20 flex items-center justify-center">
-        <p className="text-[#A0A0A0]">Please login to access settings</p>
+        <p className="text-[#A0A0A0]">{t('ui.please_login_to_93e7')}</p>
       </div>
     );
   }
@@ -934,18 +934,18 @@ export function SettingsPage() {
               /* Passenger → Driver */
               <div className="space-y-4">
                 <div className="bg-[#FF6B00]/5 border border-[#FF6B00]/20 rounded-xl p-4">
-                  <p className="text-sm font-semibold text-[#FF6B00] mb-1">Devenir conducteur</p>
+                  <p className="text-sm font-semibold text-[#FF6B00] mb-1">{t('ui.become_a_driver_1cac')}</p>
                   <p className="text-xs text-[#A0A0A0] leading-relaxed">
-                    Pour proposer des trajets, vous devez soumettre vos documents de vérification conducteur (CIN, permis de conduire, assurance, photos du véhicule). Un administrateur examinera votre dossier avant de l'approuver.
+                    {t('ui.to_offer_rides_9160')}
                   </p>
                 </div>
                 <div className="space-y-2">
                   {[
-                    '✅ CIN (recto + verso)',
-                    '✅ Selfie avec CIN',
-                    '✅ Permis de conduire',
-                    `✅ Attestation d'assurance`,
-                    '✅ Photos du véhicule',
+                    t('ui.national_id_front_fc1f'),
+                    t('ui.selfie_with_national_6004'),
+                    t('ui.driver_license_1082'),
+                    t('ui.insurance_certificate_583d'),
+                    t('ui.vehicle_photos_0c74'),
                   ].map((item) => (
                     <p key={item} className="text-xs text-[#A0A0A0]">{item}</p>
                   ))}
@@ -957,24 +957,24 @@ export function SettingsPage() {
                     try {
                       await supabase.from('profiles').update({ role: 'driver' }).eq('id', user!.id);
                       setMode('driver');
-                      toast.success('Mode conducteur activé. Complétez votre vérification pour publier des trajets.');
+                      toast.success(t('ui.driver_mode_enabled_ea7b'));
                       setActiveDrawer(null);
                       navigate('/verification');
-                    } catch { toast.error('Erreur lors du changement de mode.'); }
+                    } catch { toast.error(t('ui.error_while_switching_4915')); }
                     setSwitchingMode(false);
                   }}
                   className="w-full bg-[#FF6B00] text-white hover:bg-[#E56000] rounded-xl h-12 font-semibold"
                 >
-                  {switchingMode ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Commencer la vérification conducteur'}
+                  {switchingMode ? <Loader2 className="w-5 h-5 animate-spin" /> : t('ui.start_driver_verification_f152')}
                 </Button>
               </div>
             ) : (
               /* Driver → Passenger */
               <div className="space-y-4">
                 <div className="bg-blue-500/5 border border-blue-500/20 rounded-xl p-4">
-                  <p className="text-sm font-semibold text-blue-400 mb-1">Passer en mode passager</p>
+                  <p className="text-sm font-semibold text-blue-400 mb-1">{t('ui.switch_to_passenger_d321')}</p>
                   <p className="text-xs text-[#A0A0A0] leading-relaxed">
-                    Vous passerez en mode passager. Vous ne pourrez plus publier de trajets mais pourrez en réserver. Votre compte conducteur reste sauvegardé.
+                    {t('ui.you_will_switch_f5cd')}
                   </p>
                 </div>
                 <Button
@@ -984,10 +984,10 @@ export function SettingsPage() {
                     try {
                       await supabase.from('profiles').update({ role: 'passenger' }).eq('id', user!.id);
                       setMode('passenger');
-                      toast.success('Mode passager activé.');
+                      toast.success(t('ui.passenger_mode_enabled_06dc'));
                       setActiveDrawer(null);
                       setTimeout(() => navigate('/dashboard'), 300);
-                    } catch { toast.error('Erreur lors du changement de mode.'); }
+                    } catch { toast.error(t('ui.error_while_switching_4915')); }
                     setSwitchingMode(false);
                   }}
                   className="w-full bg-blue-500 text-white hover:bg-blue-600 rounded-xl h-12 font-semibold"

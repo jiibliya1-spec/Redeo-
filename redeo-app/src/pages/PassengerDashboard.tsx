@@ -278,7 +278,7 @@ export function PassengerDashboard() {
                   <div className="text-center py-8">
                     <Car className="w-10 h-10 text-[#A0A0A0] mx-auto mb-3" />
                     <p className="text-sm text-[#A0A0A0] mb-1">{t('passenger.no_upcoming')}</p>
-                    <p className="text-xs text-[#A0A0A0] mb-3">Book your first ride to get started!</p>
+                    <p className="text-xs text-[#A0A0A0] mb-3">{t('ui.book_your_first_9c5c')}</p>
                     <Button onClick={() => navigate('/search')} variant="outline" className="border-[#FF6B00]/30 text-[#FF6B00] rounded-xl text-sm">
                       {t('passenger.find_ride')}
                     </Button>

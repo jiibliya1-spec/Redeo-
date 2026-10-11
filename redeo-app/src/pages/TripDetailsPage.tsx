@@ -26,7 +26,7 @@ export function TripDetailsPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user: _user } = useStore();
-  const { lang, dir } = useI18n();
+  const { lang, dir, t } = useI18n();
 
   const [trip, setTrip] = useState<Trip | null>(null);
   const [driver, setDriver] = useState<User | null>(null);
@@ -199,8 +199,8 @@ export function TripDetailsPage() {
     return (
       <div className="min-h-screen bg-[#0F1115] pt-20 flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-xl text-white mb-4" dir={dir}>Trip not found</h2>
-          <Button onClick={() => navigate('/search')} variant="outline" className="border-[#FF6B00]/30 text-[#FF6B00] rounded-xl">Search</Button>
+          <h2 className="text-xl text-white mb-4" dir={dir}>{t('ui.trip_not_found_fdc5')}</h2>
+          <Button onClick={() => navigate('/search')} variant="outline" className="border-[#FF6B00]/30 text-[#FF6B00] rounded-xl">{t('ui.search_1334')}</Button>
         </div>
       </div>
     );
@@ -329,17 +329,17 @@ export function TripDetailsPage() {
           <div className="grid grid-cols-3 gap-3 mb-5">
             <div className="bg-[#0F1115] rounded-xl p-3 text-center">
               <p className="text-lg font-bold text-white">{driver?.trips_count || 0}</p>
-              <p className="text-[10px] text-[#A0A0A0] mt-0.5">Trips</p>
+              <p className="text-[10px] text-[#A0A0A0] mt-0.5">{t('ui.trips_4473')}</p>
             </div>
             <div className="bg-[#0F1115] rounded-xl p-3 text-center">
               <p className="text-lg font-bold text-white">{(driver?.rating || 5).toFixed(1)}</p>
-              <p className="text-[10px] text-[#A0A0A0] mt-0.5">Rating</p>
+              <p className="text-[10px] text-[#A0A0A0] mt-0.5">{t('ui.rating_dda9')}</p>
             </div>
             <div className="bg-[#0F1115] rounded-xl p-3 text-center">
               <p className="text-lg font-bold text-white">
                 {driver?.created_at ? new Date(driver.created_at).getFullYear() : '—'}
               </p>
-              <p className="text-[10px] text-[#A0A0A0] mt-0.5">Member since</p>
+              <p className="text-[10px] text-[#A0A0A0] mt-0.5">{t('ui.member_since_d9ed')}</p>
             </div>
           </div>
 
@@ -357,7 +357,7 @@ export function TripDetailsPage() {
                 </div>
                 <div>
                   <p className="text-sm text-white font-medium">{T.verified}</p>
-                  <p className="text-xs text-[#A0A0A0]">ID & documents verified by WansniAuto</p>
+                  <p className="text-xs text-[#A0A0A0]">{t('ui.id_documents_verified_9f5d')}</p>
                 </div>
               </div>
             )}
@@ -375,8 +375,8 @@ export function TripDetailsPage() {
                 <Ban className="w-4 h-4 text-[#FF6B00]" />
               </div>
               <div>
-                <p className="text-sm text-white font-medium">Reliable driver</p>
-                <p className="text-xs text-[#A0A0A0]">Never cancels confirmed rides</p>
+                <p className="text-sm text-white font-medium">{t('ui.reliable_driver_e3ac')}</p>
+                <p className="text-xs text-[#A0A0A0]">{t('ui.never_cancels_confirmed_2d27')}</p>
               </div>
             </div>
           </div>
@@ -408,7 +408,7 @@ export function TripDetailsPage() {
 
         {/* ─── TRIP PREFERENCES ─── */}
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="bg-[#1B1F27] rounded-2xl border border-white/5 p-5 space-y-4">
-          <h3 className="text-sm font-medium text-white uppercase tracking-wider">Trip Preferences</h3>
+          <h3 className="text-sm font-medium text-white uppercase tracking-wider">{t('ui.trip_preferences_1600')}</h3>
           <div className="space-y-3">
             <div className="flex items-center gap-3">
               <PawPrint className="w-5 h-5 text-red-400" />

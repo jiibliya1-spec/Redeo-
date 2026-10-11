@@ -31,7 +31,7 @@ export function LoginPage() {
     const result = await signIn(email, password);
 
     if (result.success) {
-      toast.success('Welcome back!');
+      toast.success(t('ui.welcome_back_9bee'));
       await refreshProfile();
       const { user: freshUser } = useStore.getState();
       if (freshUser?.role === 'admin') {
@@ -68,7 +68,7 @@ export function LoginPage() {
           <div>
             <Label className="text-sm text-[#A0A0A0] mb-2 block">{t('auth.password')}</Label>
             <div className="relative">
-              <Input type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Enter password" className="bg-[#1B1F27] border-white/10 text-white placeholder:text-[#A0A0A0]/40 h-12 rounded-xl pr-10" required />
+              <Input type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} placeholder={t('ui.enter_password_483b')} className="bg-[#1B1F27] border-white/10 text-white placeholder:text-[#A0A0A0]/40 h-12 rounded-xl pr-10" required />
               <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#A0A0A0]">
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>

@@ -18,7 +18,7 @@ export function DriverProfilePage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user: me } = useStore();
-  const { lang, dir } = useI18n();
+  const { lang, dir, t } = useI18n();
 
   const [driver, setDriver] = useState<User | null>(null);
   const [trips, setTrips] = useState<Trip[]>([]);
@@ -115,8 +115,8 @@ export function DriverProfilePage() {
     return (
       <div className="min-h-screen bg-[#0F1115] pt-20 flex items-center justify-center">
         <div className="text-center">
-          <p className="text-[#A0A0A0] mb-4">Driver not found</p>
-          <Button onClick={() => navigate(-1)} className="bg-[#FF6B00] hover:bg-[#E56000] text-white rounded-xl">Go Back</Button>
+          <p className="text-[#A0A0A0] mb-4">{t('ui.driver_not_found_b697')}</p>
+          <Button onClick={() => navigate(-1)} className="bg-[#FF6B00] hover:bg-[#E56000] text-white rounded-xl">{t('ui.go_back_4f2f')}</Button>
         </div>
       </div>
     );
@@ -182,7 +182,7 @@ export function DriverProfilePage() {
             <div className="bg-[#0F1115] rounded-xl p-3 text-center border border-white/5">
               <Award className="w-5 h-5 text-[#FF6B00] mx-auto mb-1" />
               <p className="text-lg font-bold text-white">{driver.is_verified ? '100%' : '—'}</p>
-              <p className="text-[10px] text-[#A0A0A0]">Response</p>
+              <p className="text-[10px] text-[#A0A0A0]">{t('ui.response_d64e')}</p>
             </div>
           </div>
 

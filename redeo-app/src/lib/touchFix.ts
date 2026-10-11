@@ -33,12 +33,13 @@ export function installTouchFix() {
   document.addEventListener('visibilitychange', () => { if (!document.hidden) nudge(); });
   window.addEventListener('orientationchange', () => setTimeout(nudge, 200));
 
+  // Diagnostics only with ?debug=1 (and clear any flag stored by earlier builds)
   let debug = false;
   try {
-    debug = /[?&]debug=1/.test(location.search) || localStorage.getItem('wa_debug') === '1' || (navigator as any).standalone === true;
+    localStorage.removeItem('wa_debug');
+    debug = /[?&]debug=1/.test(location.search);
   } catch { /* ignore */ }
   if (!debug) return;
-  try { localStorage.setItem('wa_debug', '1'); } catch { /* ignore */ }
 
   const bar = document.createElement('div');
   bar.style.cssText =

@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
-import { useEffect, useState, Component, type ReactNode, type ErrorInfo } from 'react';
+import { useEffect, useState, Component, lazy, Suspense, type ReactNode, type ErrorInfo } from 'react';
 
 /* ─── Error Boundary: catches component crashes, shows friendly message instead of blank screen ─── */
 class PageErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean; error: string }> {
@@ -38,35 +38,35 @@ import { BottomNav } from '@/components/BottomNav';
 import { AdminRouteGuard } from '@/components/admin/AdminRouteGuard';
 import { SplashScreen } from '@/components/SplashScreen';
 import { LandingPage } from '@/pages/LandingPage';
-import { SearchResultsPage } from '@/pages/SearchResultsPage';
-import { TripDetailsPage } from '@/pages/TripDetailsPage';
-import { BookingPage } from '@/pages/BookingPage';
-import { MyTripsPage } from '@/pages/MyTripsPage';
+const SearchResultsPage = lazy(() => import('@/pages/SearchResultsPage').then((m) => ({ default: m.SearchResultsPage })));
+const TripDetailsPage = lazy(() => import('@/pages/TripDetailsPage').then((m) => ({ default: m.TripDetailsPage })));
+const BookingPage = lazy(() => import('@/pages/BookingPage').then((m) => ({ default: m.BookingPage })));
+const MyTripsPage = lazy(() => import('@/pages/MyTripsPage').then((m) => ({ default: m.MyTripsPage })));
 import { LoginPage } from '@/pages/LoginPage';
 import { RegisterPage } from '@/pages/RegisterPage';
-import { PassengerDashboard } from '@/pages/PassengerDashboard';
-import { DriverDashboard } from '@/pages/DriverDashboard';
-import { AdminDashboard } from '@/pages/admin/AdminDashboard';
-import { AdminVerifications } from '@/pages/admin/AdminVerifications';
-import { AdminUsers } from '@/pages/admin/AdminUsers';
-import { AdminTrips } from '@/pages/admin/AdminTrips';
-import { AdminMessages } from '@/pages/admin/AdminMessages';
-import { AdminSettings } from '@/pages/admin/AdminSettings';
-import { AdminSupportTickets } from '@/pages/admin/AdminSupportTickets';
-import { ProfilePage } from '@/pages/ProfilePage';
-import VerificationPage from '@/pages/VerificationPage';
-import { MessagesPage } from '@/pages/MessagesPage';
-import { NotificationsPage } from '@/pages/NotificationsPage';
-import { PublishTripPage } from '@/pages/PublishTripPage';
-import { SettingsPage } from '@/pages/SettingsPage';
-import { ContactSupportPage } from '@/pages/ContactSupportPage';
-import { DriverProfilePage } from '@/pages/DriverProfilePage';
-import AboutPage from '@/pages/AboutPage';
-import HowItWorksPage from '@/pages/HowItWorksPage';
-import CareersPage from '@/pages/CareersPage';
-import SafetyPage from '@/pages/SafetyPage';
-import FAQPage from '@/pages/FAQPage';
-import LegalPage from '@/pages/LegalPage';
+const PassengerDashboard = lazy(() => import('@/pages/PassengerDashboard').then((m) => ({ default: m.PassengerDashboard })));
+const DriverDashboard = lazy(() => import('@/pages/DriverDashboard').then((m) => ({ default: m.DriverDashboard })));
+const AdminDashboard = lazy(() => import('@/pages/admin/AdminDashboard').then((m) => ({ default: m.AdminDashboard })));
+const AdminVerifications = lazy(() => import('@/pages/admin/AdminVerifications').then((m) => ({ default: m.AdminVerifications })));
+const AdminUsers = lazy(() => import('@/pages/admin/AdminUsers').then((m) => ({ default: m.AdminUsers })));
+const AdminTrips = lazy(() => import('@/pages/admin/AdminTrips').then((m) => ({ default: m.AdminTrips })));
+const AdminMessages = lazy(() => import('@/pages/admin/AdminMessages').then((m) => ({ default: m.AdminMessages })));
+const AdminSettings = lazy(() => import('@/pages/admin/AdminSettings').then((m) => ({ default: m.AdminSettings })));
+const AdminSupportTickets = lazy(() => import('@/pages/admin/AdminSupportTickets').then((m) => ({ default: m.AdminSupportTickets })));
+const ProfilePage = lazy(() => import('@/pages/ProfilePage').then((m) => ({ default: m.ProfilePage })));
+const VerificationPage = lazy(() => import('@/pages/VerificationPage'));
+const MessagesPage = lazy(() => import('@/pages/MessagesPage').then((m) => ({ default: m.MessagesPage })));
+const NotificationsPage = lazy(() => import('@/pages/NotificationsPage').then((m) => ({ default: m.NotificationsPage })));
+const PublishTripPage = lazy(() => import('@/pages/PublishTripPage').then((m) => ({ default: m.PublishTripPage })));
+const SettingsPage = lazy(() => import('@/pages/SettingsPage').then((m) => ({ default: m.SettingsPage })));
+const ContactSupportPage = lazy(() => import('@/pages/ContactSupportPage').then((m) => ({ default: m.ContactSupportPage })));
+const DriverProfilePage = lazy(() => import('@/pages/DriverProfilePage').then((m) => ({ default: m.DriverProfilePage })));
+const AboutPage = lazy(() => import('@/pages/AboutPage'));
+const HowItWorksPage = lazy(() => import('@/pages/HowItWorksPage'));
+const CareersPage = lazy(() => import('@/pages/CareersPage'));
+const SafetyPage = lazy(() => import('@/pages/SafetyPage'));
+const FAQPage = lazy(() => import('@/pages/FAQPage'));
+const LegalPage = lazy(() => import('@/pages/LegalPage'));
 import { NotificationListener } from '@/components/NotificationListener';
 import { Toaster } from '@/components/ui/sonner';
 import { Spinner } from '@/components/ui/spinner';
@@ -122,6 +122,7 @@ function ScrollToTop() {
 function AdminRoutes() {
   return (
     <AdminRouteGuard>
+      <Suspense fallback={<div className="min-h-[60vh] flex items-center justify-center"><Spinner /></div>}>
       <Routes>
         <Route path="/" element={<AdminDashboard />} />
         <Route path="/verifications" element={<AdminVerifications />} />
@@ -132,6 +133,7 @@ function AdminRoutes() {
         <Route path="/support" element={<AdminSupportTickets />} />
         <Route path="*" element={<Navigate to="/admin" replace />} />
       </Routes>
+      </Suspense>
     </AdminRouteGuard>
   );
 }
@@ -212,6 +214,7 @@ function AppContent() {
       {!isAdmin && <Navbar />}
 
       <main className={isAdmin ? '' : 'pb-20 md:pb-0'}>
+        <Suspense fallback={<div className="min-h-[60vh] flex items-center justify-center"><Spinner /></div>}>
         <Routes>
           {/* Admin routes - NO navbar, NO bottomnav */}
           <Route path="/admin/*" element={<AdminRoutes />} />
@@ -249,6 +252,7 @@ function AppContent() {
 
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
+        </Suspense>
       </main>
 
       {/* Show bottomnav only for non-admin users */}

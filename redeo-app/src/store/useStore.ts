@@ -45,10 +45,13 @@ function safeRole(role: unknown): 'passenger' | 'driver' {
   return role === 'driver' ? 'driver' : 'passenger';
 }
 
-async function fetchProfile(userId: string): Promise<Partial<User> | null> {
+async function fetchProfile(userId: string, accessToken?: string): Promise<Partial<User> | null> {
   try {
-    const { data: sessionData } = await supabase.auth.getSession();
-    const jwt = sessionData.session?.access_token || '';
+    let jwt = accessToken || '';
+    if (!jwt) {
+      const { data: sessionData } = await supabase.auth.getSession();
+      jwt = sessionData.session?.access_token || '';
+    }
     const res = await fetch(
       `${SUPABASE_URL}/rest/v1/profiles?select=*&id=eq.${userId}&limit=1`,
       { headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${jwt}` } }
@@ -182,7 +185,7 @@ export const useStore = create<AppState>()(
         try {
           const { data, error } = await supabase.auth.signInWithPassword({ email, password });
           if (error) return { success: false, error: error.message };
-          const freshProfile = await fetchProfile(data.user.id);
+          const freshProfile = await fetchProfile(data.user.id, data.session?.access_token);
           const user = buildUser(data.user, freshProfile);
             // Set mode based on actual role (driver → driver mode, others → passenger)
             const initialMode = (freshProfile?.role === 'driver' || data.user.user_metadata?.role === 'driver') ? 'driver' : 'passenger';

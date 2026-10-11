@@ -11,7 +11,7 @@ import { Car, Eye, EyeOff, Loader2 } from 'lucide-react';
 
 export function LoginPage() {
   const navigate = useNavigate();
-  const { signIn, refreshProfile } = useStore();
+  const { signIn } = useStore();
   const { t } = useI18n();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -32,7 +32,6 @@ export function LoginPage() {
 
     if (result.success) {
       toast.success(t('ui.welcome_back_9bee'));
-      await refreshProfile();
       const { user: freshUser } = useStore.getState();
       if (freshUser?.role === 'admin') {
         navigate('/admin', { replace: true });

@@ -1,169 +1,233 @@
 import { useEffect, useState } from 'react';
-  import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Logo } from '@/components/Logo';
 
-  interface SplashScreenProps {
-    onComplete: () => void;
-  }
+interface SplashScreenProps {
+  onComplete: () => void;
+}
 
-  export function SplashScreen({ onComplete }: SplashScreenProps) {
-    const [exiting, setExiting] = useState(false);
+/* Timeline (seconds)
+ *  0.00 – 0.65  car drives in from the right
+ *  0.65 – 1.20  car stops, passenger walks in
+ *  1.20 – 1.80  car drives away to the left
+ *  1.85 – 2.15  fade out, app opens
+ */
+const CAR_DURATION = 1.9;
+const CAR_TIMES = [0, 0.34, 0.63, 0.95, 1];
 
-    useEffect(() => {
-      const t1 = setTimeout(() => setExiting(true), 700);
-      const t2 = setTimeout(() => onComplete(),      1100);
-      return () => { clearTimeout(t1); clearTimeout(t2); };
-    }, [onComplete]);
-
-    return (
-      <AnimatePresence>
-        {!exiting && (
-          <motion.div
-            key="splash"
-            style={{ position: 'fixed', inset: 0, zIndex: 9999, background: '#000', overflow: 'hidden' }}
-            initial={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.55, ease: 'easeIn' }}
+function Car() {
+  return (
+    <svg viewBox="0 0 200 84" width="190" height="80" aria-hidden="true">
+      <defs>
+        <linearGradient id="splash-body" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#FF8A2B" />
+          <stop offset="1" stopColor="#F05A00" />
+        </linearGradient>
+      </defs>
+      {/* ground shadow */}
+      <ellipse cx="100" cy="80" rx="86" ry="4" fill="rgba(0,0,0,0.45)" />
+      {/* cabin */}
+      <path d="M50 42 L70 14 Q72 11 77 11 L128 11 Q134 11 138 15 L162 42 Z" fill="url(#splash-body)" />
+      {/* windows */}
+      <path d="M59 40 L75 17 L103 17 L103 40 Z" fill="#1B222C" />
+      <path d="M109 17 L127 17 Q130 17 132 19 L149 40 L109 40 Z" fill="#1B222C" />
+      <path d="M62 38 L77 19 L84 19 L70 38 Z" fill="rgba(255,255,255,0.14)" />
+      {/* body */}
+      <rect x="8" y="40" width="184" height="30" rx="13" fill="url(#splash-body)" />
+      <rect x="8" y="58" width="184" height="12" rx="6" fill="rgba(0,0,0,0.16)" />
+      {/* door line + brand mark */}
+      <path d="M106 42 L106 62" stroke="rgba(0,0,0,0.25)" strokeWidth="1.5" />
+      <path d="M126 50 L131 60 L135 53 L139 60 L144 50" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+      {/* lights */}
+      <rect x="9" y="48" width="9" height="6" rx="3" fill="#FFF2C4" />
+      <rect x="183" y="48" width="8" height="6" rx="3" fill="#FF3B30" />
+      {/* wheels */}
+      {[48, 154].map((cx) => (
+        <g key={cx}>
+          <circle cx={cx} cy="68" r="14" fill="#12151A" stroke="#2B313B" strokeWidth="2" />
+          <motion.g
+            style={{ originX: `${cx}px`, originY: '68px', transformBox: 'view-box' as any }}
+            animate={{ rotate: -720 }}
+            transition={{ duration: CAR_DURATION, ease: 'linear' }}
           >
-            {/* Real splash image - cinematic Ken Burns zoom */}
-            <motion.div
+            <circle cx={cx} cy="68" r="6" fill="#AEB6C2" />
+            <path d={`M${cx - 6} 68 L${cx + 6} 68 M${cx} 62 L${cx} 74`} stroke="#4A525E" strokeWidth="2" />
+          </motion.g>
+        </g>
+      ))}
+    </svg>
+  );
+}
+
+function Passenger() {
+  return (
+    <svg viewBox="0 0 34 64" width="30" height="56" aria-hidden="true">
+      {/* bag */}
+      <rect x="21" y="38" width="11" height="14" rx="3" fill="#C2410C" />
+      <path d="M24 38 L24 35 L29 35 L29 38" fill="none" stroke="#9A3412" strokeWidth="1.5" />
+      {/* legs */}
+      <rect x="9" y="42" width="6" height="18" rx="3" fill="#2F3745" />
+      <rect x="17" y="42" width="6" height="18" rx="3" fill="#2F3745" />
+      {/* body */}
+      <rect x="6" y="18" width="20" height="28" rx="8" fill="#ECEFF3" />
+      {/* arm */}
+      <rect x="21" y="22" width="5" height="18" rx="2.5" fill="#D5DAE1" />
+      {/* head */}
+      <circle cx="16" cy="10" r="7.5" fill="#E9B98F" />
+      <path d="M8.5 9 Q9 2 16 2 Q23 2 23.5 9 Q20 6 16 6 Q12 6 8.5 9 Z" fill="#2A211C" />
+    </svg>
+  );
+}
+
+export function SplashScreen({ onComplete }: SplashScreenProps) {
+  const [exiting, setExiting] = useState(false);
+  const reduceMotion =
+    typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
+  useEffect(() => {
+    const t1 = setTimeout(() => setExiting(true), reduceMotion ? 500 : 1850);
+    const t2 = setTimeout(() => onComplete(), reduceMotion ? 700 : 2150);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
+  }, [onComplete, reduceMotion]);
+
+  return (
+    <AnimatePresence>
+      {!exiting && (
+        <motion.div
+          key="splash"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 9999,
+            overflow: 'hidden',
+            background:
+              'radial-gradient(ellipse 80% 45% at 50% 62%, rgba(255,107,0,0.16) 0%, rgba(15,17,21,0) 70%), #0F1115',
+          }}
+          initial={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.3, ease: 'easeIn' }}
+        >
+          {/* Brand */}
+          <motion.div
+            style={{
+              position: 'absolute',
+              left: 0,
+              right: 0,
+              top: 'calc(24% + env(safe-area-inset-top, 0px) / 2)',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: 14,
+            }}
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.05, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+          >
+            <Logo className="w-16 h-16" />
+            <div
               style={{
-                position: 'absolute',
-                inset: 0,
-                backgroundImage: 'url(/images/wansniauto-logo.png)',
-                backgroundSize: 'cover',
-                backgroundPosition: 'center 30%',
-                transformOrigin: '55% 62%',
-                willChange: 'transform',
+                fontFamily: 'Inter, system-ui, sans-serif',
+                fontWeight: 700,
+                fontSize: 'clamp(24px, 6.5vw, 34px)',
+                letterSpacing: '-0.01em',
+                color: '#fff',
+                lineHeight: 1,
               }}
-              initial={{ scale: 1.1, opacity: 0 }}
-              animate={{ scale: 1.0, opacity: 1 }}
-              transition={{ duration: 1.6, ease: [0.25, 0.46, 0.45, 0.94] }}
-            />
-
-            {/* Dark cinematic gradients */}
-            <div style={{
-              position: 'absolute', inset: 0,
-              background: 'linear-gradient(to bottom, rgba(0,0,0,0.6) 0%, transparent 28%, transparent 52%, rgba(0,0,0,0.7) 100%)',
-              zIndex: 1,
-            }} />
-            <div style={{
-              position: 'absolute', inset: 0,
-              background: 'radial-gradient(ellipse at center, transparent 38%, rgba(0,0,0,0.5) 100%)',
-              zIndex: 1,
-            }} />
-
-            {/* Animated orange light trails */}
-            <div style={{ position: 'absolute', inset: 0, zIndex: 2, overflow: 'hidden', pointerEvents: 'none' }}>
-              {([
-                { side: 'left',  xPos: '36%', rot: '-14deg', delays: [0.25, 0.52, 0.8] },
-                { side: 'right', xPos: '62%', rot:  '14deg', delays: [0.35, 0.63, 0.92] },
-              ] as const).flatMap(({ side, xPos, rot, delays }) =>
-                delays.map((d, i) => (
-                  <motion.div
-                    key={side + i}
-                    style={{
-                      position: 'absolute',
-                      bottom: '18%',
-                      ...(side === 'left' ? { left: xPos } : { right: xPos }),
-                      width: 1.5,
-                      height: '46%',
-                      background: 'linear-gradient(to top, transparent 0%, #FF6B00 28%, rgba(255,107,0,0.75) 65%, transparent 100%)',
-                      filter: 'blur(0.8px)',
-                      transformOrigin: 'bottom center',
-                      transform: 'rotate(' + rot + ')',
-                      boxShadow: '0 0 7px #FF6B00, 0 0 18px rgba(255,107,0,0.35)',
-                    }}
-                    initial={{ scaleY: 0, opacity: 0 }}
-                    animate={{ scaleY: [0, 1, 0], opacity: [0, 1, 0], y: [0, -25] }}
-                    transition={{ delay: d, duration: 0.85, ease: 'easeOut', repeat: Infinity, repeatDelay: 0.28 }}
-                  />
-                ))
-              )}
-
-              {/* Road bottom orange glow */}
-              <motion.div
-                style={{
-                  position: 'absolute', bottom: 0, left: '18%', right: '18%', height: '32%',
-                  background: 'radial-gradient(ellipse at bottom, rgba(255,107,0,0.18) 0%, transparent 70%)',
-                }}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: [0, 1, 0.75] }}
-                transition={{ delay: 0.3, duration: 1.1 }}
-              />
+            >
+              Wansni<span style={{ color: '#FF6B00' }}>Auto</span>
             </div>
+          </motion.div>
 
-            {/* Logo + brand overlay */}
-            <div style={{
-              position: 'absolute', inset: 0, zIndex: 3,
-              display: 'flex', flexDirection: 'column', alignItems: 'center',
-              justifyContent: 'flex-start', paddingTop: '10%',
-            }}>
+          {!reduceMotion && (
+            <div style={{ position: 'absolute', left: 0, right: 0, top: '50%', height: 130 }}>
+              {/* road */}
+              <div
+                style={{
+                  position: 'absolute',
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  height: 2,
+                  background:
+                    'linear-gradient(to right, transparent, rgba(255,255,255,0.28) 20%, rgba(255,255,255,0.28) 80%, transparent)',
+                }}
+              />
+              <div
+                style={{
+                  position: 'absolute',
+                  left: '10%',
+                  right: '10%',
+                  bottom: -12,
+                  height: 2,
+                  backgroundImage:
+                    'repeating-linear-gradient(to right, rgba(255,107,0,0.5) 0 18px, transparent 18px 38px)',
+                }}
+              />
+
+              {/* passenger waiting, then boarding */}
               <motion.div
-                style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.35, duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
+                style={{ position: 'absolute', left: '50%', bottom: 26, marginLeft: -4, zIndex: 1 }}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: [0, 1, 1, 0], y: [6, 0, 0, 12], scale: [1, 1, 1, 0.65] }}
+                transition={{ duration: 1.3, times: [0, 0.25, 0.62, 0.8], ease: 'easeOut' }}
               >
-                {/* W circle icon */}
+                <Passenger />
+              </motion.div>
+
+              {/* car: drives in, stops, then leaves */}
+              <motion.div
+                style={{ position: 'absolute', left: '50%', bottom: 8, marginLeft: -95, zIndex: 2 }}
+                initial={{ x: '70vw' }}
+                animate={{
+                  x: ['70vw', '0vw', '0vw', '-85vw', '-85vw'],
+                  rotate: [0, -1.8, 0, 1.6, 0],
+                }}
+                transition={{
+                  duration: CAR_DURATION,
+                  times: CAR_TIMES,
+                  ease: ['easeOut', 'linear', 'easeIn', 'linear'],
+                }}
+              >
+                {/* headlight glow */}
                 <motion.div
                   style={{
-                    width: 64, height: 64, borderRadius: '50%',
-                    border: '2px solid #FF6B00',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(6px)',
+                    position: 'absolute',
+                    left: -64,
+                    top: 40,
+                    width: 80,
+                    height: 26,
+                    background: 'radial-gradient(ellipse at right, rgba(255,242,196,0.38), transparent 70%)',
+                    filter: 'blur(3px)',
                   }}
-                  animate={{
-                    boxShadow: [
-                      '0 0 10px #FF6B00, 0 0 26px rgba(255,107,0,0.28)',
-                      '0 0 20px #FF6B00, 0 0 50px rgba(255,107,0,0.48)',
-                      '0 0 10px #FF6B00, 0 0 26px rgba(255,107,0,0.28)',
-                    ],
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: [0, 1, 1, 1] }}
+                  transition={{ duration: 0.4 }}
+                />
+                {/* speed streaks behind the car */}
+                <motion.div
+                  style={{
+                    position: 'absolute',
+                    left: 170,
+                    top: 46,
+                    width: 70,
+                    height: 14,
+                    background:
+                      'repeating-linear-gradient(to bottom, rgba(255,107,0,0.55) 0 2px, transparent 2px 6px)',
+                    maskImage: 'linear-gradient(to right, #000, transparent)',
+                    WebkitMaskImage: 'linear-gradient(to right, #000, transparent)',
                   }}
-                  transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut' }}
-                >
-                  <svg width="34" height="23" viewBox="0 0 38 26" fill="none">
-                    <path d="M2 2 L9.5 22 L14 10 L19 22 L23 10 L28.5 22 L36 2" stroke="white" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-                    <path d="M2 2 L9.5 22 L14 10 L19 22" stroke="#FF6B00" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-                  </svg>
-                </motion.div>
-
-                {/* Brand text */}
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{
-                    fontFamily: 'Inter, sans-serif', fontWeight: 900,
-                    fontSize: 'clamp(22px, 5.5vw, 34px)',
-                    letterSpacing: '0.2em', color: '#fff',
-                    textShadow: '0 2px 18px rgba(0,0,0,0.85)', lineHeight: 1,
-                  }}>
-                    WANSNI<span style={{ color: '#FF6B00', textShadow: '0 0 18px #FF6B00, 0 2px 18px rgba(0,0,0,0.85)' }}>AUTO</span>
-                  </div>
-                  <motion.div
-                    style={{
-                      height: 1, marginTop: 6,
-                      background: 'linear-gradient(to right, transparent, #FF6B00, transparent)',
-                      boxShadow: '0 0 6px #FF6B00',
-                    }}
-                    initial={{ scaleX: 0 }}
-                    animate={{ scaleX: 1 }}
-                    transition={{ delay: 0.65, duration: 0.45 }}
-                  />
-                  <div style={{
-                    fontFamily: 'Inter, sans-serif', fontWeight: 400,
-                    fontSize: 9, letterSpacing: '0.28em',
-                    color: 'rgba(255,255,255,0.5)', marginTop: 5, textTransform: 'uppercase',
-                  }}>
-                    VOYAGEZ ENSEMBLE
-                  </div>
-                </div>
+                  animate={{ opacity: [0.9, 0, 0, 0.9, 0.9] }}
+                  transition={{ duration: CAR_DURATION, times: CAR_TIMES }}
+                />
+                <Car />
               </motion.div>
             </div>
-
-            {/* Cinematic letterbox bars */}
-            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '4.5%', background: '#000', zIndex: 10 }} />
-            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '4.5%', background: '#000', zIndex: 10 }} />
-          </motion.div>
-        )}
-      </AnimatePresence>
-    );
-  }
-  
+          )}
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}

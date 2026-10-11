@@ -377,7 +377,7 @@ export function ProfilePage() {
 
                 {showUploadMenu && (
                   <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-                    className="absolute top-full left-0 mt-2 bg-[#1B1F27] border border-white/10 rounded-xl shadow-xl overflow-hidden z-50 min-w-[160px]">
+                    className="absolute top-full start-0 mt-2 bg-[#1B1F27] border border-white/10 rounded-xl shadow-xl overflow-hidden z-50 min-w-[160px] max-w-[calc(100vw-2rem)]">
                     <button onClick={() => { galleryInputRef.current?.click(); setShowUploadMenu(false); }}
                       className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition-colors text-left">
                       <Upload className="w-4 h-4 text-[#FF6B00]" />

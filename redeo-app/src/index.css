@@ -33,13 +33,17 @@
   * {
     @apply border-border;
   }
-  html {
-    scroll-behavior: smooth;
-  }
   body {
     @apply bg-[#0F1115] text-[#ffffff] antialiased;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
   }
+  input, textarea, select {
+    -webkit-user-select: text;
+    user-select: text;
+    -webkit-touch-callout: default;
+    touch-action: manipulation;
+  }
+  a, button, label { touch-action: manipulation; }
   h1, h2, h3, h4, h5, h6 {
     font-family: 'Space Grotesk', sans-serif;
     letter-spacing: -0.01em;

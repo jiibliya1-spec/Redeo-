@@ -48,7 +48,7 @@ export function LoginPage() {
 
   return (
     <div className="min-h-screen bg-[#0F1115] flex items-center justify-center px-4 pt-16">
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="w-full max-w-md">
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }} className="w-full max-w-md">
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex items-center gap-2 mb-6">
             <Logo className="w-10 h-10" />
@@ -61,12 +61,12 @@ export function LoginPage() {
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
             <Label className="text-sm text-[#A0A0A0] mb-2 block">{t('auth.email')}</Label>
-            <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@email.ma" className="bg-[#1B1F27] border-white/10 text-white placeholder:text-[#A0A0A0]/40 h-12 rounded-xl" required />
+            <Input type="email" name="email" autoComplete="email" inputMode="email" autoCapitalize="none" autoCorrect="off" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@email.ma" className="bg-[#1B1F27] border-white/10 text-white placeholder:text-[#A0A0A0]/40 h-12 rounded-xl" required />
           </div>
           <div>
             <Label className="text-sm text-[#A0A0A0] mb-2 block">{t('auth.password')}</Label>
             <div className="relative">
-              <Input type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} placeholder={t('ui.enter_password_483b')} className="bg-[#1B1F27] border-white/10 text-white placeholder:text-[#A0A0A0]/40 h-12 rounded-xl pr-10" required />
+              <Input type={showPassword ? 'text' : 'password'} name="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder={t('ui.enter_password_483b')} className="bg-[#1B1F27] border-white/10 text-white placeholder:text-[#A0A0A0]/40 h-12 rounded-xl pr-10" required />
               <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#A0A0A0]">
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>

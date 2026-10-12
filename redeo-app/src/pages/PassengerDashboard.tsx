@@ -8,6 +8,7 @@ import { useStore } from '@/store/useStore';
 import { useI18n } from '@/lib/i18n';
 import { supabase } from '@/lib/supabase';
 import { hasDeparted } from '@/lib/tripTime';
+import { passengerChecks } from '@/lib/verify';
 import { toast } from 'sonner';
 import { CancelBookingSheet } from '@/components/CancelBookingSheet';
 import { cancelBooking } from '@/services/bookingService';
@@ -266,7 +267,7 @@ export function PassengerDashboard() {
               <h1 className="text-2xl font-bold text-white" dir={dir}>{t('passenger.title')}</h1>
               <div className="flex items-center gap-2 mt-1">
                 <Shield className="w-3.5 h-3.5 text-[#FF6B00]" />
-                <span className="text-xs text-[#FF6B00]">{user?.is_verified ? t('profile.verified') : t('profile.unverified')}</span>
+                <span className="text-xs text-[#FF6B00]">{(user?.is_verified || passengerChecks(user).complete) ? t('profile.verified') : t('profile.unverified')}</span>
               </div>
             </div>
           </div>

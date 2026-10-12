@@ -1,3 +1,4 @@
+import { PassengerVerification } from '@/components/PassengerVerification';
 import { useState, useEffect, useCallback, useRef } from 'react';
   import { Link } from 'react-router-dom';
   import { motion, AnimatePresence } from 'framer-motion';
@@ -81,7 +82,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
   const SELFIE_IDS = ['selfie'];
 
   export default function VerificationPage() {
-    const { user, setUser } = useStore();
+    const { user, setUser, mode } = useStore();
     const { lang, t } = useI18n();
     const [steps, setSteps] = useState<DocStep[]>([...ALL_DOCS]);
     const [submitting, setSubmitting] = useState(false);
@@ -270,7 +271,6 @@ import { useState, useEffect, useCallback, useRef } from 'react';
     };
 
     /* ─── Submit for Review ─── */
-    const REQUIRED_PASSENGER = ['cin_front', 'cin_back', 'selfie'];
     const handleSubmit = async () => {
       if (!user?.id) return;
       const uploadedDocs = steps.filter((s) => s.status === 'uploaded');
@@ -287,7 +287,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
         toast.error((lang === 'ar' ? 'عاود صور: ' : lang === 'fr' ? 'À reprendre : ' : 'Please retake: ') + toRetake.map(getLabel).join(', '));
         return;
       }
-      const required = user.role === 'driver' ? ALL_DOCS.map((d) => d.id) : REQUIRED_PASSENGER;
+      const required = ALL_DOCS.map((d) => d.id);
       const have = new Set(steps.filter((s) => ['uploaded', 'pending', 'approved'].includes(s.status)).map((s) => s.id));
       const missing = steps.filter((s) => required.includes(s.id) && !have.has(s.id));
       if (missing.length && !window.confirm(
@@ -346,6 +346,8 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 
     /* Active camera step */
     const activeCamStep = activeCameraDoc ? steps.find(s => s.id === activeCameraDoc) : null;
+
+    if (mode !== 'driver' && user?.role !== 'driver') return <PassengerVerification />;
 
     return (
       <div className="min-h-screen bg-[#0F1115] pt-16 pb-8">

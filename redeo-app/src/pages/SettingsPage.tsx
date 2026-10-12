@@ -1,3 +1,4 @@
+import { syncVerification } from '@/lib/verify';
 import { useState, useEffect, useCallback } from 'react';
 import { RatingBadge } from '@/components/Rating';
 import { resolveAvatar } from '@/lib/utils';
@@ -957,6 +958,7 @@ export function SettingsPage() {
                     try {
                       await supabase.from('profiles').update({ role: 'driver' }).eq('id', user!.id);
                       setMode('driver');
+                      await syncVerification();
                       toast.success(t('ui.driver_mode_enabled_ea7b'));
                       setActiveDrawer(null);
                       navigate('/verification');
@@ -984,6 +986,7 @@ export function SettingsPage() {
                     try {
                       await supabase.from('profiles').update({ role: 'passenger' }).eq('id', user!.id);
                       setMode('passenger');
+                      await syncVerification();
                       toast.success(t('ui.passenger_mode_enabled_06dc'));
                       setActiveDrawer(null);
                       setTimeout(() => navigate('/dashboard'), 300);

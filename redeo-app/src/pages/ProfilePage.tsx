@@ -7,6 +7,7 @@ import { useStore } from '@/store/useStore';
 import { useI18n } from '@/lib/i18n';
 import { apiPatch, supabase } from '@/lib/supabase';
 import { uploadAvatar } from '@/services/storageService';
+import { syncVerification } from '@/lib/verify';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -232,6 +233,7 @@ export function ProfilePage() {
         await apiPatch('profiles', 'id', user.id, { avatar: url });
       } catch { /* silent */ }
       setUser({ ...user, avatar: url });
+      void syncVerification();
       toast.success(t('ui.avatar_uploaded_e37f'));
     } catch {
       const reader = new FileReader();
@@ -278,6 +280,7 @@ export function ProfilePage() {
     }
     dirtyRef.current = false;
     setUser({ ...user, ...updates });
+    void syncVerification();
     setIsEditing(false);
     setIsSaving(false);
   };

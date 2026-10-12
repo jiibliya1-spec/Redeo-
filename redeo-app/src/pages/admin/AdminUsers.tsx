@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { encodeText } from '@/lib/notifText';
 import { resolveAvatar } from '@/lib/utils';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { supabase } from '@/lib/supabase';
@@ -146,11 +147,24 @@ export function AdminUsers() {
           headers,
           body: JSON.stringify({
             is_verified: !currentStatus,
-            verification_status: !currentStatus ? 'approved' : 'unverified',
+            verification_status: !currentStatus ? 'verified' : 'unverified',
           }),
         }
       );
       if (!res.ok) throw new Error(await res.text());
+
+      if (!currentStatus) {
+        // same notification the document-review flow sends (language-neutral)
+        fetch(`${SUPABASE_URL}/rest/v1/notifications`, {
+          method: 'POST',
+          headers: { ...headers, Prefer: 'return=minimal' },
+          body: JSON.stringify({
+            user_id: userId, type: 'verification_approved',
+            title: encodeText('notif.verif_approved_title'), message: encodeText('notif.verif_approved_msg'),
+            data: JSON.stringify({ status: 'approved' }), read: false, created_at: new Date().toISOString(),
+          }),
+        }).catch(() => {});
+      }
 
       setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, is_verified: !currentStatus } : u)));
       toast.success(!currentStatus ? 'User verified!' : 'User unverified');

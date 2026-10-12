@@ -161,8 +161,9 @@ import { useState, useEffect, useCallback, useRef } from 'react';
           const p = payload.new as any;
           if (!p) return;
           const currentUser = useStore.getState().user;
+          const wasVerified = currentUser?.is_verified === true;
           if (currentUser) setUser({ ...currentUser, is_verified: p.is_verified === true, verification_status: p.verification_status });
-          if (p.is_verified) toast.success(lang === 'ar' ? '🎉 تم التحقق من حسابك!' : lang === 'fr' ? '🎉 Votre compte est vérifié!' : '🎉 Your account has been verified!');
+          if (p.is_verified && !wasVerified) toast.success(lang === 'ar' ? '🎉 تم التحقق من حسابك!' : lang === 'fr' ? '🎉 Votre compte est vérifié!' : '🎉 Your account has been verified!');
           else if (p.verification_status === 'rejected') toast.error(lang === 'ar' ? 'تم رفض وثائقك' : lang === 'fr' ? 'Vos documents ont été rejetés' : 'Your documents were rejected');
         })
         .subscribe();
@@ -471,6 +472,8 @@ import { useState, useEffect, useCallback, useRef } from 'react';
           {/* ── Document Cards ── */}
           <div className="space-y-3">
             {steps.map((step, i) => {
+              // a verified account never shows its uploaded documents as "under review"
+              if (isVerified && (step.status === 'pending' || step.status === 'uploaded') && step.filePath) step = { ...step, status: 'approved' };
               const st = getStatus(step.status);
               const canUpload = step.status === 'not_uploaded' || step.status === 'rejected' || (step.status === 'uploaded' && step.ai?.state === 'retake');
               const canDelete = step.status === 'uploaded' && !step.busy;

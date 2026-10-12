@@ -24,6 +24,7 @@ export function ProfilePage() {
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState('');
   const [bio, setBio] = useState('');
+  const dirtyRef = useRef(false); // user is typing → background profile refreshes must not overwrite the form
   const [phone, setPhone] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
   const [isSaving, setIsSaving] = useState(false);
@@ -128,10 +129,12 @@ export function ProfilePage() {
   // Load user data into form
   useEffect(() => {
     if (user) {
-      setName(user.name || '');
-      setBio(user.bio || '');
-      setPhone(user.phone || '');
-      setAvatarUrl(user.avatar || '');
+      if (!dirtyRef.current) {
+        setName(user.name || '');
+        setBio(user.bio || '');
+        setPhone(user.phone || '');
+        setAvatarUrl(user.avatar || '');
+      }
       // Also sync local state from user
       setProfileVerified(user.is_verified === true);
       setProfileStatus(user.verification_status || 'unverified');
@@ -273,6 +276,7 @@ export function ProfilePage() {
       } catch { /* silent */ }
       toast.success(t('ui.profile_saved_locally_7702'));
     }
+    dirtyRef.current = false;
     setUser({ ...user, ...updates });
     setIsEditing(false);
     setIsSaving(false);
@@ -395,7 +399,7 @@ export function ProfilePage() {
 
               <div className="flex-1">
                 {isEditing ? (
-                  <Input value={name} onChange={e => setName(e.target.value)} className="bg-[#0F1115] border-white/10 text-white h-9 rounded-xl mb-2" />
+                  <Input value={name} onChange={e => { dirtyRef.current = true; setName(e.target.value); }} className="bg-[#0F1115] border-white/10 text-white h-9 rounded-xl mb-2" />
                 ) : (
                   <h1 className="text-xl font-bold text-white">{user.name || 'User'}</h1>
                 )}
@@ -430,7 +434,7 @@ export function ProfilePage() {
           <div className="mb-4">
             <Label className="text-sm text-[#A0A0A0] mb-2 block">{t('profile.bio')}</Label>
             {isEditing ? (
-              <Textarea value={bio} onChange={e => setBio(e.target.value)} placeholder={t('profile.bio_placeholder')} className="bg-[#0F1115] border-white/10 text-white rounded-xl min-h-[80px]" />
+              <Textarea value={bio} onChange={e => { dirtyRef.current = true; setBio(e.target.value); }} placeholder={t('profile.bio_placeholder')} className="bg-[#0F1115] border-white/10 text-white rounded-xl min-h-[80px]" />
             ) : (
               <p className="text-sm text-[#A0A0A0]">{user.bio || t('common.no_bio')}</p>
             )}
@@ -439,7 +443,7 @@ export function ProfilePage() {
           <div>
             <Label className="text-sm text-[#A0A0A0] mb-2 block">{t('profile.phone')}</Label>
             {isEditing ? (
-              <Input value={phone} onChange={e => setPhone(e.target.value)} className="bg-[#0F1115] border-white/10 text-white h-9 rounded-xl" />
+              <Input value={phone} onChange={e => { dirtyRef.current = true; setPhone(e.target.value); }} className="bg-[#0F1115] border-white/10 text-white h-9 rounded-xl" />
             ) : (
               <p className="text-sm text-[#A0A0A0]">{user.phone || t('common.not_set')}</p>
             )}

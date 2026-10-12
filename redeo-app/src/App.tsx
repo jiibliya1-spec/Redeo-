@@ -75,6 +75,8 @@ const SafetyPage = lazy(() => import('@/pages/SafetyPage'));
 const FAQPage = lazy(() => import('@/pages/FAQPage'));
 const LegalPage = lazy(() => import('@/pages/LegalPage'));
 import { NotificationListener } from '@/components/NotificationListener';
+import { loadAdminSettings } from '@/lib/adminSettings';
+import { Wrench } from 'lucide-react';
 import { Toaster } from '@/components/ui/sonner';
 import { Spinner } from '@/components/ui/spinner';
 
@@ -201,6 +203,16 @@ function AppContent() {
     return () => { subscription.unsubscribe(); };
   }, []);
 
+  // Maintenance mode (set by the admin): everyone except admins sees a maintenance screen
+  const [maintenance, setMaintenance] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    const check = () => loadAdminSettings().then((v) => { if (alive) setMaintenance(!!v.maintenance); });
+    check();
+    const id = window.setInterval(check, 60000);
+    return () => { alive = false; clearInterval(id); };
+  }, []);
+
   // Warm the most-used screens in the background once the app is idle, so taps feel instant
   useEffect(() => {
     if (isLoading) return;
@@ -237,6 +249,18 @@ function AppContent() {
   }
 
   const isAdmin = user?.role === 'admin';
+
+  if (maintenance && !isAdmin && window.location.pathname !== '/login') {
+    return (
+      <div className="min-h-screen bg-[#0F1115] flex items-center justify-center px-6 text-center" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+        <div className="max-w-sm">
+          <div className="w-14 h-14 mx-auto mb-5 rounded-2xl bg-[#FF6B00]/10 flex items-center justify-center"><Wrench className="w-7 h-7 text-[#FF6B00]" /></div>
+          <h1 className="text-xl font-bold text-white mb-2">{getTranslation(language, 'adm.maintenance_title')}</h1>
+          <p className="text-sm text-[#A0A0A0] leading-relaxed">{getTranslation(language, 'adm.maintenance_body')}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#0F1115] text-white font-sans">

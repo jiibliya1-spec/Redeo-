@@ -14,6 +14,7 @@ interface NotifItem {
   title: string;
   message: string;
   data?: any;
+  link?: string | null;
   created_at: string;
   read: boolean;
 }
@@ -52,7 +53,7 @@ export function NotificationsPage() {
     // PRIMARY: Supabase — always filtered by user_id via RLS + explicit eq
     const { data } = await supabase
       .from('notifications')
-      .select('id, type, title, message, data, created_at, read')
+      .select('id, type, title, message, data, link, created_at, read')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .limit(80);
@@ -220,7 +221,7 @@ export function NotificationsPage() {
         {open && (() => {
           const loc = localizeNotification(open, lang);
           const tripId = /\|\|TRIP:([^|]+)\|\|/.exec(open.message || '')?.[1];
-          const dest = tripId ? (user?.role === 'driver' || useStore.getState().mode === 'driver' ? '/driver' : '/my-trips') : open.type === 'message' ? '/messages' : open.type === 'support' ? '/support' : null;
+          const dest = tripId ? (user?.role === 'driver' || useStore.getState().mode === 'driver' ? '/driver' : '/my-trips') : open.type === 'message' ? '/messages' : open.type === 'support' ? '/support' : (open.link && open.link.startsWith('/') ? open.link : null);
           return (
             <motion.div key="sheet" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               className="fixed inset-0 z-[70] bg-black/60 flex items-end sm:items-center justify-center" onClick={() => setOpen(null)} dir={dir}>

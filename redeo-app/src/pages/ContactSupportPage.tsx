@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useStore } from '@/store/useStore';
@@ -40,6 +40,7 @@ interface SupportTicket {
   subject: string;
   message: string;
   screenshot_url?: string;
+  admin_reply?: string | null;
   status: 'open' | 'in_progress' | 'resolved' | 'closed';
   created_at: string;
   updated_at: string;
@@ -49,6 +50,34 @@ interface SupportTicket {
 interface ScreenshotFile {
   file: File;
   preview: string;
+}
+
+function TicketList({ tickets, statusColor, statusLabel }: { tickets: SupportTicket[]; statusColor: (s: string) => string; statusLabel: (s: string) => string }) {
+  const { t: tr } = useI18n();
+  return (
+    <div className="space-y-2">
+      {tickets.map(t => (
+        <div key={t.id} className="bg-[#1B1F27] rounded-xl p-3 border border-white/5">
+          <div className="flex items-center justify-between mb-1 gap-2">
+            <p className="text-sm text-white font-medium truncate">{t.subject}</p>
+            <span className={`text-[10px] px-2 py-0.5 rounded-full shrink-0 ${statusColor(t.status)}`}>
+              {statusLabel(t.status)}
+            </span>
+          </div>
+          <p className="text-xs text-[#A0A0A0] whitespace-pre-wrap">{t.message}</p>
+          {t.admin_reply && (
+            <div className="mt-2 rounded-lg bg-green-500/10 border border-green-500/20 p-2.5">
+              <p className="text-[11px] font-medium text-green-400 mb-1">{tr('support.reply_label')}</p>
+              <p className="text-sm text-white whitespace-pre-wrap">{t.admin_reply}</p>
+            </div>
+          )}
+          <p className="text-[10px] text-[#A0A0A0]/50 mt-1">
+            {t.created_at ? new Date(t.created_at).toLocaleDateString() : ''}
+          </p>
+        </div>
+      ))}
+    </div>
+  );
 }
 
 export function ContactSupportPage() {
@@ -337,7 +366,7 @@ export function ContactSupportPage() {
   }, [user?.id]);
 
   // Load history on mount
-  useCallback(() => { loadHistory(); }, [loadHistory]);
+  useEffect(() => { loadHistory(); }, [loadHistory]);
 
   /* ════════════════════════════════════════════
      SUBMITTED SUCCESS VIEW
@@ -389,22 +418,7 @@ export function ContactSupportPage() {
               ) : tickets.length === 0 ? (
                 <p className="text-sm text-[#A0A0A0] text-center py-4">{T.noTickets}</p>
               ) : (
-                <div className="space-y-2">
-                  {tickets.map(t => (
-                    <div key={t.id} className="bg-[#1B1F27] rounded-xl p-3 border border-white/5">
-                      <div className="flex items-center justify-between mb-1">
-                        <p className="text-sm text-white font-medium truncate">{t.subject}</p>
-                        <span className={`text-[10px] px-2 py-0.5 rounded-full ${statusColor(t.status)}`}>
-                          {(T as any)[`status_${t.status}`] || t.status}
-                        </span>
-                      </div>
-                      <p className="text-xs text-[#A0A0A0] truncate">{t.message}</p>
-                      <p className="text-[10px] text-[#A0A0A0]/50 mt-1">
-                        {t.created_at ? new Date(t.created_at).toLocaleDateString() : ''}
-                      </p>
-                    </div>
-                  ))}
-                </div>
+                <TicketList tickets={tickets} statusColor={statusColor} statusLabel={(st) => (T as any)[`status_${st}`] || st} />
               )}
             </motion.div>
           )}
@@ -443,6 +457,13 @@ export function ContactSupportPage() {
             <p className="text-sm text-[#FF6B00] font-medium">{T.contactEmail}</p>
           </div>
         </motion.div>
+
+        {tickets.length > 0 && (
+          <div className="mb-6">
+            <h3 className="text-sm font-medium text-white mb-3">{T.history}</h3>
+            <TicketList tickets={tickets} statusColor={statusColor} statusLabel={(st) => (T as any)[`status_${st}`] || st} />
+          </div>
+        )}
 
         {/* Support Form */}
         <motion.form

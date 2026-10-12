@@ -471,6 +471,10 @@ export const EXTRA: Record<Lang, Record<string, string>> = {
     'adm.wd_min': 'Minimum withdrawal (MAD)',
     'adm.wd_pending': 'Withdrawal requests',
     'adm.wd_paid_hint': 'Approve only after you sent the money.',
+    'support.reply_label': 'Reply from Redeo support',
+    'support.reply_failed': 'Reply could not be sent. Please try again.',
+    'notif.support_reply_title': 'Support replied to your message',
+    'notif.support_reply_msg': 'Re: {subject}',
   },
   fr: {
     'rating.none': 'Pas encore noté',
@@ -941,6 +945,10 @@ export const EXTRA: Record<Lang, Record<string, string>> = {
     'adm.wd_min': 'Retrait minimum (MAD)',
     'adm.wd_pending': 'Demandes de retrait',
     'adm.wd_paid_hint': "Approuvez seulement après avoir envoyé l'argent.",
+    'support.reply_label': 'Réponse du support Redeo',
+    'support.reply_failed': "La réponse n'a pas pu être envoyée. Réessayez.",
+    'notif.support_reply_title': 'Le support a répondu à votre message',
+    'notif.support_reply_msg': 'Re : {subject}',
   },
   ar: {
     'rating.none': 'مازال ماعندو حتى تقييم',
@@ -1411,5 +1419,9 @@ export const EXTRA: Record<Lang, Record<string, string>> = {
     'adm.wd_min': 'الحد الأدنى للسحب (درهم)',
     'adm.wd_pending': 'طلبات السحب',
     'adm.wd_paid_hint': 'قبل غير من بعد ما تصيفط الفلوس.',
+    'support.reply_label': 'جواب فريق دعم Redeo',
+    'support.reply_failed': 'ما قدرناش نصيفطو الجواب. عاود المحاولة.',
+    'notif.support_reply_title': 'الدعم جاوبك على الرسالة ديالك',
+    'notif.support_reply_msg': 'بخصوص: {subject}',
   },
 };

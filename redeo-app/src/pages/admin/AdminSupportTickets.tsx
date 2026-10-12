@@ -179,7 +179,12 @@ export function AdminSupportTickets() {
       console.warn('[sendReply] Supabase error:', e);
     }
 
-    // Always update localStorage (fallback + cache)
+    if (!supabaseSuccess) {
+      toast.error(t('support.reply_failed'));
+      setSendingReply(false);
+      return;
+    }
+
     try {
       const localTickets = JSON.parse(localStorage.getItem('wansniauto_support_tickets') || '[]');
       const updated = localTickets.map((t: any) =>
@@ -188,12 +193,11 @@ export function AdminSupportTickets() {
       localStorage.setItem('wansniauto_support_tickets', JSON.stringify(updated));
     } catch { /* silent */ }
 
-    // Always update UI (regardless of Supabase success)
     const typedUpdate = { ...replyData, status: 'resolved' as const };
     setTickets(prev => prev.map(t => t.id === selected.id ? { ...t, ...typedUpdate } : t));
     setSelected(prev => prev ? { ...prev, ...typedUpdate } : null);
 
-    toast.success(t(supabaseSuccess ? 'adm.reply_sent' : 'adm.reply_saved'));
+    toast.success(t('adm.reply_sent'));
     setReplyText('');
     setSendingReply(false);
   };

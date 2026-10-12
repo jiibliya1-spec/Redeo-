@@ -348,8 +348,8 @@ export function ProfilePage() {
     { icon: Car, label: t('ui.all_trips_50cd'), desc: t('ui.manage_trips_aee7'), action: () => navigate('/admin/trips') },
   ] : [
     { icon: Shield, label: t('verify.title'), desc: t('verify.subtitle'), action: () => navigate('/verification') },
-    { icon: Car, label: t('passenger.title'), desc: t('passenger.title'), action: () => navigate('/dashboard') },
-    { icon: Star, label: t('profile.my_reviews'), desc: t('profile.my_reviews'), action: () => toast.info(t('common.favorite_routes')) },
+    { icon: Car, label: t('passenger.title'), desc: t('profile.rides_desc'), action: () => navigate('/dashboard') },
+    { icon: Star, label: t('profile.my_reviews'), desc: t('reviews.desc'), action: () => navigate('/reviews') },
     { icon: Settings, label: t('nav.settings'), desc: t('ui.account_preferences_e8f6'), action: () => navigate('/settings') },
   ];
 

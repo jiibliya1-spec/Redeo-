@@ -48,6 +48,7 @@ const MyTripsPage = lazy(() => import('@/pages/MyTripsPage').then((m) => ({ defa
 import { LoginPage } from '@/pages/LoginPage';
 import { RegisterPage } from '@/pages/RegisterPage';
 const PassengerDashboard = lazy(() => import('@/pages/PassengerDashboard').then((m) => ({ default: m.PassengerDashboard })));
+const MyReviewsPage = lazy(() => import('@/pages/MyReviewsPage').then((m) => ({ default: m.MyReviewsPage })));
 const AppHome = lazy(() => import('@/pages/AppHome').then((m) => ({ default: m.AppHome })));
 const DriverDashboard = lazy(() => import('@/pages/DriverDashboard').then((m) => ({ default: m.DriverDashboard })));
 const AdminDashboard = lazy(() => import('@/pages/admin/AdminDashboard').then((m) => ({ default: m.AdminDashboard })));
@@ -261,6 +262,7 @@ function AppContent() {
           <Route path="/driver" element={isAuthenticated && (mode === 'driver' || user?.role === 'admin') ? <DriverDashboard /> : <Navigate to="/dashboard" />} />
           <Route path="/publish-trip" element={isAuthenticated ? (mode === 'driver' ? <PublishTripPage /> : <Navigate to="/dashboard" />) : <Navigate to="/login" />} />
           <Route path="/wallet" element={isAuthenticated && (mode === 'driver' || user?.role === 'admin') ? <WalletPage /> : <Navigate to="/dashboard" />} />
+          <Route path="/reviews" element={isAuthenticated ? <MyReviewsPage /> : <Navigate to="/login" />} />
           <Route path="/profile" element={isAuthenticated ? <ProfilePage /> : <Navigate to="/login" />} />
           <Route path="/verification" element={isAuthenticated ? <VerificationPage /> : <Navigate to="/login" />} />
           <Route path="/messages" element={isAuthenticated ? <MessagesPage /> : <Navigate to="/login" />} />

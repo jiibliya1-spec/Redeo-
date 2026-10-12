@@ -204,6 +204,8 @@ export const EXTRA: Record<Lang, Record<string, string>> = {
     'notif.reminder_msg': 'Your trip from {from} to {to} leaves today at {time} (in about {h} h). Be ready on time!',
     'notif.reminder_driver_msg': 'Your trip from {from} to {to} leaves today at {time} (in about {h} h). Passengers are waiting for you.',
     'book.departed': 'This trip has already departed.',
+    'careers.none': 'No open positions right now. If you would like to help build WansniAuto, get in touch.',
+    'careers.contact': 'Contact us',
   },
   fr: {
     'rating.none': 'Pas encore noté',
@@ -407,6 +409,8 @@ export const EXTRA: Record<Lang, Record<string, string>> = {
     'notif.reminder_msg': 'Votre trajet de {from} à {to} part aujourd’hui à {time} (dans environ {h} h). Soyez à l’heure !',
     'notif.reminder_driver_msg': 'Votre trajet de {from} à {to} part aujourd’hui à {time} (dans environ {h} h). Vos passagers vous attendent.',
     'book.departed': 'Ce trajet est déjà parti.',
+    'careers.none': 'Aucun poste ouvert pour le moment. Si vous souhaitez participer à WansniAuto, contactez-nous.',
+    'careers.contact': 'Nous contacter',
   },
   ar: {
     'rating.none': 'مازال ماعندو حتى تقييم',
@@ -610,5 +614,7 @@ export const EXTRA: Record<Lang, Record<string, string>> = {
     'notif.reminder_msg': 'الرحلة ديالك من {from} إلى {to} غادي تنطلق اليوم على {time} (من بعد حوالي {h} س). كون واجد فالوقت!',
     'notif.reminder_driver_msg': 'الرحلة ديالك من {from} إلى {to} غادي تنطلق اليوم على {time} (من بعد حوالي {h} س). الركاب كيتسناوك.',
     'book.departed': 'هاد الرحلة ديجا انطلقات.',
+    'careers.none': 'ما كاينش شي منصب مفتوح دابا. إلا بغيتي تشارك فبناء WansniAuto، تواصل معانا.',
+    'careers.contact': 'تواصل معنا',
   },
 };

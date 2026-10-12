@@ -13,13 +13,6 @@ export default function AboutPage() {
     { icon: Heart, titleKey: 'about.community', descKey: 'about.community_desc' },
   ];
 
-  const STATS = [
-    { value: '1M+', labelKey: 'about.users' },
-    { value: '500K+', labelKey: 'about.trips' },
-    { value: '13', labelKey: 'about.cities' },
-    { value: '4.8', labelKey: 'about.rating' },
-  ];
-
   return (
     <div className="min-h-screen bg-[#0F1115] pt-20 pb-12" dir={dir}>
       <div className="max-w-4xl mx-auto px-4 sm:px-6">
@@ -42,16 +35,6 @@ export default function AboutPage() {
           <h2 className="text-xl font-semibold text-white mb-4">{t('about.story')}</h2>
           <p className="text-[#A0A0A0] leading-relaxed mb-4">{t('about.story_p1')}</p>
           <p className="text-[#A0A0A0] leading-relaxed">{t('about.story_p2')}</p>
-        </motion.div>
-
-        {/* Stats */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-10">
-          {STATS.map((s) => (
-            <div key={s.labelKey} className="bg-[#1B1F27] rounded-xl p-4 border border-white/5 text-center">
-              <p className="text-2xl font-bold text-[#FF6B00]">{s.value}</p>
-              <p className="text-xs text-[#A0A0A0] mt-1">{t(s.labelKey)}</p>
-            </div>
-          ))}
         </motion.div>
 
         {/* Values */}

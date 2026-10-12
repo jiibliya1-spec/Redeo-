@@ -22,16 +22,9 @@ const FEATURES = [
 ];
 
 const POPULAR_ROUTES = [
-  { from: 'Casablanca', to: 'Marrakech', price: 120, image: '/images/route-casa-marrakech.jpg' },
-  { from: 'Tanger', to: 'Rabat', price: 95, image: '/images/route-tangier-rabat.jpg' },
-  { from: 'Fes', to: 'Casablanca', price: 110, image: '/images/route-fes-casa.jpg' },
-];
-
-const STATS = [
-  { label: 'stats.users', value: '1M+' },
-  { label: 'stats.trips', value: '500K+' },
-  { label: 'stats.cities', value: '13' },
-  { label: 'stats.co2', value: '2.5K t' },
+  { from: 'Casablanca', to: 'Marrakech', price: 75, image: '/images/route-casa-marrakech.jpg' },
+  { from: 'Tanger', to: 'Rabat', price: 65, image: '/images/route-tangier-rabat.jpg' },
+  { from: 'Fes', to: 'Casablanca', price: 90, image: '/images/route-fes-casa.jpg' },
 ];
 
 
@@ -169,22 +162,6 @@ export function LandingPage() {
             <motion.div initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.8, delay: 0.2 }} className="hidden lg:block">
               <img src="/images/car-2.jpg" alt="" className="rounded-3xl shadow-2xl shadow-[#FF6B00]/10 border border-white/5" />
             </motion.div>
-          </div>
-        </div>
-      </section>
-
-      {/* Stats */}
-      <section className="py-16 bg-[#0F1115]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {STATS.map((s, i) => (
-              <FadeUp key={s.label} delay={i * 0.1}>
-                <div className="bg-[#1B1F27] border border-white/5 rounded-2xl p-6 text-center card-hover">
-                  <p className="text-3xl font-bold text-[#FF6B00]">{s.value}</p>
-                  <p className="text-sm text-[#A0A0A0] mt-1">{t(s.label)}</p>
-                </div>
-              </FadeUp>
-            ))}
           </div>
         </div>
       </section>

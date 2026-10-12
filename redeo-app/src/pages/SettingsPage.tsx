@@ -408,7 +408,7 @@ export function SettingsPage() {
      SECTIONS CONFIG
      ════════════════════════════════════════════ */
 
-  const sections: SettingsSection[] = [
+  const allSections: SettingsSection[] = [
     { id: 'reviews',       icon: Star,        label: t('settings.reviews'),       desc: `${reviews.length} ${t('settings.reviews_count')}`,          badge: reviews.length || undefined },
     { id: 'passengers',    icon: Users,       label: t('settings.passengers'),    desc: `${savedPassengers.length} ${t('settings.passengers_saved')}`, badge: savedPassengers.length || undefined },
     { id: 'communication', icon: MessageSquare, label: t('settings.communication'), desc: t('settings.communication_desc') },
@@ -426,6 +426,10 @@ export function SettingsPage() {
     { id: 'logout',        icon: LogOut,      label: t('settings.logout'),        desc: t('settings.logout_desc'),  danger: true },
     { id: 'delete',        icon: Trash2,      label: t('settings.delete'),        desc: t('settings.delete_desc'), danger: true },
   ];
+
+  // Admin account: only account/security basics, none of the passenger/driver items (no role switching).
+  const ADMIN_SECTIONS = ['darkmode', 'password', 'help', 'terms', 'privacy', 'logout'];
+  const sections = user?.role === 'admin' ? allSections.filter((x) => ADMIN_SECTIONS.includes(x.id)) : allSections;
 
   /* ════════════════════════════════════════════
      RENDER DRAWER CONTENTS

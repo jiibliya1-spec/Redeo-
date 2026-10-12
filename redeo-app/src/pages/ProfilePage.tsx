@@ -410,7 +410,7 @@ export function ProfilePage() {
                 <p className="text-sm text-[#A0A0A0]">{user.email}</p>
                 <div className="flex items-center gap-2 mt-1 flex-wrap">
                   {renderBadge()}
-                  <RatingBadge rating={user.rating} count={user.rating_count} iconClass="w-3 h-3" showCount />
+                  {profileRole !== 'admin' && <RatingBadge rating={user.rating} count={user.rating_count} iconClass="w-3 h-3" showCount />}
                   {/* Refresh button to force fresh fetch */}
                   <button
                     onClick={fetchFreshProfile}

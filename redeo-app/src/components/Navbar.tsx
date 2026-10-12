@@ -46,7 +46,7 @@ export function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 lg:h-18">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2.5 group">
+          <Link to={user?.role === 'admin' ? '/admin' : '/'} className="flex items-center gap-2.5 group">
             <Logo className="w-9 h-9" />
             <span className="text-xl font-semibold text-white tracking-tight">
               Re<span className="text-[#FF6B00]">deo</span>
@@ -54,7 +54,7 @@ export function Navbar() {
           </Link>
 
           {/* Desktop Nav */}
-          <div className="hidden md:flex items-center gap-8">
+          <div className={`${isAuthenticated ? 'hidden' : 'hidden md:flex'} items-center gap-8`}>
             <button onClick={() => scrollToSection('search')} className="text-sm text-[#A0A0A0] hover:text-white transition-colors">
               {t('landing.search_btn')}
             </button>
@@ -137,12 +137,14 @@ export function Navbar() {
                         <Shield className="w-4 h-4 mr-2.5 text-[#A0A0A0]" /> Admin Panel
                       </DropdownMenuItem>
                     )}
+                    {user?.role !== 'admin' && (<>
                     <DropdownMenuItem onClick={() => navigate('/verification')} className="cursor-pointer px-4 py-2.5">
                       <Shield className="w-4 h-4 mr-2.5 text-[#A0A0A0]" /> {t('verify.title')}
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => navigate('/messages')} className="cursor-pointer px-4 py-2.5">
                       <MessageCircle className="w-4 h-4 mr-2.5 text-[#A0A0A0]" /> {t('nav.chat')}
                     </DropdownMenuItem>
+                    </>)}
                     <DropdownMenuSeparator className="bg-white/5" />
                     <DropdownMenuItem onClick={signOut} className="cursor-pointer text-red-400 px-4 py-2.5">
                       <LogOut className="w-4 h-4 mr-2.5" /> {t('profile.logout')}
@@ -189,9 +191,11 @@ export function Navbar() {
 
         {mobileMenuOpen && (
           <div className="md:hidden glass rounded-2xl mt-2 p-4 space-y-1 border border-white/5">
+            {!isAuthenticated && (<>
             <button onClick={() => scrollToSection('search')} className="block w-full text-left px-4 py-2.5 text-[#A0A0A0] hover:text-white hover:bg-white/5 rounded-xl transition-colors text-sm">{t('landing.search_btn')}</button>
             <button onClick={() => scrollToSection('features')} className="block w-full text-left px-4 py-2.5 text-[#A0A0A0] hover:text-white hover:bg-white/5 rounded-xl transition-colors text-sm">{t('landing.how_title')}</button>
             <button onClick={() => scrollToSection('routes')} className="block w-full text-left px-4 py-2.5 text-[#A0A0A0] hover:text-white hover:bg-white/5 rounded-xl transition-colors text-sm">{t('landing.popular_title')}</button>
+            </>)}
             {isAuthenticated ? (
               <>
                 <Link to="/profile" onClick={() => setMobileMenuOpen(false)} className="block px-4 py-2.5 text-white hover:bg-white/5 rounded-xl transition-colors text-sm font-medium">{t('nav.profile')}</Link>

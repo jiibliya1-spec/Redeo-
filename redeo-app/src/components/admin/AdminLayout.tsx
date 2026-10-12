@@ -106,13 +106,6 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
             <LogOut className="w-4.5 h-4.5" />
             <span>{t('adm.logout_0323')}</span>
           </button>
-          <Link
-            to="/"
-            className="flex items-center gap-3 px-3 py-2.5 w-full rounded-xl text-sm text-[#A0A0A0] hover:bg-white/5 transition-colors"
-          >
-            <Car className="w-4.5 h-4.5" />
-            <span>{t('adm.back_to_app_df80')}</span>
-          </Link>
         </div>
       </aside>
 

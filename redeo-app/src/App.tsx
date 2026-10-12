@@ -131,14 +131,14 @@ function AdminRoutes() {
     <AdminRouteGuard>
       <Suspense fallback={<div className="min-h-[60vh] flex items-center justify-center"><Spinner /></div>}>
       <Routes>
-        <Route path="/" element={<AdminDashboard />} />
+        <Route path="/" element={isAdmin ? <Navigate to="/admin" replace /> : (<AdminDashboard />)} />
         <Route path="/verifications" element={<AdminVerifications />} />
         <Route path="/users" element={<AdminUsers />} />
         <Route path="/trips" element={<AdminTrips />} />
-        <Route path="/messages" element={<AdminMessages />} />
+        <Route path="/messages" element={isAdmin ? <Navigate to="/admin" replace /> : (<AdminMessages />)} />
         <Route path="/settings" element={<AdminSettings />} />
         <Route path="/support" element={<AdminSupportTickets />} />
-        <Route path="/wallet" element={<AdminWallet />} />
+        <Route path="/wallet" element={isAdmin ? <Navigate to="/admin" replace /> : (<AdminWallet />)} />
         <Route path="*" element={<Navigate to="/admin" replace />} />
       </Routes>
       </Suspense>
@@ -149,6 +149,7 @@ function AdminRoutes() {
 /* ─── App content with conditional navbar ─── */
 function AppContent() {
   const { isAuthenticated, user, isLoading, initAuth, refreshProfile, setUser, mode } = useStore();
+  const isAdmin = user?.role === 'admin';
   const [showSplash, setShowSplash] = useState(() => {
     try { return !sessionStorage.getItem('wa_splash_seen'); } catch { return true; }
   });
@@ -252,19 +253,19 @@ function AppContent() {
 
           {/* Normal user routes */}
           <Route path="/" element={isAuthenticated ? <AppHome /> : <LandingPage />} />
-          <Route path="/search" element={<SearchResultsPage />} />
-          <Route path="/trip/:id" element={<TripDetailsPage />} />
-          <Route path="/booking/:id" element={<BookingPage />} />
-          <Route path="/my-trips" element={isAuthenticated ? <MyTripsPage /> : <Navigate to="/login" />} />
+          <Route path="/search" element={isAdmin ? <Navigate to="/admin" replace /> : (<SearchResultsPage />)} />
+          <Route path="/trip/:id" element={isAdmin ? <Navigate to="/admin" replace /> : (<TripDetailsPage />)} />
+          <Route path="/booking/:id" element={isAdmin ? <Navigate to="/admin" replace /> : (<BookingPage />)} />
+          <Route path="/my-trips" element={isAdmin ? <Navigate to="/admin" replace /> : (isAuthenticated ? <MyTripsPage /> : <Navigate to="/login" />)} />
           <Route path="/login" element={<ProtectedLogin />} />
           <Route path="/register" element={<ProtectedRegister />} />
           <Route path="/dashboard" element={<DashboardRouter />} />
-          <Route path="/driver" element={isAuthenticated && (mode === 'driver' || user?.role === 'admin') ? <DriverDashboard /> : <Navigate to="/dashboard" />} />
-          <Route path="/publish-trip" element={isAuthenticated ? (mode === 'driver' ? <PublishTripPage /> : <Navigate to="/dashboard" />) : <Navigate to="/login" />} />
+          <Route path="/driver" element={isAdmin ? <Navigate to="/admin" replace /> : (isAuthenticated && (mode === 'driver' || user?.role === 'admin') ? <DriverDashboard /> : <Navigate to="/dashboard" />)} />
+          <Route path="/publish-trip" element={isAdmin ? <Navigate to="/admin" replace /> : (isAuthenticated ? (mode === 'driver' ? <PublishTripPage /> : <Navigate to="/dashboard" />) : <Navigate to="/login" />)} />
           <Route path="/wallet" element={isAuthenticated && (mode === 'driver' || user?.role === 'admin') ? <WalletPage /> : <Navigate to="/dashboard" />} />
-          <Route path="/reviews" element={isAuthenticated ? <MyReviewsPage /> : <Navigate to="/login" />} />
+          <Route path="/reviews" element={isAdmin ? <Navigate to="/admin" replace /> : (isAuthenticated ? <MyReviewsPage /> : <Navigate to="/login" />)} />
           <Route path="/profile" element={isAuthenticated ? <ProfilePage /> : <Navigate to="/login" />} />
-          <Route path="/verification" element={isAuthenticated ? <VerificationPage /> : <Navigate to="/login" />} />
+          <Route path="/verification" element={isAdmin ? <Navigate to="/admin" replace /> : (isAuthenticated ? <VerificationPage /> : <Navigate to="/login" />)} />
           <Route path="/messages" element={isAuthenticated ? <MessagesPage /> : <Navigate to="/login" />} />
           <Route path="/notifications" element={isAuthenticated ? <NotificationsPage /> : <Navigate to="/login" />} />
           <Route path="/settings" element={isAuthenticated ? <SettingsPage /> : <Navigate to="/login" />} />

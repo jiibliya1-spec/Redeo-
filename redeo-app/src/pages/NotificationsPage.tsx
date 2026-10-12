@@ -42,6 +42,7 @@ export function NotificationsPage() {
   const { user, setUnreadCount } = useStore();
   const [notifs, setNotifs] = useState<NotifItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [open, setOpen] = useState<NotifItem | null>(null);
   const [filter, setFilter] = useState<'all' | 'booking' | 'message'>('all');
 
   const load = useCallback(async () => {
@@ -174,7 +175,9 @@ export function NotificationsPage() {
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, x: -50 }}
                       transition={{ delay: i * 0.03 }}
-                      className={`w-full flex items-start gap-4 p-4 rounded-2xl border transition-all text-left ${
+                      onClick={() => setOpen(n)}
+                      role="button"
+                      className={`w-full flex items-start gap-4 p-4 rounded-2xl border transition-all text-left cursor-pointer ${
                         n.read ? 'bg-transparent border-white/5' : 'bg-[#FF6B00]/5 border-[#FF6B00]/20'
                       }`}
                     >
@@ -198,7 +201,7 @@ export function NotificationsPage() {
                       </div>
 
                       <button
-                        onClick={() => handleDelete(n.id)}
+                        onClick={(e) => { e.stopPropagation(); handleDelete(n.id); }}
                         className="p-1.5 rounded-lg hover:bg-red-500/10 text-[#A0A0A0] hover:text-red-400 shrink-0"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -211,6 +214,30 @@ export function NotificationsPage() {
           )}
         </div>
       </div>
+
+      {/* Full notification */}
+      <AnimatePresence>
+        {open && (() => {
+          const loc = localizeNotification(open, lang);
+          const tripId = /\|\|TRIP:([^|]+)\|\|/.exec(open.message || '')?.[1];
+          const dest = tripId ? (user?.role === 'driver' || useStore.getState().mode === 'driver' ? '/driver' : '/my-trips') : open.type === 'message' ? '/messages' : null;
+          return (
+            <motion.div key="sheet" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[70] bg-black/60 flex items-end sm:items-center justify-center" onClick={() => setOpen(null)} dir={dir}>
+              <motion.div initial={{ y: 60 }} animate={{ y: 0 }} exit={{ y: 60 }} onClick={e => e.stopPropagation()}
+                className="w-full sm:max-w-md bg-[#1B1F27] border border-white/10 rounded-t-3xl sm:rounded-3xl p-6 max-h-[80vh] overflow-y-auto">
+                <h2 className="text-lg font-bold text-white mb-1">{loc.title}</h2>
+                <p className="text-[11px] text-[#A0A0A0] mb-4">{open.created_at ? new Date(open.created_at).toLocaleString(lang === 'ar' ? 'ar-MA-u-nu-latn' : lang) : ''}</p>
+                <p className="text-sm text-white/90 leading-relaxed whitespace-pre-wrap break-words">{loc.message}</p>
+                <div className="flex gap-3 mt-6">
+                  {dest && <Button onClick={() => { const d = dest; setOpen(null); navigate(d); }} className="flex-1 bg-[#FF6B00] hover:bg-[#E56000] text-white rounded-xl">{t('common.open')}</Button>}
+                  <Button onClick={() => setOpen(null)} variant="outline" className="flex-1 border-white/10 text-white rounded-xl">{t('common.close')}</Button>
+                </div>
+              </motion.div>
+            </motion.div>
+          );
+        })()}
+      </AnimatePresence>
     </div>
   );
 }

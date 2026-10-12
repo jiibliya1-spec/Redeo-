@@ -198,6 +198,7 @@ export const EXTRA: Record<Lang, Record<string, string>> = {
     'err.admin_register': 'Admin registration is not allowed.',
     'admin.loading': 'Loading admin panel...',
     'footer.slogan': 'Travel easy, share the road',
+    'common.open': 'Open',
   },
   fr: {
     'rating.none': 'Pas encore noté',
@@ -395,6 +396,7 @@ export const EXTRA: Record<Lang, Record<string, string>> = {
     'err.admin_register': "L'inscription administrateur n'est pas autorisée.",
     'admin.loading': 'Chargement du panneau admin...',
     'footer.slogan': 'Voyagez facilement, partagez la route',
+    'common.open': 'Ouvrir',
   },
   ar: {
     'rating.none': 'مازال ماعندو حتى تقييم',
@@ -592,5 +594,6 @@ export const EXTRA: Record<Lang, Record<string, string>> = {
     'err.admin_register': 'التسجيل كمشرف ما مسموحش.',
     'admin.loading': 'جاري تحميل لوحة الإدارة...',
     'footer.slogan': 'سافر بسهولة وشارك الطريق',
+    'common.open': 'فتح',
   },
 };

@@ -25,6 +25,29 @@ export function decodeText(raw: string | null | undefined, lang: Lang): string |
   return interpolate(getTranslation(lang, key), params);
 }
 
+const LEGACY_KEYS = ['booking_request', 'booking_confirmed', 'booking_declined'];
+const escRx = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/** Old rows were stored as plain English: recognise the known templates and re-render them in the reader's language. */
+function legacyEnglish(n: { title?: string; message?: string }, lang: Lang): { title: string; message: string } | null {
+  if (lang === 'en') return null;
+  const msg = (n.message || '').replace(TRIP_RX, '').trim();
+  for (const k of LEGACY_KEYS) {
+    const enMsg = getTranslation('en', `notif.${k}_msg`);
+    const names: string[] = [];
+    const src = escRx(enMsg).replace(/\\\{(\w+)\\\}/g, (_m, name) => { names.push(name); return '(.+?)'; });
+    const m = new RegExp('^' + src + '$').exec(msg);
+    if (m) {
+      const params: Record<string, any> = {};
+      names.forEach((nm, i) => { params[nm] = m[i + 1]; });
+      if (params.from) params.from = cityLabel(params.from, lang);
+      if (params.to) params.to = cityLabel(params.to, lang);
+      return { title: getTranslation(lang, `notif.${k}_title`), message: interpolate(getTranslation(lang, `notif.${k}_msg`), params) };
+    }
+  }
+  return null;
+}
+
 /** Title + message of a notification in the reader's language (old English rows still work). */
 export function localizeNotification(n: { type?: string; title?: string; message?: string; data?: any }, lang: Lang) {
   let title = decodeText(n.title, lang);
@@ -38,6 +61,10 @@ export function localizeNotification(n: { type?: string; title?: string; message
     if (!reason) { const m = /Reason:\s*(.*?)\.\s*Please/i.exec(n.message || ''); reason = m?.[1] || ''; }
     title = title ?? getTranslation(lang, 'notif.verif_rejected_title');
     message = message ?? interpolate(getTranslation(lang, reason ? 'notif.verif_rejected_msg' : 'notif.verif_rejected_msg_noreason'), { reason });
+  }
+  if (title === null && message === null) {
+    const old = legacyEnglish(n, lang);
+    if (old) return old;
   }
   return {
     title: title ?? n.title ?? '',

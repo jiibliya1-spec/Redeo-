@@ -96,37 +96,46 @@ export function NotificationListener() {
     }
   }, []);
 
+  // Keep the latest user/actions in refs so realtime channels are NOT torn down and
+  // re-created every time the user object changes.
+  const userRef = useRef(user);
+  userRef.current = user;
+  const actionsRef = useRef({ refreshProfile, setUser, setUnreadCount });
+  actionsRef.current = { refreshProfile, setUser, setUnreadCount };
+  const handledRef = useRef<Set<string>>(new Set());
+
   const processNotification = useCallback(async (notif: any) => {
+    if (handledRef.current.has(notif.id)) return;
+    handledRef.current.add(notif.id);
+    if (handledRef.current.size > 300) handledRef.current.clear();
+
+    const { refreshProfile, setUser, setUnreadCount } = actionsRef.current;
+    const current = userRef.current;
+
     showToast(notif);
     persistNotification(notif);
-
-    if (userId) {
-      syncBookingStatus(notif, userId);
-    }
+    if (current?.id) syncBookingStatus(notif, current.id);
 
     // Handle verification changes
-    if (notif.type === 'verification_approved') {
-      setUser({ ...user!, is_verified: true, verification_status: 'verified' });
-      await refreshProfile();
-    } else if (notif.type === 'verification_rejected') {
-      setUser({ ...user!, is_verified: false, verification_status: 'rejected' });
-      await refreshProfile();
+    if (current && notif.type === 'verification_approved') {
+      setUser({ ...current, is_verified: true, verification_status: 'verified' });
+      refreshProfile();
+    } else if (current && notif.type === 'verification_rejected') {
+      setUser({ ...current, is_verified: false, verification_status: 'rejected' });
+      refreshProfile();
     }
 
     // Update unread count badge
     try {
       const existing: any[] = JSON.parse(localStorage.getItem(LS_NOTIFS) || '[]');
-      const unread = existing.filter(n => !n.read).length;
-      setUnreadCount(unread);
+      setUnreadCount(existing.filter(n => !n.read).length);
     } catch {}
 
-    // Mark as read in Supabase (best-effort)
-    try {
-      await supabase.from('notifications').update({ read: true }).eq('id', notif.id);
-    } catch {}
-  }, [showToast, userId, user, refreshProfile, setUser, setUnreadCount]);
+    // Mark as read in Supabase (best-effort, not awaited)
+    supabase.from('notifications').update({ read: true }).eq('id', notif.id).then(() => {}, () => {});
+  }, [showToast]);
 
-  // ── Realtime listener ──
+  // ── Realtime listeners (one channel per user, stable) ──
   useEffect(() => {
     if (!isAuthenticated || !userId) return;
 
@@ -135,38 +144,28 @@ export function NotificationListener() {
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${userId}` },
-        async (payload) => {
-          await processNotification(payload.new as any);
-        }
+        (payload) => { processNotification(payload.new as any); }
       )
-      .subscribe();
-
-    return () => { supabase.removeChannel(channel); };
-  }, [isAuthenticated, userId, processNotification]);
-
-  // ── Profile UPDATE listener ──
-  useEffect(() => {
-    if (!isAuthenticated || !userId) return;
-
-    const channel = supabase
-      .channel(`profile-${userId}`)
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${userId}` },
         (payload) => {
           const p = payload.new as any;
-          setUser({
-            ...user!,
+          const current = userRef.current;
+          if (!current) return;
+          const wasVerified = current.is_verified;
+          const prevStatus = current.verification_status;
+          actionsRef.current.setUser({
+            ...current,
             is_verified: p.is_verified === true,
             verification_status: p.verification_status,
           });
-
-          if (p.verification_status === 'verified' && !user?.is_verified) {
+          if (p.verification_status === 'verified' && !wasVerified) {
             toast.success('Your account has been verified! You can now publish trips.', {
               icon: <CheckCircle className="w-5 h-5 text-green-500" />,
               duration: 10000,
             });
-          } else if (p.verification_status === 'rejected' && user?.verification_status !== 'rejected') {
+          } else if (p.verification_status === 'rejected' && prevStatus !== 'rejected') {
             toast.error('Your verification was rejected. Please re-upload.', {
               icon: <XCircle className="w-5 h-5 text-red-500" />,
               duration: 10000,
@@ -177,13 +176,14 @@ export function NotificationListener() {
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [isAuthenticated, userId, setUser, user]);
+  }, [isAuthenticated, userId, processNotification]);
 
-  // ── Polling fallback (every 10s) ──
+  // ── Polling fallback: only while the app is visible, every 30s, plus on return to the app ──
   useEffect(() => {
     if (!isAuthenticated || !userId) return;
 
     const check = async () => {
+      if (document.visibilityState !== 'visible') return;
       try {
         const { data: notifs } = await supabase
           .from('notifications')
@@ -192,18 +192,16 @@ export function NotificationListener() {
           .eq('read', false)
           .order('created_at', { ascending: false })
           .limit(10);
-
         if (!notifs?.length) return;
-
-        for (const n of notifs) {
-          await processNotification(n);
-        }
+        await Promise.all(notifs.map((n) => processNotification(n)));
       } catch { /* Supabase unavailable */ }
     };
 
-    check();
-    const iv = setInterval(check, 10000);
-    return () => clearInterval(iv);
+    const first = setTimeout(check, 1500); // don't compete with first paint
+    const iv = setInterval(check, 30000);
+    const onVisible = () => { if (document.visibilityState === 'visible') check(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => { clearTimeout(first); clearInterval(iv); document.removeEventListener('visibilitychange', onVisible); };
   }, [isAuthenticated, userId, processNotification]);
 
   return null;

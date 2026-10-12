@@ -91,6 +91,11 @@ export function BookingPage() {
         }, ...all.filter(b => b.id !== bookingId)]));
       } catch {}
 
+      setBooked(true);
+      toast.success(t('book.sent_title'));
+      setIsBooking(false);
+
+      // Notify the driver in the background — the passenger never waits for it
       if (trip.driver_id) {
         const { data: s } = await supabase.auth.getSession();
         const jwt = s.session?.access_token || '';
@@ -106,9 +111,7 @@ export function BookingPage() {
           }),
         }).catch(() => {});
       }
-
-      setBooked(true);
-      toast.success(t('book.sent_title'));
+      return;
     } catch (e: any) {
       toast.error(e.message || 'Booking failed');
     }

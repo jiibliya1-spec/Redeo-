@@ -62,6 +62,22 @@ async function fetchProfile(userId: string, accessToken?: string): Promise<Parti
   } catch { return null; }
 }
 
+const USER_CACHE_KEY = 'wansniauto-user-cache';
+function readUserCache(userId: string): User | null {
+  try {
+    const raw = localStorage.getItem(USER_CACHE_KEY);
+    if (!raw) return null;
+    const u = JSON.parse(raw) as User;
+    return u && u.id === userId ? u : null;
+  } catch { return null; }
+}
+function writeUserCache(user: User | null) {
+  try {
+    if (user) localStorage.setItem(USER_CACHE_KEY, JSON.stringify(user));
+    else localStorage.removeItem(USER_CACHE_KEY);
+  } catch { /* ignore */ }
+}
+
 function buildUser(sessionUser: any, profileData: Partial<User> | null): User {
   const email = sessionUser.email || '';
   return {
@@ -109,14 +125,32 @@ export const useStore = create<AppState>()(
 
       initAuth: async () => {
         try {
+          // getSession reads local storage (no network unless the token must be refreshed)
           const { data: { session } } = await supabase.auth.getSession();
           if (!session?.user) {
+            writeUserCache(null);
             set({ isLoading: false });
             return;
           }
-          const freshProfile = await fetchProfile(session.user.id);
-          const user = buildUser(session.user, freshProfile);
-          set({ user, isAuthenticated: true, isLoading: false });
+          const cached = readUserCache(session.user.id);
+          if (!cached) {
+            // First launch on this device: wait once so role (admin/driver) is correct
+            const fresh = await fetchProfile(session.user.id, session.access_token);
+            const user = buildUser(session.user, fresh);
+            set({ user, isAuthenticated: true, isLoading: false });
+            if (fresh) writeUserCache(user);
+            return;
+          }
+          // Returning user: paint instantly from the cached profile, refresh in the background
+          set({ user: cached, isAuthenticated: true, isLoading: false });
+          fetchProfile(session.user.id, session.access_token).then((fresh) => {
+            if (!fresh) return;
+            const merged = buildUser(session.user, fresh);
+            if (get().user?.id === merged.id) {
+              set({ user: merged });
+              writeUserCache(merged);
+            }
+          });
         } catch {
           set({ isLoading: false });
         }
@@ -127,8 +161,7 @@ export const useStore = create<AppState>()(
         if (!currentUser?.id) return;
         const freshProfile = await fetchProfile(currentUser.id);
         if (freshProfile) {
-          set({
-            user: {
+          const merged = {
               ...currentUser,
               is_verified: freshProfile.is_verified === true,
               verification_status: (freshProfile.verification_status as any) || 'unverified',
@@ -139,8 +172,9 @@ export const useStore = create<AppState>()(
               bio: freshProfile.bio || currentUser.bio,
               rating: freshProfile.rating || currentUser.rating,
               trips_count: freshProfile.trips_count || currentUser.trips_count,
-            },
-          });
+          } as User;
+          set({ user: merged });
+          writeUserCache(merged);
         }
       },
 
@@ -190,6 +224,7 @@ export const useStore = create<AppState>()(
             // Set mode based on actual role (driver → driver mode, others → passenger)
             const initialMode = (freshProfile?.role === 'driver' || data.user.user_metadata?.role === 'driver') ? 'driver' : 'passenger';
           set({ user, isAuthenticated: true, mode: initialMode });
+          writeUserCache(user);
           return { success: true };
         } catch (err: any) {
           return { success: false, error: err.message || 'Login failed' };
@@ -200,6 +235,7 @@ export const useStore = create<AppState>()(
         const { user } = get();
         // 1) Update the UI immediately so logout never feels stuck
         set({ user: null, isAuthenticated: false, selectedTrip: null, mode: 'passenger', unreadCount: 0, bookings: [] });
+        writeUserCache(null);
         // 2) Clear user-specific caches (keep language/theme preferences)
         try {
           localStorage.removeItem('wansniauto_bookings');

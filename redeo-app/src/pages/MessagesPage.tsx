@@ -25,6 +25,29 @@ async function getAuthHeaders() {
   };
 }
 
+/** Shrink a photo to max 1024px JPEG so chat images are ~100KB instead of several MB */
+function shrinkDataUrl(dataUrl: string, maxSide = 1024, quality = 0.72): Promise<string> {
+  return new Promise((resolve) => {
+    const img = new window.Image();
+    img.onload = () => {
+      try {
+        const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
+        const w = Math.max(1, Math.round(img.width * scale));
+        const h = Math.max(1, Math.round(img.height * scale));
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) { resolve(dataUrl); return; }
+        ctx.drawImage(img, 0, 0, w, h);
+        const out = canvas.toDataURL('image/jpeg', quality);
+        resolve(out.length < dataUrl.length ? out : dataUrl);
+      } catch { resolve(dataUrl); }
+    };
+    img.onerror = () => resolve(dataUrl);
+    img.src = dataUrl;
+  });
+}
+
 interface ChatMessage {
   id: string;
   sender_id: string;
@@ -55,7 +78,7 @@ export function MessagesPage() {
 
   const [activeConv, setActiveConv] = useState<string | null>(null);
   const [messageText, setMessageText] = useState('');
-  const [isSending, setIsSending] = useState(false);
+  const [isSending] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -100,9 +123,11 @@ export function MessagesPage() {
           .from('messages')
           .select('*')
           .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
-          .order('created_at', { ascending: true });
+          .order('created_at', { ascending: false })
+          .limit(300);
 
         if (error || !allMsgs) { console.error('[Messages] Load error:', error); return; }
+        allMsgs.reverse(); // oldest → newest for display
 
         // Group by partner
         const grouped: Record<string, ChatMessage[]> = {};
@@ -143,13 +168,19 @@ export function MessagesPage() {
     load();
   }, [user?.id, setUnreadCount]);
 
-  /* ─── REALTIME SUBSCRIPTION ─── */
+  /* ─── REALTIME SUBSCRIPTION (stable: reads the latest state through refs) ─── */
+  const activeConvRef = useRef(activeConv);
+  activeConvRef.current = activeConv;
+  const contactNamesRef = useRef(contactNames);
+  contactNamesRef.current = contactNames;
   useEffect(() => {
     if (!user?.id) return;
 
     const channel = supabase
       .channel(`messages_${user.id}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload: any) => {
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `receiver_id=eq.${user.id}` }, (payload: any) => {
+        const activeConv = activeConvRef.current;
+        const contactNames = contactNamesRef.current;
         const msg = payload.new as ChatMessage;
         if (msg.sender_id === user.id) return;
         if (msg.receiver_id !== user.id) return;
@@ -186,7 +217,7 @@ export function MessagesPage() {
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [user?.id, activeConv, contactNames, incrementUnread]);
+  }, [user?.id, incrementUnread]);
 
   /* ─── Mark as read ─── */
   useEffect(() => {
@@ -232,58 +263,56 @@ export function MessagesPage() {
     return Object.values(map).sort((a, b) => +new Date(b.timestamp) - +new Date(a.timestamp));
   }
 
-  /* ─── SEND TEXT MESSAGE ─── */
+  /* ─── SEND TEXT MESSAGE (optimistic: appears instantly, confirmed in background) ─── */
   const handleSend = async () => {
     if (!messageText.trim() || !activeConv || !user?.id) return;
     if (activeConv === user.id) { toast.error(t('ui.cannot_message_yourself_2fe6')); return; }
 
-    setIsSending(true);
     const text = messageText.trim();
+    const convId = activeConv;
+    const tempId = `tmp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const nowIso = new Date().toISOString();
+    const timeLabel = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-    // 1. Save via REST API with JWT (bypasses client-side RLS)
-    let data: ChatMessage | null = null;
+    const tempMsg = { id: tempId, sender_id: user.id, receiver_id: convId, content: text, read: false, created_at: nowIso } as ChatMessage;
+    setMessages(prev => ({ ...prev, [convId]: [...(prev[convId] || []), tempMsg] }));
+    setConversations(prev => {
+      const existing = prev.find(c => c.user_id === convId);
+      if (existing) {
+        return [{ ...existing, last_message: text, timestamp: timeLabel, unread: 0 }, ...prev.filter(c => c.user_id !== convId)];
+      }
+      const c = contactNames[convId] || { name: activeConversation?.name || 'User', avatar: activeConversation?.avatar || '' };
+      return [{ user_id: convId, name: c.name, avatar: c.avatar, last_message: text, timestamp: timeLabel, unread: 0 }, ...prev];
+    });
+    setMessageText('');
+
+    const rollback = (reason: string) => {
+      setMessages(prev => ({ ...prev, [convId]: (prev[convId] || []).filter(m => m.id !== tempId) }));
+      setMessageText(prevText => prevText || text);
+      toast.error(t('ui.failed_to_send_6834') + reason);
+    };
+
     try {
       const headers = await getAuthHeaders();
       const res = await fetch(`${SUPABASE_URL}/rest/v1/messages`, {
         method: 'POST',
         headers,
-        body: JSON.stringify({
-          sender_id: user.id, receiver_id: activeConv, content: text, read: false,
-        }),
+        body: JSON.stringify({ sender_id: user.id, receiver_id: convId, content: text, read: false }),
       });
-      if (!res.ok) {
-        const err = await res.text();
-        throw new Error(`${res.status}: ${err}`);
-      }
+      if (!res.ok) { rollback(`${res.status}`); return; }
       const result = await res.json();
-      data = result[0] || null;
+      const saved: ChatMessage | null = result[0] || null;
+      if (!saved) { rollback(''); return; }
+      // Swap the temporary message for the saved one (realtime may already have added it)
+      setMessages(prev => {
+        const list = prev[convId] || [];
+        const withoutTemp = list.filter(m => m.id !== tempId);
+        const alreadyThere = withoutTemp.some(m => m.id === saved.id);
+        return { ...prev, [convId]: alreadyThere ? withoutTemp : [...withoutTemp, saved] };
+      });
     } catch (err: any) {
-      toast.error(t('ui.failed_to_send_6834') + err.message);
-      setIsSending(false);
-      return;
+      rollback(err?.message || '');
     }
-
-    if (!data) {
-      toast.error(t('ui.no_response_from_c363'));
-      setIsSending(false);
-      return;
-    }
-
-    // 2. Update UI with Supabase response
-    const newMsg: ChatMessage = data;
-    setMessages(prev => ({ ...prev, [activeConv]: [...(prev[activeConv] || []), newMsg] }));
-
-    setConversations(prev => {
-      const existing = prev.find(c => c.user_id === activeConv);
-      if (existing) {
-        return [{ ...existing, last_message: text, timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), unread: 0 }, ...prev.filter(c => c.user_id !== activeConv)];
-      }
-      const c = contactNames[activeConv] || { name: activeConversation?.name || 'User', avatar: activeConversation?.avatar || '' };
-      return [{ user_id: activeConv, name: c.name, avatar: c.avatar, last_message: text, timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), unread: 0 }, ...prev];
-    });
-
-    setMessageText('');
-    setIsSending(false);
   };
 
   /* ─── SEND IMAGE ─── */
@@ -327,7 +356,7 @@ export function MessagesPage() {
     if (!file) return;
     e.target.value = '';
     const reader = new FileReader();
-    reader.onload = (ev) => { const url = ev.target?.result as string; if (url) setPreviewImage(url); };
+    reader.onload = async (ev) => { const url = ev.target?.result as string; if (url) setPreviewImage(await shrinkDataUrl(url)); };
     reader.readAsDataURL(file);
   };
 
@@ -336,7 +365,7 @@ export function MessagesPage() {
     if (!file) return;
     e.target.value = '';
     const reader = new FileReader();
-    reader.onload = (ev) => { const url = ev.target?.result as string; if (url) handleSendImage(url); };
+    reader.onload = async (ev) => { const url = ev.target?.result as string; if (url) handleSendImage(await shrinkDataUrl(url)); };
     reader.readAsDataURL(file);
   };
 

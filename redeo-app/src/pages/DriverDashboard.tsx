@@ -194,7 +194,7 @@ export function DriverDashboard() {
   // Booking requests
   const [bookingRequests, setBookingRequests] = useState<BookingRequest[]>([]);
   const [loadingRequests, setLoadingRequests] = useState(false);
-  const [processingBookingId, setProcessingBookingId] = useState<string | null>(null);
+  const [processingBookingId] = useState<string | null>(null);
 
   const getAuthHeaders = useCallback(async () => {
     const { data } = await supabase.auth.getSession();
@@ -305,108 +305,113 @@ export function DriverDashboard() {
     } catch { return new Set(); }
   };
 
+  /** Accept: the card disappears instantly; the network work runs in the background.
+   *  If the main update fails, the request is put back and the driver is told. */
   const handleAcceptBooking = async (booking: BookingRequest) => {
-    setProcessingBookingId(booking.id);
+    if (processingBookingId) return;
+    const tripData = booking.trip as any;
+    const previous = bookingRequests;
+
+    // Optimistic UI
+    patchLocalBooking(booking.id, { status: 'confirmed' });
+    markBookingProcessed(booking.id);
+    setBookingRequests(prev => prev.filter(b => b.id !== booking.id));
+    toast.success(t('ui.booking_accepted_passenger_0b1a'));
+
     try {
       const headers = await getAuthHeaders();
-      const tripData = booking.trip as any;
+      const patchHeaders = { ...headers, 'Prefer': 'return=minimal' };
 
-      // 1. Update localStorage immediately (works even without Supabase bookings table)
-      patchLocalBooking(booking.id, { status: 'confirmed' });
+      // Booking status + current seats are independent → run in parallel
+      const [patchRes, seatsRes] = await Promise.all([
+        fetch(`${SUPABASE_URL}/rest/v1/bookings?id=eq.${booking.id}`, {
+          method: 'PATCH', headers: patchHeaders, body: JSON.stringify({ status: 'confirmed' }),
+        }),
+        booking.trip_id
+          ? fetch(`${SUPABASE_URL}/rest/v1/trips?select=available_seats&id=eq.${booking.trip_id}&limit=1`, { headers })
+          : Promise.resolve(null),
+      ]);
 
-      // 2. Try Supabase bookings table (best-effort)
-      try {
-        await fetch(`${SUPABASE_URL}/rest/v1/bookings?id=eq.${booking.id}`, {
-          method: 'PATCH',
-          headers: { ...headers, 'Prefer': 'return=minimal' },
-          body: JSON.stringify({ status: 'confirmed' }),
-        });
-      } catch {}
-
-      // 3. Decrease available_seats on the trip
-      if (booking.trip_id) {
+      if (!patchRes.ok) {
+        // Undo the optimistic change
+        patchLocalBooking(booking.id, { status: 'pending' });
         try {
-          const tripRes = await fetch(
-            `${SUPABASE_URL}/rest/v1/trips?select=available_seats&id=eq.${booking.trip_id}&limit=1`,
-            { headers }
-          );
-          if (tripRes.ok) {
-            const [t] = await tripRes.json();
-            if (t && typeof t.available_seats === 'number') {
-              await fetch(`${SUPABASE_URL}/rest/v1/trips?id=eq.${booking.trip_id}`, {
-                method: 'PATCH',
-                headers: { ...headers, 'Prefer': 'return=minimal' },
-                body: JSON.stringify({ available_seats: Math.max(0, t.available_seats - booking.seats) }),
-              });
-            }
-          }
+          const ids: string[] = JSON.parse(localStorage.getItem(PROCESSED_KEY) || '[]');
+          localStorage.setItem(PROCESSED_KEY, JSON.stringify(ids.filter(i => i !== booking.id)));
         } catch {}
+        setBookingRequests(previous);
+        toast.error('Could not confirm the booking. Please try again.');
+        return;
       }
 
-      // 4. Mark as processed permanently (prevents reappearance on refresh)
-      markBookingProcessed(booking.id);
-
-      // 5. Notify passenger (best-effort)
-      fetch(`${SUPABASE_URL}/rest/v1/notifications`, {
-        method: 'POST',
-        headers: { ...headers, 'Prefer': 'return=minimal' },
-        body: JSON.stringify({
-          user_id: booking.passenger_id,
-          type: 'success',
-          title: 'Booking Confirmed ✅',
-          message: `Your booking for ${booking.seats} seat(s) from ${tripData?.from_location || ''} to ${tripData?.to_location || ''} on ${tripData?.departure_date || ''} is confirmed! Pay ${booking.total_price} MAD cash to the driver. ||TRIP:${booking.trip_id}||`,
-          read: false,
+      // Seats + passenger notification in parallel (best-effort)
+      const tasks: Promise<unknown>[] = [
+        fetch(`${SUPABASE_URL}/rest/v1/notifications`, {
+          method: 'POST',
+          headers: patchHeaders,
+          body: JSON.stringify({
+            user_id: booking.passenger_id,
+            type: 'success',
+            title: 'Booking Confirmed ✅',
+            message: `Your booking for ${booking.seats} seat(s) from ${tripData?.from_location || ''} to ${tripData?.to_location || ''} on ${tripData?.departure_date || ''} is confirmed! Pay ${booking.total_price} MAD cash to the driver. ||TRIP:${booking.trip_id}||`,
+            read: false,
+          }),
         }),
-      }).catch(() => {});
-
-      toast.success(t('ui.booking_accepted_passenger_0b1a'));
-      setBookingRequests(prev => prev.filter(b => b.id !== booking.id));
-    } catch (e: any) {
-      toast.error(e.message || 'Failed to accept booking');
+      ];
+      if (seatsRes && seatsRes.ok) {
+        const [tr] = await seatsRes.json();
+        if (tr && typeof tr.available_seats === 'number') {
+          tasks.push(fetch(`${SUPABASE_URL}/rest/v1/trips?id=eq.${booking.trip_id}`, {
+            method: 'PATCH', headers: patchHeaders,
+            body: JSON.stringify({ available_seats: Math.max(0, tr.available_seats - booking.seats) }),
+          }));
+        }
+      }
+      await Promise.allSettled(tasks);
+    } catch {
+      // Network dropped after the optimistic update: keep local state, a refresh will reconcile
     }
-    setProcessingBookingId(null);
   };
 
   const handleRejectBooking = async (booking: BookingRequest) => {
-    setProcessingBookingId(booking.id);
+    if (processingBookingId) return;
+    const tripData = booking.trip as any;
+    const previous = bookingRequests;
+
+    patchLocalBooking(booking.id, { status: 'cancelled' });
+    markBookingProcessed(booking.id);
+    setBookingRequests(prev => prev.filter(b => b.id !== booking.id));
+    toast.success(t('ui.booking_declined_passenger_1692'));
+
     try {
       const headers = await getAuthHeaders();
-      const tripData = booking.trip as any;
-
-      // 1. Update localStorage immediately
-      patchLocalBooking(booking.id, { status: 'cancelled' });
-
-      // 2. Try Supabase bookings table (best-effort)
-      try {
-        await fetch(`${SUPABASE_URL}/rest/v1/bookings?id=eq.${booking.id}`, {
-          method: 'PATCH',
-          headers: { ...headers, 'Prefer': 'return=minimal' },
-          body: JSON.stringify({ status: 'cancelled' }),
-        });
-      } catch {}
-
-      // 3. Mark as processed permanently (prevents reappearance on refresh)
-      markBookingProcessed(booking.id);
-
-      // 4. Notify passenger (best-effort)
-      fetch(`${SUPABASE_URL}/rest/v1/notifications`, {
-        method: 'POST',
-        headers: { ...headers, 'Prefer': 'return=minimal' },
-        body: JSON.stringify({
-          user_id: booking.passenger_id,
-          type: 'warning',
-          title: 'Booking Not Accepted',
-          message: `Unfortunately your booking from ${tripData?.from_location || ''} to ${tripData?.to_location || ''} on ${tripData?.departure_date || ''} was not accepted by the driver. Please try another trip. ||TRIP:${booking.trip_id}||`,
-          read: false,
+      const patchHeaders = { ...headers, 'Prefer': 'return=minimal' };
+      const [patchRes] = await Promise.all([
+        fetch(`${SUPABASE_URL}/rest/v1/bookings?id=eq.${booking.id}`, {
+          method: 'PATCH', headers: patchHeaders, body: JSON.stringify({ status: 'cancelled' }),
         }),
-      }).catch(() => {});
-
-      toast.success(t('ui.booking_declined_passenger_1692'));
-      setBookingRequests(prev => prev.filter(b => b.id !== booking.id));
-    } catch (e: any) {
-      toast.error(e.message || 'Failed to decline booking');
-    }
-    setProcessingBookingId(null);
+        fetch(`${SUPABASE_URL}/rest/v1/notifications`, {
+          method: 'POST',
+          headers: patchHeaders,
+          body: JSON.stringify({
+            user_id: booking.passenger_id,
+            type: 'warning',
+            title: 'Booking Not Accepted',
+            message: `Unfortunately your booking from ${tripData?.from_location || ''} to ${tripData?.to_location || ''} on ${tripData?.departure_date || ''} was not accepted by the driver. Please try another trip. ||TRIP:${booking.trip_id}||`,
+            read: false,
+          }),
+        }).catch(() => null),
+      ]);
+      if (!patchRes.ok) {
+        patchLocalBooking(booking.id, { status: 'pending' });
+        try {
+          const ids: string[] = JSON.parse(localStorage.getItem(PROCESSED_KEY) || '[]');
+          localStorage.setItem(PROCESSED_KEY, JSON.stringify(ids.filter(i => i !== booking.id)));
+        } catch {}
+        setBookingRequests(previous);
+        toast.error('Could not decline the booking. Please try again.');
+      }
+    } catch { /* offline: reconciled on next load */ }
   };
 
   // Load trips

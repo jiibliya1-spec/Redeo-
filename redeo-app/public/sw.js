@@ -1,4 +1,4 @@
-const CACHE_NAME = 'wansniauto-v5';
+const CACHE_NAME = 'wansniauto-v6';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -39,32 +39,43 @@ self.addEventListener('fetch', (event) => {
   if (url.hostname.includes('supabase.co')) return;
 
   if (event.request.mode === 'navigate') {
+    // Network first, but never make the user wait: fall back to the cached shell after 2.5s
     event.respondWith(
-      fetch(event.request)
-        .then((response) => {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone)).catch(() => {});
-          return response;
-        })
-        .catch(() => caches.match('/index.html').then((r) => r || caches.match('/')))
+      new Promise((resolve) => {
+        let settled = false;
+        const useCache = () => caches.match('/index.html').then((r) => r || caches.match('/'));
+        const timer = setTimeout(() => {
+          useCache().then((r) => { if (r && !settled) { settled = true; resolve(r); } });
+        }, 2500);
+        fetch(event.request)
+          .then((response) => {
+            clearTimeout(timer);
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put('/index.html', clone)).catch(() => {});
+            if (!settled) { settled = true; resolve(response); }
+          })
+          .catch(() => {
+            clearTimeout(timer);
+            useCache().then((r) => { if (!settled) { settled = true; resolve(r || Response.error()); } });
+          });
+      })
     );
     return;
   }
 
-  const isScript = event.request.destination === 'script';
-  const isStyle  = event.request.destination === 'style';
-
-  if (isScript || isStyle) {
+  // Hashed build assets never change → cache first (instant repeat loads)
+  if (url.origin === self.location.origin && url.pathname.startsWith('/assets/')) {
     event.respondWith(
-      fetch(event.request)
-        .then((response) => {
+      caches.match(event.request).then((cached) => {
+        if (cached) return cached;
+        return fetch(event.request).then((response) => {
           if (response.ok) {
             const clone = response.clone();
             caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone)).catch(() => {});
           }
           return response;
-        })
-        .catch(() => caches.match(event.request))
+        });
+      })
     );
     return;
   }

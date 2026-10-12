@@ -165,23 +165,25 @@ function AppContent() {
   }, [theme]);
 
   useEffect(() => {
-    const boot = async () => {
-      await initAuth();
-      await refreshProfile();
-    };
-    boot();
+    // initAuth already loads (or restores) the profile — no second fetch needed
+    initAuth();
 
-    // Listen for auth state changes — catches email confirmation redirects
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    // Listen for auth state changes — catches email confirmation redirects.
+    // NOTE: never await Supabase calls inside this callback (can deadlock the auth lock).
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN' && session?.user) {
-        // User just confirmed email and got signed in automatically
-        await refreshProfile();
-        const freshState = useStore.getState();
-        if (freshState.user) {
-          const role = freshState.user.role;
-          if (role === 'admin') navigate('/admin', { replace: true });
-          else navigate('/dashboard', { replace: true });
-        }
+        // supabase-js also emits SIGNED_IN when the tab regains focus; only react to a real
+        // sign-in coming from the login/register screens or an email-confirmation link.
+        const path = window.location.pathname;
+        const fromEmailLink = /access_token|type=signup|type=magiclink/.test(window.location.hash + window.location.search);
+        if (path !== '/login' && path !== '/register' && !fromEmailLink) return;
+        setTimeout(async () => {
+          await refreshProfile();
+          const freshState = useStore.getState();
+          if (freshState.user) {
+            navigate(freshState.user.role === 'admin' ? '/admin' : '/dashboard', { replace: true });
+          }
+        }, 0);
       }
       if (event === 'SIGNED_OUT') {
         setUser(null);
@@ -190,6 +192,25 @@ function AppContent() {
 
     return () => { subscription.unsubscribe(); };
   }, []);
+
+  // Warm the most-used screens in the background once the app is idle, so taps feel instant
+  useEffect(() => {
+    if (isLoading) return;
+    const warm = () => {
+      const loaders = isAuthenticated
+        ? [
+            () => import('@/pages/PassengerDashboard'), () => import('@/pages/DriverDashboard'),
+            () => import('@/pages/MessagesPage'), () => import('@/pages/MyTripsPage'),
+            () => import('@/pages/SearchResultsPage'), () => import('@/pages/TripDetailsPage'),
+            () => import('@/pages/BookingPage'), () => import('@/pages/ProfilePage'),
+          ]
+        : [() => import('@/pages/SearchResultsPage'), () => import('@/pages/TripDetailsPage')];
+      loaders.forEach((load, i) => setTimeout(() => { load().catch(() => {}); }, i * 250));
+    };
+    const ric = (window as any).requestIdleCallback as undefined | ((cb: () => void, o?: any) => number);
+    const id = ric ? ric(warm, { timeout: 4000 }) : window.setTimeout(warm, 2500);
+    return () => { if (ric) (window as any).cancelIdleCallback?.(id); else clearTimeout(id); };
+  }, [isLoading, isAuthenticated]);
 
   // Show splash screen on first load (independent of auth state)
   if (showSplash) {

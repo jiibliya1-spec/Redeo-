@@ -56,6 +56,8 @@ export default function LegalPage() {
             <p>{t('legal.privacy_4_b')}</p>
             <h3 className="text-white font-medium mt-4">{t('legal.privacy_5_h')}</h3>
             <p>{t('legal.privacy_5_b')}</p>
+            <h3 className="text-white font-medium mt-4">{t('legal.privacy_6_h')}</h3>
+            <p>{t('legal.privacy_6_b')}</p>
             <p className="text-xs text-[#A0A0A0]/50 mt-6">{t('legal.last_updated')}</p>
           </div>
         );

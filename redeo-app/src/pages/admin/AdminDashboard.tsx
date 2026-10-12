@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useI18n } from '@/lib/i18n';
 import { resolveAvatar } from '@/lib/utils';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
@@ -44,6 +45,7 @@ interface PendingVerification {
 }
 
 export function AdminDashboard() {
+  const { t, lang } = useI18n();
   const [stats, setStats] = useState<Stats>({
     totalUsers: 0, totalDrivers: 0, totalPassengers: 0,
     pendingVerifications: 0, approvedDrivers: 0, rejectedVerifications: 0,
@@ -98,7 +100,7 @@ export function AdminDashboard() {
 
       setRecentUsers((users || []).slice(0, 5).map((u: any) => ({
         id: u.id,
-        name: u.name || 'Unknown',
+        name: u.name || t('adm.unknown'),
         email: u.email || '',
         role: u.role || 'passenger',
         is_verified: u.is_verified || false,
@@ -118,7 +120,7 @@ export function AdminDashboard() {
           doc_type: v.doc_type,
           status: v.status,
           created_at: v.created_at,
-          user_name: user?.name || 'Unknown',
+          user_name: user?.name || t('adm.unknown'),
           user_email: user?.email || '',
           user_avatar: resolveAvatar(user?.avatar, v.user_id),
         };
@@ -147,32 +149,32 @@ export function AdminDashboard() {
   }, [loadDashboardData]);
 
   const statCards = [
-    { label: 'Total Users', value: stats.totalUsers, icon: Users, color: 'bg-blue-500/10 text-blue-400', link: '/admin/users' },
-    { label: 'Drivers', value: stats.totalDrivers, icon: Car, color: 'bg-[#FF6B00]/10 text-[#FF6B00]', link: '/admin/users' },
-    { label: 'Passengers', value: stats.totalPassengers, icon: Users, color: 'bg-green-500/10 text-green-400', link: '/admin/users' },
-    { label: 'Pending Verifications', value: stats.pendingVerifications, icon: ShieldCheck, color: 'bg-yellow-500/10 text-yellow-400', link: '/admin/verifications' },
-    { label: 'Verified Users', value: stats.approvedDrivers, icon: UserCheck, color: 'bg-purple-500/10 text-purple-400', link: '/admin/verifications' },
-    { label: 'Total Trips', value: stats.totalTrips, icon: Car, color: 'bg-cyan-500/10 text-cyan-400', link: '/admin/trips' },
-    { label: 'Messages', value: stats.totalMessages, icon: MessageSquare, color: 'bg-pink-500/10 text-pink-400', link: '/admin/messages' },
-    { label: 'Rejected', value: stats.rejectedVerifications, icon: UserX, color: 'bg-red-500/10 text-red-400', link: '/admin/verifications' },
+    { label: t('adm.total_users_7194'), value: stats.totalUsers, icon: Users, color: 'bg-blue-500/10 text-blue-400', link: '/admin/users' },
+    { label: t('adm.drivers_8e64'), value: stats.totalDrivers, icon: Car, color: 'bg-[#FF6B00]/10 text-[#FF6B00]', link: '/admin/users' },
+    { label: t('adm.passengers_5865'), value: stats.totalPassengers, icon: Users, color: 'bg-green-500/10 text-green-400', link: '/admin/users' },
+    { label: t('adm.pending_verifications_5a9b'), value: stats.pendingVerifications, icon: ShieldCheck, color: 'bg-yellow-500/10 text-yellow-400', link: '/admin/verifications' },
+    { label: t('adm.verified_users_4fb7'), value: stats.approvedDrivers, icon: UserCheck, color: 'bg-purple-500/10 text-purple-400', link: '/admin/verifications' },
+    { label: t('adm.total_trips_c20d'), value: stats.totalTrips, icon: Car, color: 'bg-cyan-500/10 text-cyan-400', link: '/admin/trips' },
+    { label: t('adm.messages_41de'), value: stats.totalMessages, icon: MessageSquare, color: 'bg-pink-500/10 text-pink-400', link: '/admin/messages' },
+    { label: t('adm.rejected_d37b'), value: stats.rejectedVerifications, icon: UserX, color: 'bg-red-500/10 text-red-400', link: '/admin/verifications' },
   ];
 
   const formatDate = (date: string) =>
-    new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    new Date(date).toLocaleDateString(lang === 'ar' ? 'ar-MA-u-nu-latn' : lang === 'fr' ? 'fr-FR' : 'en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
   const docTypeLabel = (type: string) => {
     const labels: Record<string, string> = {
-      cin: 'National ID', selfie: 'Selfie', license: 'Driver License',
-      registration: 'Vehicle Registration', insurance: 'Insurance',
+      cin: 'adm.doc_cin', selfie: 'adm.doc_selfie', license: 'adm.doc_license',
+      registration: 'adm.doc_registration', insurance: 'adm.doc_insurance',
     };
-    return labels[type] || type;
+    return labels[type] ? t(labels[type]) : type;
   };
 
   const verificationStatusLabel = (u: RecentUser) => {
-    if (u.is_verified) return { label: 'Verified', cls: 'bg-green-500/10 text-green-400' };
-    if (u.verification_status === 'submitted' || u.verification_status === 'pending') return { label: 'Pending Review', cls: 'bg-blue-500/10 text-blue-400' };
-    if (u.verification_status === 'rejected') return { label: 'Rejected', cls: 'bg-red-500/10 text-red-400' };
-    return { label: 'Unverified', cls: 'bg-yellow-500/10 text-yellow-400' };
+    if (u.is_verified) return { label: t('adm.verified_3f68'), cls: 'bg-green-500/10 text-green-400' };
+    if (u.verification_status === 'submitted' || u.verification_status === 'pending') return { label: t('adm.pending_review_00b3'), cls: 'bg-blue-500/10 text-blue-400' };
+    if (u.verification_status === 'rejected') return { label: t('adm.rejected_d37b'), cls: 'bg-red-500/10 text-red-400' };
+    return { label: t('adm.unverified_d5ca'), cls: 'bg-yellow-500/10 text-yellow-400' };
   };
 
   if (loading) {
@@ -181,7 +183,7 @@ export function AdminDashboard() {
         <div className="flex items-center justify-center h-64">
           <div className="flex flex-col items-center gap-3">
             <div className="w-8 h-8 border-2 border-[#FF6B00] border-t-transparent rounded-full animate-spin" />
-            <p className="text-sm text-[#A0A0A0]">Loading dashboard...</p>
+            <p className="text-sm text-[#A0A0A0]">{t('adm.loading_dashboard_eb27')}</p>
           </div>
         </div>
       </AdminLayout>
@@ -210,16 +212,16 @@ export function AdminDashboard() {
       <div className="grid lg:grid-cols-2 gap-6">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="bg-[#111318] rounded-2xl border border-white/5">
           <div className="p-5 border-b border-white/5 flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-white">Recent Users</h3>
+            <h3 className="text-sm font-semibold text-white">{t('adm.recent_users_2259')}</h3>
             <Link to="/admin/users" className="text-xs text-[#FF6B00] hover:underline flex items-center gap-1">
-              View all <ChevronRight className="w-3 h-3" />
+              {t('adm.view_all')} <ChevronRight className="w-3 h-3" />
             </Link>
           </div>
           <div className="divide-y divide-white/5">
             {recentUsers.length === 0 ? (
               <div className="p-8 text-center">
                 <Users className="w-8 h-8 text-[#A0A0A0] mx-auto mb-2" />
-                <p className="text-sm text-[#A0A0A0]">No users yet</p>
+                <p className="text-sm text-[#A0A0A0]">{t('adm.no_users_yet_aa94')}</p>
               </div>
             ) : (
               recentUsers.map((user) => {
@@ -236,7 +238,7 @@ export function AdminDashboard() {
                         user.role === 'driver' ? 'bg-[#FF6B00]/10 text-[#FF6B00]' :
                         user.role === 'admin' ? 'bg-purple-500/10 text-purple-400' :
                         'bg-green-500/10 text-green-400'
-                      }`}>{user.role}</span>
+                      }`}>{t('adm.role_'+user.role)}</span>
                       <span className={`text-[10px] px-2 py-0.5 rounded-full ${vs.cls}`}>{vs.label}</span>
                     </div>
                   </div>
@@ -248,16 +250,16 @@ export function AdminDashboard() {
 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="bg-[#111318] rounded-2xl border border-white/5">
           <div className="p-5 border-b border-white/5 flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-white">Pending Verifications</h3>
+            <h3 className="text-sm font-semibold text-white">{t('adm.pending_verifications_5a9b')}</h3>
             <Link to="/admin/verifications" className="text-xs text-[#FF6B00] hover:underline flex items-center gap-1">
-              Review all <ChevronRight className="w-3 h-3" />
+              {t('adm.review_all')} <ChevronRight className="w-3 h-3" />
             </Link>
           </div>
           <div className="divide-y divide-white/5">
             {pendingVerifications.length === 0 ? (
               <div className="p-8 text-center">
                 <ShieldCheck className="w-8 h-8 text-[#A0A0A0] mx-auto mb-2" />
-                <p className="text-sm text-[#A0A0A0]">No pending verifications</p>
+                <p className="text-sm text-[#A0A0A0]">{t('adm.no_pending_verifications_f5ff')}</p>
               </div>
             ) : (
               pendingVerifications.map((v) => (
@@ -269,7 +271,7 @@ export function AdminDashboard() {
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <span className="text-[10px] px-2 py-0.5 rounded-full bg-yellow-500/10 text-yellow-400 flex items-center gap-1">
-                      <Clock className="w-3 h-3" /> Pending
+                      <Clock className="w-3 h-3" /> {t('adm.pending_2d13')}
                     </span>
                     <span className="text-[10px] text-[#A0A0A0]">{formatDate(v.created_at)}</span>
                   </div>
@@ -281,19 +283,19 @@ export function AdminDashboard() {
       </div>
 
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="mt-6 bg-[#111318] rounded-2xl border border-white/5 p-4 sm:p-5">
-        <h3 className="text-sm font-semibold text-white mb-3">Quick Actions</h3>
+        <h3 className="text-sm font-semibold text-white mb-3">{t('adm.quick_actions_57ae')}</h3>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <Link to="/admin/verifications" className="flex items-center gap-3 px-4 py-4 bg-[#FF6B00]/10 text-[#FF6B00] rounded-2xl text-sm font-medium hover:bg-[#FF6B00]/20 active:bg-[#FF6B00]/30 transition-colors min-h-[56px]">
             <ShieldCheck className="w-5 h-5 shrink-0" />
-            <span>Review Verifications</span>
+            <span>{t('adm.review_verifications_7aa2')}</span>
           </Link>
           <Link to="/admin/users" className="flex items-center gap-3 px-4 py-4 bg-blue-500/10 text-blue-400 rounded-2xl text-sm font-medium hover:bg-blue-500/20 active:bg-blue-500/30 transition-colors min-h-[56px]">
             <Users className="w-5 h-5 shrink-0" />
-            <span>Manage Users</span>
+            <span>{t('adm.manage_users_6831')}</span>
           </Link>
           <Link to="/admin/trips" className="flex items-center gap-3 px-4 py-4 bg-green-500/10 text-green-400 rounded-2xl text-sm font-medium hover:bg-green-500/20 active:bg-green-500/30 transition-colors min-h-[56px]">
             <Car className="w-5 h-5 shrink-0" />
-            <span>View Trips</span>
+            <span>{t('adm.view_trips_39e2')}</span>
           </Link>
         </div>
       </motion.div>

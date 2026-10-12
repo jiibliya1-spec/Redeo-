@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useI18n } from '@/lib/i18n';
 import { encodeText } from '@/lib/notifText';
 import { resolveAvatar } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -63,11 +64,11 @@ const docIcons: Record<string, any> = {
 };
 
 const docLabels: Record<string, string> = {
-  cin: 'National ID (CIN)', selfie: 'Selfie', license: 'Driver License',
-  registration: 'Vehicle Registration', insurance: 'Insurance',
-  cin_front: 'CIN – Front', cin_back: 'CIN – Back',
-  driver_license: 'Driver License',
-  car_photo_front: 'Car – Front', car_photo_back: 'Car – Back',
+  cin: 'adm.doc_cin', selfie: 'adm.doc_selfie', license: 'adm.doc_license',
+  registration: 'adm.doc_registration', insurance: 'adm.doc_insurance',
+  cin_front: 'adm.doc_cin_front', cin_back: 'adm.doc_cin_back',
+  driver_license: 'adm.doc_license',
+  car_photo_front: 'adm.doc_car_front', car_photo_back: 'adm.doc_car_back',
 };
 
 function getDocLabel(t: string) { return docLabels[t] || t; }
@@ -122,6 +123,7 @@ function buildBundles(verifications: VerificationRecord[]): UserBundle[] {
 }
 
 export function AdminVerifications() {
+  const { t, lang } = useI18n();
   const cached = loadCache();
   const [verifications, setVerifications] = useState<VerificationRecord[]>(cached);
   const [loading, setLoading] = useState(cached.length === 0);
@@ -152,7 +154,7 @@ export function AdminVerifications() {
     const u = usersMapRef.current.get(v.user_id);
     return {
       ...v,
-      user_name: u?.name || v.user_name || 'Unknown',
+      user_name: u?.name || v.user_name || t('adm.unknown'),
       user_email: u?.email || v.user_email || '',
       user_avatar: resolveAvatar(u?.avatar || v.user_avatar, v.user_id),
       user_role: u?.role || v.user_role || 'passenger',
@@ -185,7 +187,7 @@ export function AdminVerifications() {
         const u = usersMapRef.current.get(v.user_id);
         return {
           ...v,
-          user_name: u?.name || 'Unknown', user_email: u?.email || '',
+          user_name: u?.name || t('adm.unknown'), user_email: u?.email || '',
           user_avatar: resolveAvatar(u?.avatar, v.user_id),
           user_role: u?.role || 'passenger',
         };
@@ -202,7 +204,7 @@ export function AdminVerifications() {
       }
       setVerifications(combined);
     } catch (err: any) {
-      toast.error('Failed to load: ' + err.message);
+      toast.error(t('adm.err_load') + ': ' + err.message);
     }
     setLoading(false);
     setRefreshing(false);
@@ -234,7 +236,7 @@ export function AdminVerifications() {
 
   /* ─── Approve ALL docs for user ─── */
   const handleApproveUser = async (bundle: UserBundle) => {
-    if (unviewedCount(bundle) > 0) { toast.error(`Open every document first (${unviewedCount(bundle)} left)`); return; }
+    if (unviewedCount(bundle) > 0) { toast.error(t('adm.open_every_doc', { n: unviewedCount(bundle) })); return; }
     setProcessing(true);
     try {
       const headers = await getHeaders();
@@ -277,18 +279,18 @@ export function AdminVerifications() {
           created_at: new Date().toISOString(),
         }).select();
 
-              toast.success(`✅ ${bundle.user_name} verified — all ${pendingDocs.length} document(s) approved`);
+              toast.success(t('adm.verified_all', { name: bundle.user_name, n: pendingDocs.length }));
       setSelectedUserId(null);
       await loadVerifications(true);
     } catch (err: any) {
-      toast.error('Approval failed: ' + err.message);
+      toast.error(t('adm.err_approve') + ': ' + err.message);
     }
     setProcessing(false);
   };
 
   /* ─── Reject ALL docs for user ─── */
   const handleRejectUser = async (bundle: UserBundle) => {
-    if (!rejectReason.trim()) { toast.error('Please enter a rejection reason'); return; }
+    if (!rejectReason.trim()) { toast.error(t('adm.please_enter_a_rejection_reason_a822')); return; }
     setProcessing(true);
     try {
       const headers = await getHeaders();
@@ -331,13 +333,13 @@ export function AdminVerifications() {
           created_at: new Date().toISOString(),
         }).select();
 
-              toast.success(`❌ ${bundle.user_name}'s verification rejected`);
+              toast.success(t('adm.rejected_user', { name: bundle.user_name }));
       setSelectedUserId(null);
       setRejectReason('');
       setShowRejectPanel(false);
       await loadVerifications(true);
     } catch (err: any) {
-      toast.error('Rejection failed: ' + err.message);
+      toast.error(t('adm.err_reject') + ': ' + err.message);
     }
     setProcessing(false);
   };
@@ -392,20 +394,20 @@ export function AdminVerifications() {
   };
 
   const formatDate = (d: string) =>
-    new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    new Date(d).toLocaleDateString(lang === 'ar' ? 'ar-MA-u-nu-latn' : lang === 'fr' ? 'fr-FR' : 'en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
   const getBundleStatus = (b: UserBundle) => {
-    if (b.pendingCount > 0) return { label: 'Needs Review', cls: 'bg-yellow-500/10 text-yellow-400', icon: Clock };
-    if (b.approvedCount > 0 && b.rejectedCount === 0) return { label: 'Verified', cls: 'bg-green-500/10 text-green-400', icon: UserCheck };
-    if (b.rejectedCount > 0) return { label: 'Rejected', cls: 'bg-red-500/10 text-red-400', icon: UserX };
-    return { label: 'No Pending', cls: 'bg-white/5 text-[#A0A0A0]', icon: ShieldCheck };
+    if (b.pendingCount > 0) return { label: t('adm.needs_review_994f'), cls: 'bg-yellow-500/10 text-yellow-400', icon: Clock };
+    if (b.approvedCount > 0 && b.rejectedCount === 0) return { label: t('adm.verified_3f68'), cls: 'bg-green-500/10 text-green-400', icon: UserCheck };
+    if (b.rejectedCount > 0) return { label: t('adm.rejected_d37b'), cls: 'bg-red-500/10 text-red-400', icon: UserX };
+    return { label: t('adm.no_pending_ea35'), cls: 'bg-white/5 text-[#A0A0A0]', icon: ShieldCheck };
   };
 
   const getDocStatus = (status: string) => {
-    if (status === 'approved' || status === 'verified') return { dot: 'bg-green-400', label: 'Approved', text: 'text-green-400' };
-    if (status === 'rejected') return { dot: 'bg-red-400', label: 'Rejected', text: 'text-red-400' };
-    if (status === 'uploaded') return { dot: 'bg-yellow-400', label: 'Uploaded', text: 'text-yellow-400' };
-    return { dot: 'bg-blue-400', label: 'Pending', text: 'text-blue-400' };
+    if (status === 'approved' || status === 'verified') return { dot: 'bg-green-400', label: t('adm.approved_6f80'), text: 'text-green-400' };
+    if (status === 'rejected') return { dot: 'bg-red-400', label: t('adm.rejected_d37b'), text: 'text-red-400' };
+    if (status === 'uploaded') return { dot: 'bg-yellow-400', label: t('adm.uploaded_fe8d'), text: 'text-yellow-400' };
+    return { dot: 'bg-blue-400', label: t('adm.pending_2d13'), text: 'text-blue-400' };
   };
 
   return (
@@ -413,9 +415,9 @@ export function AdminVerifications() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h2 className="text-xl font-bold text-white">Verification Review</h2>
+          <h2 className="text-xl font-bold text-white">{t('adm.verification_review_604f')}</h2>
           <p className="text-sm text-[#A0A0A0] mt-0.5">
-            Click a user to review all their documents at once — one decision per user
+            {t('adm.click_user_hint')}
           </p>
         </div>
         <Button
@@ -425,17 +427,17 @@ export function AdminVerifications() {
           disabled={loading || refreshing}
         >
           {refreshing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Clock className="w-4 h-4 mr-2" />}
-          {refreshing ? 'Refreshing…' : 'Refresh'}
+          {t(refreshing ? 'adm.refreshing' : 'adm.refresh')}
         </Button>
       </div>
 
       {/* Status Tabs */}
       <div className="flex flex-wrap gap-2 mb-5">
         {([
-          { key: 'all' as StatusFilter, label: 'All Users', count: counts.all, cls: 'bg-white/5 text-[#A0A0A0]' },
-          { key: 'pending' as StatusFilter, label: 'Needs Review', count: counts.pending, cls: 'bg-yellow-500/10 text-yellow-400' },
-          { key: 'approved' as StatusFilter, label: 'Approved', count: counts.approved, cls: 'bg-green-500/10 text-green-400' },
-          { key: 'rejected' as StatusFilter, label: 'Rejected', count: counts.rejected, cls: 'bg-red-500/10 text-red-400' },
+          { key: 'all' as StatusFilter, label: t('adm.all_users_9d37'), count: counts.all, cls: 'bg-white/5 text-[#A0A0A0]' },
+          { key: 'pending' as StatusFilter, label: t('adm.needs_review_994f'), count: counts.pending, cls: 'bg-yellow-500/10 text-yellow-400' },
+          { key: 'approved' as StatusFilter, label: t('adm.approved_6f80'), count: counts.approved, cls: 'bg-green-500/10 text-green-400' },
+          { key: 'rejected' as StatusFilter, label: t('adm.rejected_d37b'), count: counts.rejected, cls: 'bg-red-500/10 text-red-400' },
         ]).map((tab) => (
           <button
             key={tab.key}
@@ -456,7 +458,7 @@ export function AdminVerifications() {
         <Input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search by name or email…"
+          placeholder={t('adm.search_by_name_or_email_baa0')}
           className="pl-11 bg-[#111318] border-white/5 text-white rounded-xl h-11"
         />
       </div>
@@ -473,7 +475,7 @@ export function AdminVerifications() {
           ) : filteredBundles.length === 0 ? (
             <div className="bg-[#111318] rounded-2xl border border-white/5 flex flex-col items-center justify-center py-16 text-center">
               <ShieldCheck className="w-10 h-10 text-[#A0A0A0] mb-3" />
-              <p className="text-sm text-[#A0A0A0]">No users found</p>
+              <p className="text-sm text-[#A0A0A0]">{t('adm.no_users_found_3bf7')}</p>
             </div>
           ) : (
             filteredBundles.map((bundle) => {
@@ -520,7 +522,7 @@ export function AdminVerifications() {
                           {st.label}
                         </span>
                         <span className="text-[10px] text-[#A0A0A0]">
-                          {bundle.docs.length} doc{bundle.docs.length !== 1 ? 's' : ''}
+                          {t('adm.n_docs', { n: bundle.docs.length })}
                         </span>
                         <span className="text-[10px] text-[#A0A0A0]">· {formatDate(bundle.latestDate)}</span>
                       </div>
@@ -567,7 +569,7 @@ export function AdminVerifications() {
                     : 'bg-green-500/5 border-green-500/25'}`}>
                     <div className="flex items-center gap-2 mb-2">
                       <Brain className="w-4 h-4 text-[#FF6B00]" />
-                      <span className="text-xs font-semibold text-white">AI Case Summary</span>
+                      <span className="text-xs font-semibold text-white">{t('adm.ai_case_summary_2a11')}</span>
                       <span className={`ml-auto text-[10px] px-2 py-0.5 rounded-full ${
                         aiSummary.recommendation === 'review_carefully' ? 'text-red-400 bg-red-500/10'
                         : aiSummary.recommendation === 'needs_more_info' ? 'text-amber-400 bg-amber-500/10'
@@ -578,7 +580,7 @@ export function AdminVerifications() {
                       </span>
                     </div>
                     <p dir="rtl" className="text-xs text-[#D0D0D0] whitespace-pre-line leading-relaxed text-right">{aiSummary.summary_text}</p>
-                    <p className="text-[10px] text-[#A0A0A0]/70 mt-2">AI pre-screening only — the final decision is yours.</p>
+                    <p className="text-[10px] text-[#A0A0A0]/70 mt-2">{t('adm.ai_pre_screening_only_the_final_decision_749b')}</p>
                   </div>
                 </div>
               )}
@@ -592,7 +594,7 @@ export function AdminVerifications() {
                      }}>
                        <div className="flex items-center gap-2 mb-2.5">
                          <Brain className="w-4 h-4 text-[#FF6B00]" />
-                         <span className="text-xs font-semibold text-white">AI KYC Analysis</span>
+                         <span className="text-xs font-semibold text-white">{t('adm.ai_kyc_analysis_355f')}</span>
                          {selectedBundle.avgFraudScore > 40 && (
                            <span className="ml-auto flex items-center gap-1 text-[10px] text-red-400 bg-red-500/10 px-2 py-0.5 rounded-full">
                              <AlertTriangle className="w-2.5 h-2.5" />High Fraud Risk
@@ -606,9 +608,9 @@ export function AdminVerifications() {
                        </div>
                        <div className="grid grid-cols-3 gap-2">
                          {([
-                           { label: 'Quality Score', value: selectedBundle.avgQualityScore, color: selectedBundle.avgQualityScore >= 75 ? '#22c55e' : selectedBundle.avgQualityScore >= 50 ? '#FF6B00' : '#ef4444' },
-                           { label: 'Fraud Risk', value: selectedBundle.avgFraudScore, color: selectedBundle.avgFraudScore > 40 ? '#ef4444' : selectedBundle.avgFraudScore > 20 ? '#f59e0b' : '#22c55e' },
-                           { label: 'Docs Analyzed', value: selectedBundle.docs.filter((d: any) => d.ai_quality_score != null).length, color: '#FF6B00', raw: true },
+                           { label: t('adm.quality_score_7843'), value: selectedBundle.avgQualityScore, color: selectedBundle.avgQualityScore >= 75 ? '#22c55e' : selectedBundle.avgQualityScore >= 50 ? '#FF6B00' : '#ef4444' },
+                           { label: t('adm.fraud_risk_5bed'), value: selectedBundle.avgFraudScore, color: selectedBundle.avgFraudScore > 40 ? '#ef4444' : selectedBundle.avgFraudScore > 20 ? '#f59e0b' : '#22c55e' },
+                           { label: t('adm.docs_analyzed_0582'), value: selectedBundle.docs.filter((d: any) => d.ai_quality_score != null).length, color: '#FF6B00', raw: true },
                          ] as any[]).map(({ label, value, color, raw }) => (
                            <div key={label} className="bg-black/20 rounded-lg p-2 text-center">
                              <p className="text-sm font-bold" style={{ color }}>{value}{raw ? '' : '/100'}</p>
@@ -644,7 +646,7 @@ export function AdminVerifications() {
                             <>
                               <img
                                 src={docUrl}
-                                alt={getDocLabel(doc.doc_type)}
+                                alt={t(getDocLabel(doc.doc_type))}
                                 className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                                 onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                               />
@@ -655,7 +657,7 @@ export function AdminVerifications() {
                           ) : (
                             <div className="flex flex-col items-center gap-2 text-[#A0A0A0]">
                               <DocIcon className="w-8 h-8" />
-                              <span className="text-xs">No image</span>
+                              <span className="text-xs">{t('adm.no_image_9dd7')}</span>
                             </div>
                           )}
                         </div>
@@ -664,7 +666,7 @@ export function AdminVerifications() {
                         <div className="p-3">
                           <div className="flex items-center gap-1.5 mb-1">
                             <DocIcon className="w-3 h-3 text-[#FF6B00] shrink-0" />
-                            <p className="text-xs font-medium text-white truncate">{getDocLabel(doc.doc_type)}</p>
+                            <p className="text-xs font-medium text-white truncate">{t(getDocLabel(doc.doc_type))}</p>
                           </div>
                           <div className="flex items-center gap-1.5">
                             <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${ds.dot}`} />
@@ -707,11 +709,11 @@ export function AdminVerifications() {
                   </div>
                 ) : showRejectPanel ? (
                   <div className="space-y-3">
-                    <label className="text-sm text-[#A0A0A0]">Rejection reason *</label>
+                    <label className="text-sm text-[#A0A0A0]">{t('adm.rejection_reason_6f14')}</label>
                     <textarea
                       value={rejectReason}
                       onChange={(e) => setRejectReason(e.target.value)}
-                      placeholder="e.g. Documents are blurry, please re-upload…"
+                      placeholder={t('adm.e_g_documents_are_blurry_please_re_uploa_7a51')}
                       rows={3}
                       className="w-full bg-[#1B1F27] border border-white/10 text-white text-sm rounded-xl p-3 outline-none focus:border-red-400/50 resize-none"
                     />
@@ -721,7 +723,7 @@ export function AdminVerifications() {
                         disabled={processing || !rejectReason.trim()}
                         className="flex-1 bg-red-500 hover:bg-red-600 text-white rounded-xl h-11"
                       >
-                        {processing ? <Loader2 className="w-4 h-4 animate-spin" /> : <><X className="w-4 h-4 mr-2" />Confirm Rejection</>}
+                        {processing ? <Loader2 className="w-4 h-4 animate-spin" /> : <><X className="w-4 h-4 mr-2" />{t('adm.confirm_rejection_f85f')}</>}
                       </Button>
                       <Button
                         onClick={() => { setShowRejectPanel(false); setRejectReason(''); }}
@@ -729,7 +731,7 @@ export function AdminVerifications() {
                         className="border-white/10 text-[#A0A0A0] rounded-xl h-11"
                         disabled={processing}
                       >
-                        Cancel
+                        {t('adm.cancel_ea47')}
                       </Button>
                     </div>
                   </div>
@@ -822,7 +824,7 @@ export function AdminVerifications() {
                           )}
                         </div>
                         <div className="p-2.5">
-                          <p className="text-xs font-medium text-white truncate mb-1">{getDocLabel(doc.doc_type)}</p>
+                          <p className="text-xs font-medium text-white truncate mb-1">{t(getDocLabel(doc.doc_type))}</p>
                           <div className="flex items-center gap-1">
                             <span className={`w-1.5 h-1.5 rounded-full ${ds.dot}`} />
                             <span className={`text-[10px] ${ds.text}`}>{ds.label}</span>
@@ -837,13 +839,13 @@ export function AdminVerifications() {
               {/* Footer actions */}
               <div className="p-4 border-t border-white/5 bg-[#0D0F14] shrink-0">
                 {selectedBundle.pendingCount === 0 ? (
-                  <p className="text-sm text-[#A0A0A0] text-center py-2">No pending documents</p>
+                  <p className="text-sm text-[#A0A0A0] text-center py-2">{t('adm.no_pending_documents_d441')}</p>
                 ) : showRejectPanel ? (
                   <div className="space-y-3">
                     <textarea
                       value={rejectReason}
                       onChange={(e) => setRejectReason(e.target.value)}
-                      placeholder="Rejection reason…"
+                      placeholder={t('adm.rejection_reason_f5c5')}
                       rows={2}
                       className="w-full bg-[#1B1F27] border border-white/10 text-white text-sm rounded-xl p-3 outline-none resize-none"
                     />
@@ -851,7 +853,7 @@ export function AdminVerifications() {
                       <Button onClick={() => handleRejectUser(selectedBundle)} disabled={processing || !rejectReason.trim()} className="flex-1 bg-red-500 hover:bg-red-600 text-white rounded-xl h-11">
                         {processing ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Confirm Reject'}
                       </Button>
-                      <Button onClick={() => { setShowRejectPanel(false); setRejectReason(''); }} variant="outline" className="border-white/10 text-[#A0A0A0] rounded-xl h-11">Cancel</Button>
+                      <Button onClick={() => { setShowRejectPanel(false); setRejectReason(''); }} variant="outline" className="border-white/10 text-[#A0A0A0] rounded-xl h-11">{t('adm.cancel_ea47')}</Button>
                     </div>
                   </div>
                 ) : (
@@ -859,7 +861,7 @@ export function AdminVerifications() {
                   {unviewedCount(selectedBundle) > 0 && <p className="text-xs text-amber-400 mb-2">Open every document to enable approval ({unviewedCount(selectedBundle)} left)</p>}
                   <div className="flex gap-3">
                     <Button onClick={() => handleApproveUser(selectedBundle)} disabled={processing || unviewedCount(selectedBundle) > 0} className="flex-1 bg-green-500 hover:bg-green-600 text-white rounded-xl h-12 font-semibold">
-                      {processing ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Check className="w-4 h-4 mr-1" />Approve All</>}
+                      {processing ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Check className="w-4 h-4 mr-1" />{t('adm.approve_all_de8d')}</>}
                     </Button>
                     <Button onClick={() => setShowRejectPanel(true)} disabled={processing} variant="outline" className="flex-1 border-red-500/30 text-red-400 hover:bg-red-500/10 rounded-xl h-12 font-semibold">
                       <X className="w-4 h-4 mr-1" />Reject
@@ -894,7 +896,7 @@ export function AdminVerifications() {
               </button>
               <img
                 src={previewUrl}
-                alt="Document"
+                alt={t('adm.document_0945')}
                 className="max-w-full max-h-[85vh] rounded-2xl border border-white/10 object-contain"
               />
             </motion.div>

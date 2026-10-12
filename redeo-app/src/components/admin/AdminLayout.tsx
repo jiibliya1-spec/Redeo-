@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useI18n } from '@/lib/i18n';
 import { Logo } from '@/components/Logo';
 import { resolveAvatar } from '@/lib/utils';
 import { Link, useLocation } from 'react-router-dom';
@@ -19,16 +20,17 @@ import {
 } from 'lucide-react';
 
 const navItems = [
-  { path: '/admin', label: 'Overview', icon: LayoutDashboard },
-  { path: '/admin/verifications', label: 'Verifications', icon: ShieldCheck },
-  { path: '/admin/users', label: 'Users', icon: Users },
-  { path: '/admin/trips', label: 'Trips', icon: Car },
-  { path: '/admin/messages', label: 'Messages', icon: MessageSquare },
-  { path: '/admin/support', label: 'Support Tickets', icon: Ticket },
-  { path: '/admin/settings', label: 'Settings', icon: Settings },
+  { path: '/admin', label: 'adm.overview_3b87', icon: LayoutDashboard },
+  { path: '/admin/verifications', label: 'adm.verifications_4ba2', icon: ShieldCheck },
+  { path: '/admin/users', label: 'adm.users_f9aa', icon: Users },
+  { path: '/admin/trips', label: 'adm.trips_4473', icon: Car },
+  { path: '/admin/messages', label: 'adm.messages_41de', icon: MessageSquare },
+  { path: '/admin/support', label: 'adm.support_tickets_fdca', icon: Ticket },
+  { path: '/admin/settings', label: 'adm.settings_f4f7', icon: Settings },
 ];
 
 export function AdminLayout({ children }: { children: React.ReactNode }) {
+  const { t } = useI18n();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
   const { user, signOut } = useStore();
@@ -65,7 +67,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
             <Logo className="w-9 h-9" />
             <div>
               <h1 className="text-sm font-bold text-white">WansniAuto</h1>
-              <p className="text-[10px] text-[#FF6B00] uppercase tracking-wider font-semibold">Admin Panel</p>
+              <p className="text-[10px] text-[#FF6B00] uppercase tracking-wider font-semibold">{t('adm.admin_panel_a0e0')}</p>
             </div>
           </Link>
         </div>
@@ -86,7 +88,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
                 }`}
               >
                 <item.icon className={`w-4.5 h-4.5 ${active ? 'text-[#FF6B00]' : ''}`} />
-                <span>{item.label}</span>
+                <span>{t(item.label)}</span>
                 {active && <ChevronRight className="w-4 h-4 ml-auto" />}
               </Link>
             );
@@ -104,7 +106,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
             />
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-white truncate">{user?.name || 'Admin'}</p>
-              <p className="text-[10px] text-[#A0A0A0]">Administrator</p>
+              <p className="text-[10px] text-[#A0A0A0]">{t('adm.administrator_7b7b')}</p>
             </div>
           </div>
           <button
@@ -112,14 +114,14 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
             className="flex items-center gap-3 px-3 py-2.5 w-full rounded-xl text-sm text-red-400 hover:bg-red-500/10 transition-colors"
           >
             <LogOut className="w-4.5 h-4.5" />
-            <span>Logout</span>
+            <span>{t('adm.logout_0323')}</span>
           </button>
           <Link
             to="/"
             className="flex items-center gap-3 px-3 py-2.5 w-full rounded-xl text-sm text-[#A0A0A0] hover:bg-white/5 transition-colors"
           >
             <Car className="w-4.5 h-4.5" />
-            <span>Back to App</span>
+            <span>{t('adm.back_to_app_df80')}</span>
           </Link>
         </div>
       </aside>
@@ -137,7 +139,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
                 <Menu className="w-5 h-5 text-[#A0A0A0]" />
               </button>
               <h2 className="text-lg font-bold text-white">
-                {navItems.find((n) => isActive(n.path))?.label || 'Admin'}
+                {t(navItems.find((n) => isActive(n.path))?.label || 'adm.admin_e3af')}
               </h2>
             </div>
             <div className="flex items-center gap-2">

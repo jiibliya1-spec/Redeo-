@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useI18n } from '@/lib/i18n';
 import { resolveAvatar } from '@/lib/utils';
 // motion
 import { AdminLayout } from '@/components/admin/AdminLayout';
@@ -19,6 +20,7 @@ interface ChatMessage {
 }
 
 export function AdminMessages() {
+  const { t } = useI18n();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [filtered, setFiltered] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(true);
@@ -53,9 +55,9 @@ export function AdminMessages() {
         const receiver = users?.find((u: any) => u.id === m.receiver_id);
         return {
           ...m,
-          sender_name: sender?.name || 'Unknown',
+          sender_name: sender?.name || t('adm.unknown'),
           sender_avatar: resolveAvatar(sender?.avatar, m.sender_id),
-          receiver_name: receiver?.name || 'Unknown',
+          receiver_name: receiver?.name || t('adm.unknown'),
         };
       });
 
@@ -70,10 +72,10 @@ export function AdminMessages() {
     <AdminLayout>
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h2 className="text-xl font-bold text-white">Messages</h2>
-          <p className="text-sm text-[#A0A0A0] mt-0.5">All chat messages between users</p>
+          <h2 className="text-xl font-bold text-white">{t('adm.messages_41de')}</h2>
+          <p className="text-sm text-[#A0A0A0] mt-0.5">{t('adm.all_chat_messages_between_users_c648')}</p>
         </div>
-        <p className="text-sm text-[#A0A0A0]">{messages.length} total messages</p>
+        <p className="text-sm text-[#A0A0A0]">{t('adm.messages_total',{n:messages.length})}</p>
       </div>
 
       <div className="relative mb-6">
@@ -81,7 +83,7 @@ export function AdminMessages() {
         <Input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search messages..."
+          placeholder={t('adm.search_messages_1c10')}
           className="pl-11 bg-[#111318] border-white/5 text-white rounded-xl h-11"
         />
       </div>
@@ -94,7 +96,7 @@ export function AdminMessages() {
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-48 text-center">
             <MessageSquare className="w-10 h-10 text-[#A0A0A0] mb-3" />
-            <p className="text-sm text-[#A0A0A0]">No messages found</p>
+            <p className="text-sm text-[#A0A0A0]">{t('adm.no_messages_found_14c1')}</p>
           </div>
         ) : (
           <div className="divide-y divide-white/5">

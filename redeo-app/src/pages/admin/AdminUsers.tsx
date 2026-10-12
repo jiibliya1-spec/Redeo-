@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useI18n } from '@/lib/i18n';
 import { encodeText } from '@/lib/notifText';
 import { resolveAvatar } from '@/lib/utils';
 import { AdminLayout } from '@/components/admin/AdminLayout';
@@ -42,6 +43,7 @@ type RoleFilter = 'all' | 'passenger' | 'driver' | 'admin';
 type VerifyFilter = 'all' | 'verified' | 'unverified';
 
 export function AdminUsers() {
+  const { t, lang } = useI18n();
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [filtered, setFiltered] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
@@ -108,7 +110,7 @@ export function AdminUsers() {
 
       setUsers(combined);
     } catch (err: any) {
-      toast.error('Failed to load users: ' + err.message);
+      toast.error(t('adm.err_load') + ': ' + err.message);
       console.error('[AdminUsers]', err);
     }
     setLoading(false);
@@ -167,9 +169,9 @@ export function AdminUsers() {
       }
 
       setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, is_verified: !currentStatus } : u)));
-      toast.success(!currentStatus ? 'User verified!' : 'User unverified');
+      toast.success(t(!currentStatus ? 'adm.user_verified' : 'adm.user_unverified'));
     } catch (err: any) {
-      toast.error('Update failed: ' + err.message);
+      toast.error(t('adm.err_update') + ': ' + err.message);
     }
     setProcessingId(null);
   };
@@ -189,15 +191,15 @@ export function AdminUsers() {
       if (!res.ok) throw new Error(await res.text());
 
       setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, role: newRole } : u)));
-      toast.success(`Role updated to ${newRole}`);
+      toast.success(t('adm.role_updated', { r: t(newRole === 'admin' ? 'adm.admin_e3af' : newRole === 'driver' ? 'adm.driver_48cf' : 'adm.passenger_bf25') }));
     } catch (err: any) {
-      toast.error('Update failed: ' + err.message);
+      toast.error(t('adm.err_update') + ': ' + err.message);
     }
     setProcessingId(null);
   };
 
   const formatDate = (date: string) =>
-    new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    new Date(date).toLocaleDateString(lang === 'ar' ? 'ar-MA-u-nu-latn' : lang === 'fr' ? 'fr-FR' : 'en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
   const roleCounts = {
     all: users.length,
@@ -210,20 +212,20 @@ export function AdminUsers() {
     <AdminLayout>
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h2 className="text-xl font-bold text-white">User Management</h2>
-          <p className="text-sm text-[#A0A0A0] mt-0.5">Manage all registered users</p>
+          <h2 className="text-xl font-bold text-white">{t('adm.user_management_9272')}</h2>
+          <p className="text-sm text-[#A0A0A0] mt-0.5">{t('adm.manage_all_registered_users_5d80')}</p>
         </div>
         <Button onClick={loadUsers} variant="outline" className="border-white/10 text-[#A0A0A0] rounded-xl">
-          <Loader2 className="w-4 h-4 mr-2" /> Refresh
+          <Loader2 className="w-4 h-4 mr-2" /> {t('adm.refresh')}
         </Button>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         {([
-          { key: 'all' as RoleFilter, label: 'All Users', count: roleCounts.all, icon: Users, color: 'text-white' },
-          { key: 'passenger' as RoleFilter, label: 'Passengers', count: roleCounts.passenger, icon: Users, color: 'text-green-400' },
-          { key: 'driver' as RoleFilter, label: 'Drivers', count: roleCounts.driver, icon: Car, color: 'text-[#FF6B00]' },
-          { key: 'admin' as RoleFilter, label: 'Admins', count: roleCounts.admin, icon: Shield, color: 'text-purple-400' },
+          { key: 'all' as RoleFilter, label: t('adm.all_users_9d37'), count: roleCounts.all, icon: Users, color: 'text-white' },
+          { key: 'passenger' as RoleFilter, label: t('adm.passengers_5865'), count: roleCounts.passenger, icon: Users, color: 'text-green-400' },
+          { key: 'driver' as RoleFilter, label: t('adm.drivers_8e64'), count: roleCounts.driver, icon: Car, color: 'text-[#FF6B00]' },
+          { key: 'admin' as RoleFilter, label: t('adm.admins_3124'), count: roleCounts.admin, icon: Shield, color: 'text-purple-400' },
         ]).map((s) => (
           <button
             key={s.key}
@@ -247,15 +249,15 @@ export function AdminUsers() {
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search users..."
+            placeholder={t('adm.search_users_f5e8')}
             className="pl-11 bg-[#111318] border-white/5 text-white rounded-xl h-11"
           />
         </div>
         <div className="flex gap-2">
           {([
-            { key: 'all' as VerifyFilter, label: 'All' },
-            { key: 'verified' as VerifyFilter, label: 'Verified' },
-            { key: 'unverified' as VerifyFilter, label: 'Unverified' },
+            { key: 'all' as VerifyFilter, label: t('adm.all_b1c9') },
+            { key: 'verified' as VerifyFilter, label: t('adm.verified_3f68') },
+            { key: 'unverified' as VerifyFilter, label: t('adm.unverified_d5ca') },
           ]).map((f) => (
             <button
               key={f.key}
@@ -278,7 +280,7 @@ export function AdminUsers() {
         ) : paginated.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-48 text-center">
             <Users className="w-10 h-10 text-[#A0A0A0] mb-3" />
-            <p className="text-sm text-[#A0A0A0]">No users found</p>
+            <p className="text-sm text-[#A0A0A0]">{t('adm.no_users_found_3bf7')}</p>
           </div>
         ) : (
           <>
@@ -286,12 +288,12 @@ export function AdminUsers() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-white/5 text-left">
-                    <th className="px-5 py-3.5 text-xs font-semibold text-[#A0A0A0] uppercase">User</th>
-                    <th className="px-5 py-3.5 text-xs font-semibold text-[#A0A0A0] uppercase">Contact</th>
-                    <th className="px-5 py-3.5 text-xs font-semibold text-[#A0A0A0] uppercase">Role</th>
-                    <th className="px-5 py-3.5 text-xs font-semibold text-[#A0A0A0] uppercase">Status</th>
-                    <th className="px-5 py-3.5 text-xs font-semibold text-[#A0A0A0] uppercase">Docs</th>
-                    <th className="px-5 py-3.5 text-xs font-semibold text-[#A0A0A0] uppercase">Joined</th>
+                    <th className="px-5 py-3.5 text-xs font-semibold text-[#A0A0A0] uppercase">{t('adm.user_8f9b')}</th>
+                    <th className="px-5 py-3.5 text-xs font-semibold text-[#A0A0A0] uppercase">{t('adm.contact_bbaf')}</th>
+                    <th className="px-5 py-3.5 text-xs font-semibold text-[#A0A0A0] uppercase">{t('adm.role_bbba')}</th>
+                    <th className="px-5 py-3.5 text-xs font-semibold text-[#A0A0A0] uppercase">{t('adm.status_ec53')}</th>
+                    <th className="px-5 py-3.5 text-xs font-semibold text-[#A0A0A0] uppercase">{t('adm.docs_a390')}</th>
+                    <th className="px-5 py-3.5 text-xs font-semibold text-[#A0A0A0] uppercase">{t('adm.joined_7d50')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
@@ -301,7 +303,7 @@ export function AdminUsers() {
                         <div className="flex items-center gap-3">
                           <img src={user.avatar} alt="" className="w-10 h-10 rounded-full bg-[#1B1F27]" />
                           <div>
-                            <p className="text-sm font-medium text-white">{user.name || 'Unknown'}</p>
+                            <p className="text-sm font-medium text-white">{user.name || t('adm.unknown')}</p>
                             {user.bio && <p className="text-xs text-[#A0A0A0] line-clamp-1 max-w-[150px]">{user.bio}</p>}
                           </div>
                         </div>
@@ -325,9 +327,9 @@ export function AdminUsers() {
                           disabled={processingId === user.id}
                           className="bg-[#0A0C10] border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-[#FF6B00]/30"
                         >
-                          <option value="passenger">Passenger</option>
-                          <option value="driver">Driver</option>
-                          <option value="admin">Admin</option>
+                          <option value="passenger">{t('adm.passenger_bf25')}</option>
+                          <option value="driver">{t('adm.driver_48cf')}</option>
+                          <option value="admin">{t('adm.admin_e3af')}</option>
                         </select>
                       </td>
                       <td className="px-5 py-4">
@@ -347,7 +349,7 @@ export function AdminUsers() {
                           ) : (
                             <UserX className="w-3 h-3" />
                           )}
-                          {user.is_verified ? 'Verified' : 'Unverified'}
+                          {t(user.is_verified ? 'adm.verified_3f68' : 'adm.unverified_d5ca')}
                         </button>
                       </td>
                       <td className="px-5 py-4">

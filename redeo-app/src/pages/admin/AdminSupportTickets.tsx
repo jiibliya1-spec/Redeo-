@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useI18n } from '@/lib/i18n';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { supabase } from '@/lib/supabase';
@@ -30,13 +31,14 @@ interface SupportTicket {
 }
 
 const statusConfig: Record<string, { label: string; cls: string; icon: typeof Inbox }> = {
-  open:          { label: 'Open',          cls: 'bg-green-500/10 text-green-400',       icon: Inbox },
-  in_progress:   { label: 'In Progress',   cls: 'bg-blue-500/10 text-blue-400',         icon: Clock },
-  resolved:      { label: 'Resolved',      cls: 'bg-[#FF6B00]/10 text-[#FF6B00]',     icon: CheckCircle },
-  closed:        { label: 'Closed',        cls: 'bg-white/5 text-[#A0A0A0]',            icon: XCircle },
+  open:          { label: 'adm.open_c3bf',          cls: 'bg-green-500/10 text-green-400',       icon: Inbox },
+  in_progress:   { label: 'adm.in_progress_c941',   cls: 'bg-blue-500/10 text-blue-400',         icon: Clock },
+  resolved:      { label: 'adm.resolved_f691',      cls: 'bg-[#FF6B00]/10 text-[#FF6B00]',     icon: CheckCircle },
+  closed:        { label: 'adm.closed_03f4',        cls: 'bg-white/5 text-[#A0A0A0]',            icon: XCircle },
 };
 
 export function AdminSupportTickets() {
+  const { t, lang } = useI18n();
   const [tickets, setTickets]     = useState<SupportTicket[]>([]);
   const [filtered, setFiltered]   = useState<SupportTicket[]>([]);
   const [loading, setLoading]     = useState(true);
@@ -147,7 +149,7 @@ export function AdminSupportTickets() {
     if (selected?.id === ticketId) {
       setSelected(prev => prev ? { ...prev, status: newStatus as SupportTicket['status'], updated_at: update.updated_at } : null);
     }
-    toast.success(`Status updated to ${newStatus}`);
+    toast.success(t('adm.status_updated', { s: t(statusConfig[newStatus]?.label || 'adm.open_c3bf') }));
   };
 
   /* ─── Send reply ─── */
@@ -191,7 +193,7 @@ export function AdminSupportTickets() {
     setTickets(prev => prev.map(t => t.id === selected.id ? { ...t, ...typedUpdate } : t));
     setSelected(prev => prev ? { ...prev, ...typedUpdate } : null);
 
-    toast.success(supabaseSuccess ? 'Reply sent!' : 'Reply saved locally!');
+    toast.success(t(supabaseSuccess ? 'adm.reply_sent' : 'adm.reply_saved'));
     setReplyText('');
     setSendingReply(false);
   };
@@ -215,10 +217,10 @@ export function AdminSupportTickets() {
 
     setTickets(prev => prev.filter(t => t.id !== ticketId));
     if (selected?.id === ticketId) setSelected(null);
-    toast.success('Ticket deleted');
+    toast.success(t('adm.ticket_deleted_5d6b'));
   };
 
-  const formatDate = (d: string) => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  const formatDate = (d: string) => new Date(d).toLocaleDateString(lang === 'ar' ? 'ar-MA-u-nu-latn' : lang === 'fr' ? 'fr-FR' : 'en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 
   /* ════════════════════════════════════════════
      DETAIL VIEW (selected ticket)
@@ -235,11 +237,11 @@ export function AdminSupportTickets() {
               <ChevronLeft className="w-5 h-5 text-[#A0A0A0]" />
             </button>
             <div className="flex-1">
-              <h2 className="text-lg font-bold text-white">Ticket Details</h2>
+              <h2 className="text-lg font-bold text-white">{t('adm.ticket_details_ed7b')}</h2>
               <p className="text-xs text-[#A0A0A0]">#{selected.id.slice(0, 8)} &middot; {formatDate(selected.created_at)}</p>
             </div>
             <span className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium ${st.cls}`}>
-              <StIcon className="w-3.5 h-3.5" /> {st.label}
+              <StIcon className="w-3.5 h-3.5" /> {t(st.label)}
             </span>
           </div>
 
@@ -254,7 +256,7 @@ export function AdminSupportTickets() {
                 <p className="text-xs text-[#A0A0A0] flex items-center gap-1"><Mail className="w-3 h-3" /> {selected.email}</p>
               </div>
               {selected.user_id && (
-                <span className="text-xs text-green-400 bg-green-500/10 px-2 py-1 rounded-full">Registered User</span>
+                <span className="text-xs text-green-400 bg-green-500/10 px-2 py-1 rounded-full">{t('adm.registered_user_f882')}</span>
               )}
             </div>
           </motion.div>
@@ -264,7 +266,7 @@ export function AdminSupportTickets() {
             <div className="flex items-start gap-3">
               <FileText className="w-5 h-5 text-[#FF6B00] shrink-0 mt-0.5" />
               <div>
-                <p className="text-xs text-[#A0A0A0] mb-1">Subject</p>
+                <p className="text-xs text-[#A0A0A0] mb-1">{t('adm.subject_c789')}</p>
                 <p className="text-white font-medium">{selected.subject}</p>
               </div>
             </div>
@@ -275,7 +277,7 @@ export function AdminSupportTickets() {
             <div className="flex items-start gap-3">
               <AlertCircle className="w-5 h-5 text-[#FF6B00] shrink-0 mt-0.5" />
               <div>
-                <p className="text-xs text-[#A0A0A0] mb-1">Message</p>
+                <p className="text-xs text-[#A0A0A0] mb-1">{t('adm.message_4c2a')}</p>
                 <p className="text-white whitespace-pre-wrap leading-relaxed">{selected.message}</p>
               </div>
             </div>
@@ -286,9 +288,9 @@ export function AdminSupportTickets() {
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="bg-[#111318] rounded-2xl border border-white/5 p-5 mb-4">
               <div className="flex items-center gap-2 mb-3">
                 <Image className="w-5 h-5 text-[#FF6B00]" />
-                <p className="text-xs text-[#A0A0A0]">Attached Screenshot</p>
+                <p className="text-xs text-[#A0A0A0]">{t('adm.attached_screenshot_bf87')}</p>
               </div>
-              <img src={selected.screenshot_url} alt="Screenshot" className="rounded-xl border border-white/5 max-h-64 object-contain" />
+              <img src={selected.screenshot_url} alt={t('adm.screenshot_3afb')} className="rounded-xl border border-white/5 max-h-64 object-contain" />
             </motion.div>
           )}
 
@@ -297,7 +299,7 @@ export function AdminSupportTickets() {
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="bg-green-500/5 rounded-2xl border border-green-500/20 p-5 mb-4">
               <div className="flex items-center gap-2 mb-3">
                 <CheckCircle className="w-5 h-5 text-green-400" />
-                <p className="text-sm font-medium text-green-400">Your Reply</p>
+                <p className="text-sm font-medium text-green-400">{t('adm.your_reply_802c')}</p>
               </div>
               <p className="text-white whitespace-pre-wrap">{selected.admin_reply}</p>
             </motion.div>
@@ -306,11 +308,11 @@ export function AdminSupportTickets() {
           {/* Reply Form */}
           {!selected.admin_reply && selected.status !== 'closed' && (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }} className="bg-[#111318] rounded-2xl border border-white/5 p-5 mb-4">
-              <p className="text-sm text-white font-medium mb-3">Send Reply</p>
+              <p className="text-sm text-white font-medium mb-3">{t('adm.send_reply_cbcb')}</p>
               <Textarea
                 value={replyText}
                 onChange={e => setReplyText(e.target.value)}
-                placeholder="Type your reply to the user..."
+                placeholder={t('adm.type_your_reply_to_the_user_eed4')}
                 className="bg-[#0A0C10] border-white/10 text-white rounded-xl min-h-[120px] mb-3"
               />
               <div className="flex gap-3">
@@ -319,7 +321,7 @@ export function AdminSupportTickets() {
                   disabled={sendingReply || !replyText.trim()}
                   className="bg-[#FF6B00] hover:bg-[#E56000] text-white rounded-xl"
                 >
-                  {sendingReply ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Send className="w-4 h-4 mr-2" /> Send Reply & Resolve</>}
+                  {sendingReply ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Send className="w-4 h-4 mr-2" /> {t('adm.send_reply_resolve_269e')}</>}
                 </Button>
               </div>
             </motion.div>
@@ -365,8 +367,8 @@ export function AdminSupportTickets() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div>
-            <h2 className="text-xl font-bold text-white">Support Tickets</h2>
-            <p className="text-sm text-[#A0A0A0]">{filtered.length} of {tickets.length} tickets</p>
+            <h2 className="text-xl font-bold text-white">{t('adm.support_tickets_fdca')}</h2>
+            <p className="text-sm text-[#A0A0A0]">{t('adm.tickets_of',{a:filtered.length,b:tickets.length})}</p>
           </div>
           <div className="flex gap-2">
             <button onClick={loadTickets} className="p-2.5 rounded-xl border border-white/10 text-[#A0A0A0] hover:bg-white/5 transition-colors">
@@ -382,7 +384,7 @@ export function AdminSupportTickets() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#A0A0A0]" />
               <Input
                 value={search} onChange={e => setSearch(e.target.value)}
-                placeholder="Search by name, email, subject..."
+                placeholder={t('adm.search_by_name_email_subject_c93e')}
                 className="pl-10 bg-[#0A0C10] border-white/10 text-white rounded-xl h-10"
               />
             </div>
@@ -391,17 +393,17 @@ export function AdminSupportTickets() {
                 value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
                 className="bg-[#0A0C10] border border-white/10 text-white rounded-xl h-10 px-3 text-sm outline-none appearance-none"
               >
-                <option value="all">All Status</option>
-                <option value="open">Open</option>
-                <option value="in_progress">In Progress</option>
-                <option value="resolved">Resolved</option>
-                <option value="closed">Closed</option>
+                <option value="all">{t('adm.all_status_1626')}</option>
+                <option value="open">{t('adm.open_c3bf')}</option>
+                <option value="in_progress">{t('adm.in_progress_c941')}</option>
+                <option value="resolved">{t('adm.resolved_f691')}</option>
+                <option value="closed">{t('adm.closed_03f4')}</option>
               </select>
               <button
                 onClick={() => setSortBy(s => s === 'newest' ? 'oldest' : 'newest')}
                 className="flex items-center gap-1 px-3 h-10 rounded-xl border border-white/10 text-[#A0A0A0] hover:bg-white/5 text-sm transition-colors"
               >
-                <ArrowDownUp className="w-3.5 h-3.5" /> {sortBy === 'newest' ? 'Newest' : 'Oldest'}
+                <ArrowDownUp className="w-3.5 h-3.5" /> {t(sortBy === 'newest' ? 'adm.newest' : 'adm.oldest')}
               </button>
             </div>
           </div>
@@ -419,7 +421,7 @@ export function AdminSupportTickets() {
                 className={`bg-[#111318] rounded-xl border p-3 text-left transition-all ${statusFilter === s ? 'border-[#FF6B00]/30' : 'border-white/5 hover:border-white/10'}`}
               >
                 <p className="text-2xl font-bold text-white">{count}</p>
-                <p className="text-[10px] text-[#A0A0A0] mt-0.5">{cfg.label}</p>
+                <p className="text-[10px] text-[#A0A0A0] mt-0.5">{t(cfg.label)}</p>
               </button>
             );
           })}
@@ -433,7 +435,7 @@ export function AdminSupportTickets() {
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-64 text-center">
             <Inbox className="w-12 h-12 text-[#A0A0A0]/30 mb-3" />
-            <p className="text-[#A0A0A0]">No tickets found</p>
+            <p className="text-[#A0A0A0]">{t('adm.no_tickets_found_1745')}</p>
           </div>
         ) : (
           <div className="space-y-2">
@@ -460,7 +462,7 @@ export function AdminSupportTickets() {
                         <div className="flex items-center gap-2 mb-1">
                           <p className="text-sm font-medium text-white truncate">{ticket.name}</p>
                           <span className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${st.cls}`}>
-                            <StIcon className="w-3 h-3" /> {st.label}
+                            <StIcon className="w-3 h-3" /> {t(st.label)}
                           </span>
                         </div>
                         <p className="text-sm text-white font-medium truncate mb-1">{ticket.subject}</p>
@@ -468,8 +470,8 @@ export function AdminSupportTickets() {
                         <div className="flex items-center gap-3 mt-2">
                           <span className="text-[10px] text-[#A0A0A0]"><Mail className="w-3 h-3 inline mr-1" />{ticket.email}</span>
                           <span className="text-[10px] text-[#A0A0A0]"><Clock className="w-3 h-3 inline mr-1" />{formatDate(ticket.created_at)}</span>
-                          {ticket.admin_reply && <span className="text-[10px] text-green-400 flex items-center gap-1"><CheckCircle className="w-3 h-3" /> Replied</span>}
-                          {ticket.screenshot_url && <span className="text-[10px] text-blue-400 flex items-center gap-1"><Image className="w-3 h-3" /> Screenshot</span>}
+                          {ticket.admin_reply && <span className="text-[10px] text-green-400 flex items-center gap-1"><CheckCircle className="w-3 h-3" /> {t('adm.replied_f719')}</span>}
+                          {ticket.screenshot_url && <span className="text-[10px] text-blue-400 flex items-center gap-1"><Image className="w-3 h-3" /> {t('adm.screenshot_3afb')}</span>}
                         </div>
                       </div>
                       <Eye className="w-4 h-4 text-[#A0A0A0] opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-1" />

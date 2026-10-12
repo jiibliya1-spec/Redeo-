@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useI18n } from '@/lib/i18n';
+import { useCity } from '@/lib/cities';
 import { resolveAvatar } from '@/lib/utils';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { supabase } from '@/lib/supabase';
@@ -31,6 +33,8 @@ interface TripRecord {
 type StatusFilter = 'all' | 'upcoming' | 'ongoing' | 'in_progress' | 'completed' | 'cancelled';
 
 export function AdminTrips() {
+  const { t } = useI18n();
+  const city = useCity();
   const [trips, setTrips] = useState<TripRecord[]>([]);
   const [filtered, setFiltered] = useState<TripRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -72,14 +76,14 @@ export function AdminTrips() {
         const driver = usersMap.get(t.driver_id);
         return {
           ...t,
-          driver_name: driver?.name || 'Unknown',
+          driver_name: driver?.name || t('adm.unknown'),
           driver_avatar: resolveAvatar(driver?.avatar, t.driver_id),
         };
       });
 
       setTrips(combined);
     } catch (err: any) {
-      toast.error('Failed to load trips: ' + err.message);
+      toast.error(t('adm.err_load') + ': ' + err.message);
     }
     setLoading(false);
   }, [getHeaders]);
@@ -125,10 +129,10 @@ export function AdminTrips() {
       const headers = await getHeaders();
       const res = await fetch(`${SUPABASE_URL}/rest/v1/trips?id=eq.${id}`, { method: 'DELETE', headers });
       if (!res.ok) throw new Error(await res.text());
-      toast.success('Trip deleted');
+      toast.success(t('adm.trip_deleted_9236'));
       await loadTrips();
     } catch (err: any) {
-      toast.error('Delete failed: ' + err.message);
+      toast.error(t('adm.err_delete') + ': ' + err.message);
     }
     setProcessingId(null);
   };
@@ -143,10 +147,10 @@ export function AdminTrips() {
         body: JSON.stringify({ status: 'cancelled' }),
       });
       if (!res.ok) throw new Error(await res.text());
-      toast.success('Trip cancelled');
+      toast.success(t('adm.trip_cancelled_b71f'));
       await loadTrips();
     } catch (err: any) {
-      toast.error('Cancel failed: ' + err.message);
+      toast.error(t('adm.err_cancel') + ': ' + err.message);
     }
     setProcessingId(null);
   };
@@ -163,9 +167,9 @@ export function AdminTrips() {
   };
 
   const statusLabel = (s: string) => {
-    if (s === 'in_progress') return 'Active';
-    if (s === 'ongoing') return 'Active';
-    return s.charAt(0).toUpperCase() + s.slice(1);
+    if (s === 'in_progress' || s === 'ongoing') return t('adm.st_active');
+    const k = 'adm.st_' + s;
+    return ['upcoming','completed','cancelled'].includes(s) ? t(k) : s.charAt(0).toUpperCase() + s.slice(1);
   };
 
   const counts = {
@@ -180,13 +184,13 @@ export function AdminTrips() {
     <AdminLayout>
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h2 className="text-xl font-bold text-white">Trip Management</h2>
-          <p className="text-sm text-[#A0A0A0] mt-0.5">All published trips from all drivers</p>
+          <h2 className="text-xl font-bold text-white">{t('adm.trip_management_8d1a')}</h2>
+          <p className="text-sm text-[#A0A0A0] mt-0.5">{t('adm.all_published_trips_from_all_drivers_6012')}</p>
         </div>
         <div className="flex items-center gap-2">
-          <p className="text-sm text-[#A0A0A0]">{trips.length} trips total</p>
+          <p className="text-sm text-[#A0A0A0]">{t('adm.trips_total',{n:trips.length})}</p>
           <Button onClick={loadTrips} variant="outline" size="sm" className="border-white/10 text-[#A0A0A0] rounded-xl">
-            <Loader2 className="w-3 h-3 mr-1" /> Refresh
+            <Loader2 className="w-3 h-3 mr-1" /> {t('adm.refresh')}
           </Button>
         </div>
       </div>
@@ -194,11 +198,11 @@ export function AdminTrips() {
       {/* Status filter tabs */}
       <div className="flex flex-wrap gap-2 mb-6">
         {([
-          { key: 'all' as StatusFilter, label: 'All', count: counts.all, color: 'bg-white/5 text-[#A0A0A0]' },
-          { key: 'upcoming' as StatusFilter, label: 'Upcoming', count: counts.upcoming, color: 'bg-blue-500/10 text-blue-400' },
-          { key: 'ongoing' as StatusFilter, label: 'Active', count: counts.ongoing, color: 'bg-yellow-500/10 text-yellow-400' },
-          { key: 'completed' as StatusFilter, label: 'Completed', count: counts.completed, color: 'bg-green-500/10 text-green-400' },
-          { key: 'cancelled' as StatusFilter, label: 'Cancelled', count: counts.cancelled, color: 'bg-red-500/10 text-red-400' },
+          { key: 'all' as StatusFilter, label: t('adm.all_b1c9'), count: counts.all, color: 'bg-white/5 text-[#A0A0A0]' },
+          { key: 'upcoming' as StatusFilter, label: t('adm.upcoming_14ab'), count: counts.upcoming, color: 'bg-blue-500/10 text-blue-400' },
+          { key: 'ongoing' as StatusFilter, label: t('adm.active_4d3d'), count: counts.ongoing, color: 'bg-yellow-500/10 text-yellow-400' },
+          { key: 'completed' as StatusFilter, label: t('adm.completed_07ca'), count: counts.completed, color: 'bg-green-500/10 text-green-400' },
+          { key: 'cancelled' as StatusFilter, label: t('adm.cancelled_a149'), count: counts.cancelled, color: 'bg-red-500/10 text-red-400' },
         ]).map((tab) => (
           <button key={tab.key} onClick={() => setStatusFilter(tab.key)}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
@@ -214,7 +218,7 @@ export function AdminTrips() {
         <Input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search by route or driver..."
+          placeholder={t('adm.search_by_route_or_driver_955d')}
           className="pl-11 bg-[#111318] border-white/5 text-white rounded-xl h-11"
         />
       </div>
@@ -227,9 +231,9 @@ export function AdminTrips() {
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-48 text-center">
             <Car className="w-10 h-10 text-[#A0A0A0] mb-3" />
-            <p className="text-sm text-[#A0A0A0]">No trips found</p>
+            <p className="text-sm text-[#A0A0A0]">{t('adm.no_trips_found_12bc')}</p>
             <p className="text-xs text-[#A0A0A0] mt-1">
-              {trips.length > 0 ? 'Try changing the filter above' : 'Trips will appear here when drivers publish them'}
+              {t(trips.length > 0 ? 'adm.try_filter' : 'adm.trips_appear')}
             </p>
           </div>
         ) : (
@@ -237,13 +241,13 @@ export function AdminTrips() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-white/5 text-left">
-                  <th className="px-4 py-3.5 text-xs font-semibold text-[#A0A0A0] uppercase">Driver</th>
-                  <th className="px-4 py-3.5 text-xs font-semibold text-[#A0A0A0] uppercase">Route</th>
-                  <th className="px-4 py-3.5 text-xs font-semibold text-[#A0A0A0] uppercase">Date</th>
-                  <th className="px-4 py-3.5 text-xs font-semibold text-[#A0A0A0] uppercase">Price</th>
-                  <th className="px-4 py-3.5 text-xs font-semibold text-[#A0A0A0] uppercase">Seats</th>
-                  <th className="px-4 py-3.5 text-xs font-semibold text-[#A0A0A0] uppercase">Status</th>
-                  <th className="px-4 py-3.5 text-xs font-semibold text-[#A0A0A0] uppercase">Actions</th>
+                  <th className="px-4 py-3.5 text-xs font-semibold text-[#A0A0A0] uppercase">{t('adm.driver_48cf')}</th>
+                  <th className="px-4 py-3.5 text-xs font-semibold text-[#A0A0A0] uppercase">{t('adm.route_9405')}</th>
+                  <th className="px-4 py-3.5 text-xs font-semibold text-[#A0A0A0] uppercase">{t('adm.date_4474')}</th>
+                  <th className="px-4 py-3.5 text-xs font-semibold text-[#A0A0A0] uppercase">{t('adm.price_3601')}</th>
+                  <th className="px-4 py-3.5 text-xs font-semibold text-[#A0A0A0] uppercase">{t('adm.seats_b29f')}</th>
+                  <th className="px-4 py-3.5 text-xs font-semibold text-[#A0A0A0] uppercase">{t('adm.status_ec53')}</th>
+                  <th className="px-4 py-3.5 text-xs font-semibold text-[#A0A0A0] uppercase">{t('adm.actions_06df')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
@@ -258,9 +262,9 @@ export function AdminTrips() {
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1 text-sm text-white">
                         <MapPin className="w-3 h-3 text-[#FF6B00] shrink-0" />
-                        <span className="truncate max-w-[80px]">{trip.from_location}</span>
+                        <span className="truncate max-w-[80px]">{city(trip.from_location)}</span>
                         <ChevronRight className="w-3 h-3 text-[#A0A0A0] shrink-0" />
-                        <span className="truncate max-w-[80px]">{trip.to_location}</span>
+                        <span className="truncate max-w-[80px]">{city(trip.to_location)}</span>
                       </div>
                     </td>
                     <td className="px-4 py-3 text-xs text-[#A0A0A0]">
@@ -272,7 +276,7 @@ export function AdminTrips() {
                     <td className="px-4 py-3 text-sm text-white font-medium">
                       <div className="flex items-center gap-0.5">
                         <DollarSign className="w-3 h-3 text-[#FF6B00]" />
-                        {trip.price} MAD
+                        {trip.price} {t('adm.mad')}
                       </div>
                     </td>
                     <td className="px-4 py-3 text-xs text-[#A0A0A0]">
@@ -291,13 +295,13 @@ export function AdminTrips() {
                         {trip.status !== 'cancelled' && trip.status !== 'completed' && (
                           <>
                             <button onClick={() => handleCancel(trip.id)} disabled={processingId === trip.id}
-                              className="p-1.5 rounded-lg bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-400 transition-colors" title="Cancel trip">
+                              className="p-1.5 rounded-lg bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-400 transition-colors" title={t('adm.cancel_trip_6203')}>
                               {processingId === trip.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Ban className="w-3.5 h-3.5" />}
                             </button>
                           </>
                         )}
                         <button onClick={() => handleDelete(trip.id)} disabled={processingId === trip.id}
-                          className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 transition-colors" title="Delete trip">
+                          className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 transition-colors" title={t('adm.delete_trip_5b97')}>
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>

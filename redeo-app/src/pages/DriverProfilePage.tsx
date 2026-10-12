@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { hasDeparted } from '@/lib/tripTime';
 import { useCity } from '@/lib/cities';
 import { RatingBadge } from '@/components/Rating';
 import { resolveAvatar } from '@/lib/utils';
@@ -68,7 +69,7 @@ export function DriverProfilePage() {
         );
         if (tripsRes.ok) {
           const t = await tripsRes.json();
-          setTrips((t || []).map((trip: any) => ({ ...trip, driver: driverProfile })));
+          setTrips((t || []).filter((x: any) => !hasDeparted(x)).map((trip: any) => ({ ...trip, driver: driverProfile })));
         }
 
         // Fetch reviews

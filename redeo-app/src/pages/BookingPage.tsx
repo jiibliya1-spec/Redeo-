@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { hasDeparted } from '@/lib/tripTime';
 import { useCity } from '@/lib/cities';
 import { encodeText } from '@/lib/notifText';
 import { RatingBadge } from '@/components/Rating';
@@ -117,7 +118,7 @@ export function BookingPage() {
       }
       return;
     } catch (e: any) {
-      toast.error(e.message || 'Booking failed');
+      toast.error(/already departed|no longer available/i.test(e.message || '') ? t('book.departed') : (e.message || 'Booking failed'));
     }
     setIsBooking(false);
   };
@@ -154,6 +155,17 @@ export function BookingPage() {
           >
             {t('booking.go_settings')}
           </button>
+        </div>
+      );
+    }
+
+    if (trip && hasDeparted(trip)) {
+      return (
+        <div className="min-h-screen bg-[#0F1115] pt-20 flex items-center justify-center" dir={dir}>
+          <div className="text-center px-6">
+            <p className="text-white text-lg mb-4">{t('book.departed')}</p>
+            <Button onClick={() => navigate('/search')} variant="outline" className="border-[#FF6B00]/30 text-[#FF6B00]">{t('nav.search')}</Button>
+          </div>
         </div>
       );
     }

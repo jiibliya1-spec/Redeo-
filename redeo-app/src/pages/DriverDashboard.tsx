@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { hasDeparted } from '@/lib/tripTime';
 import { useCity } from '@/lib/cities';
 import { encodeText } from '@/lib/notifText';
 import { RatingBadge, hasRating } from '@/components/Rating';
@@ -547,9 +548,8 @@ export function DriverDashboard() {
     localStorage.setItem(`wansniauto_vehicles_${user?.id || 'guest'}`, JSON.stringify(updated));
   };
 
-  const now = new Date().toISOString().split('T')[0];
-  const upcomingTrips = trips.filter(t => t.departure_date >= now);
-  const pastTrips = trips.filter(t => t.departure_date < now);
+  const upcomingTrips = trips.filter(t => !hasDeparted(t));
+  const pastTrips = trips.filter(t => hasDeparted(t));
 
   const stats = [
     { label: t('driver.earnings'), value: totalEarnings, icon: DollarSign, prefix: t('trip.price') + ' ', suffix: '' },

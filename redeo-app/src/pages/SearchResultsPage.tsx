@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { hasDeparted } from '@/lib/tripTime';
 import { useCity } from '@/lib/cities';
 import { RatingBadge } from '@/components/Rating';
 import { resolveAvatar } from '@/lib/utils';
@@ -187,7 +188,7 @@ export function SearchResultsPage() {
     }
 
     // Filter
-    let filtered = allTrips.filter((t: Trip) => t.status === 'upcoming');
+    let filtered = allTrips.filter((t: Trip) => t.status === 'upcoming' && !hasDeparted(t));
     if (searchFilters.from) {
       filtered = filtered.filter((t: Trip) =>
         t.from_location?.toLowerCase().includes(searchFilters.from.toLowerCase())

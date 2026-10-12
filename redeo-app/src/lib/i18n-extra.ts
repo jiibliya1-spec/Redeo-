@@ -200,6 +200,10 @@ export const EXTRA: Record<Lang, Record<string, string>> = {
     'footer.slogan': 'Travel easy, share the road',
     'common.open': 'Open',
     'driver.add_vehicle_first': 'Add your vehicle first to publish a trip — tap here',
+    'notif.reminder_title': 'Trip reminder ⏰',
+    'notif.reminder_msg': 'Your trip from {from} to {to} leaves today at {time} (in about {h} h). Be ready on time!',
+    'notif.reminder_driver_msg': 'Your trip from {from} to {to} leaves today at {time} (in about {h} h). Passengers are waiting for you.',
+    'book.departed': 'This trip has already departed.',
   },
   fr: {
     'rating.none': 'Pas encore noté',
@@ -399,6 +403,10 @@ export const EXTRA: Record<Lang, Record<string, string>> = {
     'footer.slogan': 'Voyagez facilement, partagez la route',
     'common.open': 'Ouvrir',
     'driver.add_vehicle_first': 'Ajoutez d’abord votre véhicule pour publier un trajet — appuyez ici',
+    'notif.reminder_title': 'Rappel de trajet ⏰',
+    'notif.reminder_msg': 'Votre trajet de {from} à {to} part aujourd’hui à {time} (dans environ {h} h). Soyez à l’heure !',
+    'notif.reminder_driver_msg': 'Votre trajet de {from} à {to} part aujourd’hui à {time} (dans environ {h} h). Vos passagers vous attendent.',
+    'book.departed': 'Ce trajet est déjà parti.',
   },
   ar: {
     'rating.none': 'مازال ماعندو حتى تقييم',
@@ -598,5 +606,9 @@ export const EXTRA: Record<Lang, Record<string, string>> = {
     'footer.slogan': 'سافر بسهولة وشارك الطريق',
     'common.open': 'فتح',
     'driver.add_vehicle_first': 'زيد السيارة ديالك أولا باش تنشر رحلة — ضغط هنا',
+    'notif.reminder_title': 'تذكير بالرحلة ⏰',
+    'notif.reminder_msg': 'الرحلة ديالك من {from} إلى {to} غادي تنطلق اليوم على {time} (من بعد حوالي {h} س). كون واجد فالوقت!',
+    'notif.reminder_driver_msg': 'الرحلة ديالك من {from} إلى {to} غادي تنطلق اليوم على {time} (من بعد حوالي {h} س). الركاب كيتسناوك.',
+    'book.departed': 'هاد الرحلة ديجا انطلقات.',
   },
 };

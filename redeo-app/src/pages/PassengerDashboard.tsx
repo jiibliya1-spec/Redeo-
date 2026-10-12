@@ -15,7 +15,7 @@ import { Button } from '@/components/ui/button';
 import type { Trip, Booking } from '@/types';
 import {
   Car, Clock, Star, Wallet, Shield, Loader2,
-  MapPin, Calendar, ChevronRight, Search, Heart,
+  Calendar, Search, Heart,
 } from 'lucide-react';
 
 interface BookingWithTrip extends Booking {
@@ -210,43 +210,43 @@ export function PassengerDashboard() {
     return (
       <motion.div
         key={booking.id}
-        initial={{ opacity: 0, x: -20 }}
-        animate={{ opacity: 1, x: 0 }}
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
         transition={{ delay: index * 0.05 }}
         onClick={() => navigate(`/trip/${booking.trip_id}`)}
-        className="flex items-center gap-4 p-4 rounded-xl hover:bg-white/5 transition-colors cursor-pointer group"
+        className="p-4 rounded-2xl bg-white/[0.03] border border-white/5 hover:bg-white/5 transition-colors cursor-pointer"
       >
-        <div className="w-12 h-12 rounded-xl bg-[#FF6B00]/10 flex items-center justify-center shrink-0">
-          <Car className="w-5 h-5 text-[#FF6B00]" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <MapPin className="w-3.5 h-3.5 text-[#FF6B00] shrink-0" />
-            <p className="text-sm font-medium text-white truncate">
-              {city(trip.from_location)} &rarr; {city(trip.to_location)}
+        <div className="flex items-start gap-3">
+          <div className="w-11 h-11 rounded-xl bg-[#FF6B00]/10 flex items-center justify-center shrink-0">
+            <Car className="w-5 h-5 text-[#FF6B00]" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-white leading-snug">
+              {city(trip.from_location)} <span className="text-[#FF6B00]">&rarr;</span> {city(trip.to_location)}
             </p>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5">
+              <span className="text-xs text-[#A0A0A0] flex items-center gap-1 whitespace-nowrap">
+                <Calendar className="w-3 h-3" />{trip.departure_date}
+              </span>
+              <span className="text-xs text-[#A0A0A0] flex items-center gap-1 whitespace-nowrap">
+                <Clock className="w-3 h-3" />{(trip as any).departure_time}
+              </span>
+            </div>
           </div>
-          <div className="flex items-center gap-3 mt-1">
-            <span className="text-xs text-[#A0A0A0] flex items-center gap-1">
-              <Calendar className="w-3 h-3" />{trip.departure_date}
-            </span>
-            <span className="text-xs text-[#A0A0A0] flex items-center gap-1">
-              <Clock className="w-3 h-3" />{(trip as any).departure_time}
-            </span>
+          <div className="flex flex-col items-end gap-1.5 shrink-0">
+            <p className="text-sm font-bold text-[#FF6B00] whitespace-nowrap">{booking.total_price} {t('trip.price')}</p>
+            <span className={`text-xs px-2 py-0.5 rounded-full font-medium whitespace-nowrap ${
+              booking.status === 'confirmed' ? 'bg-green-500/10 text-green-400' :
+              booking.status === 'pending' ? 'bg-yellow-500/10 text-yellow-400' :
+              'bg-red-500/10 text-red-400'
+            }`}>{t(`status.${booking.status}`) === `status.${booking.status}` ? booking.status : t(`status.${booking.status}`)}</span>
           </div>
-        </div>
-        <div className="text-right shrink-0">
-          <p className="text-sm font-bold text-[#FF6B00]">{booking.total_price} {t('trip.price')}</p>
-          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-            booking.status === 'confirmed' ? 'bg-green-500/10 text-green-400' :
-            booking.status === 'pending' ? 'bg-yellow-500/10 text-yellow-400' :
-            'bg-red-500/10 text-red-400'
-          }`}>{t(`status.${booking.status}`) === `status.${booking.status}` ? booking.status : t(`status.${booking.status}`)}</span>
         </div>
         {(booking.status === 'pending' || booking.status === 'confirmed') && !hasDeparted(trip as any) && (
-          <button onClick={(e) => { e.stopPropagation(); setCancelTarget(booking); }} className="text-xs text-red-400 hover:text-red-300 px-2.5 py-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 transition-colors shrink-0">{t('mytrips.cancel_btn')}</button>
+          <div className="mt-3 pt-3 border-t border-white/5 flex justify-end">
+            <button onClick={(e) => { e.stopPropagation(); setCancelTarget(booking); }} className="text-xs font-medium text-red-400 hover:text-red-300 px-4 py-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 transition-colors">{t('mytrips.cancel_btn')}</button>
+          </div>
         )}
-        <ChevronRight className="w-4 h-4 text-[#A0A0A0] opacity-0 group-hover:opacity-100 transition-opacity" />
       </motion.div>
     );
   };

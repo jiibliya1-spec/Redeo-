@@ -314,11 +314,10 @@ export function ContactSupportPage() {
       const { error } = await supabase.from('support_tickets').insert(ticketData);
 
       if (error) {
-        // Fallback: save to localStorage
-        const localTickets = JSON.parse(localStorage.getItem('wansniauto_support_tickets') || '[]');
-        localTickets.push({ ...ticketData, id: `local-${Date.now()}` });
-        localStorage.setItem('wansniauto_support_tickets', JSON.stringify(localTickets));
-        console.warn('Supabase save failed, using localStorage:', error.message);
+        console.error('Support ticket save failed:', error.message);
+        toast.error(T.error);
+        setIsSubmitting(false);
+        return;
       }
 
       // Rate limit

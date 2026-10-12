@@ -78,14 +78,8 @@ export function AdminSupportTickets() {
       }
     } catch (e) { console.warn('[loadTickets] Supabase error:', e); }
 
-    // 2. Merge with localStorage (for tickets saved locally)
-    try {
-      const local = JSON.parse(localStorage.getItem('wansniauto_support_tickets') || '[]');
-      // Merge: local tickets that don't exist in Supabase response
-      const existingIds = new Set(allTickets.map(t => t.id));
-      const newLocal = local.filter((t: SupportTicket) => !existingIds.has(t.id));
-      allTickets = [...allTickets, ...newLocal];
-    } catch { /* silent */ }
+    // Tickets saved only on a device (old fallback) never reached the server: drop them.
+    try { localStorage.removeItem('wansniauto_support_tickets'); } catch { /* silent */ }
 
     setTickets(allTickets);
     setFiltered(allTickets);

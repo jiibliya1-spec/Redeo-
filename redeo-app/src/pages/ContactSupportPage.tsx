@@ -64,11 +64,11 @@ function TicketList({ tickets, statusColor, statusLabel }: { tickets: SupportTic
               {statusLabel(t.status)}
             </span>
           </div>
-          <p className="text-xs text-[#A0A0A0] whitespace-pre-wrap">{t.message}</p>
+          <p className="text-xs text-[#A0A0A0] whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{t.message}</p>
           {t.admin_reply && (
             <div className="mt-2 rounded-lg bg-green-500/10 border border-green-500/20 p-2.5">
               <p className="text-[11px] font-medium text-green-400 mb-1">{tr('support.reply_label')}</p>
-              <p className="text-sm text-white whitespace-pre-wrap">{t.admin_reply}</p>
+              <p className="text-sm text-white whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{t.admin_reply}</p>
             </div>
           )}
           <p className="text-[10px] text-[#A0A0A0]/50 mt-1">

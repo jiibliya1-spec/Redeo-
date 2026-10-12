@@ -276,7 +276,7 @@ export function AdminSupportTickets() {
               <AlertCircle className="w-5 h-5 text-[#FF6B00] shrink-0 mt-0.5" />
               <div>
                 <p className="text-xs text-[#A0A0A0] mb-1">{t('adm.message_4c2a')}</p>
-                <p className="text-white whitespace-pre-wrap leading-relaxed">{selected.message}</p>
+                <p className="text-white whitespace-pre-wrap break-words [overflow-wrap:anywhere] leading-relaxed">{selected.message}</p>
               </div>
             </div>
           </motion.div>
@@ -299,7 +299,7 @@ export function AdminSupportTickets() {
                 <CheckCircle className="w-5 h-5 text-green-400" />
                 <p className="text-sm font-medium text-green-400">{t('adm.your_reply_802c')}</p>
               </div>
-              <p className="text-white whitespace-pre-wrap">{selected.admin_reply}</p>
+              <p className="text-white whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{selected.admin_reply}</p>
             </motion.div>
           )}
 

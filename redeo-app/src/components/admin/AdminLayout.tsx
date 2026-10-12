@@ -23,7 +23,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   const { t } = useI18n();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
-  const { user, signOut } = useStore();
+  const { user, signOut, unreadCount } = useStore();
 
   const isActive = (path: string) => {
     if (path === '/admin') return location.pathname === '/admin';
@@ -133,10 +133,10 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
               </h2>
             </div>
             <div className="flex items-center gap-2">
-              <button className="relative p-2.5 rounded-xl hover:bg-white/5 transition-colors">
+              <Link to="/notifications" className="relative p-2.5 rounded-xl hover:bg-white/5 transition-colors">
                 <Bell className="w-5 h-5 text-[#A0A0A0]" />
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#FF6B00] rounded-full" />
-              </button>
+                {unreadCount > 0 && <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#FF6B00] rounded-full" />}
+              </Link>
             </div>
           </div>
         </header>

@@ -351,7 +351,7 @@ export function PassengerDashboard() {
             { label: t('nav.profile'), Icon: User, action: () => navigate('/profile') },
             { label: t('nav.chat'), Icon: MessageCircle, action: () => navigate('/messages') },
             { label: t('verify.title'), Icon: ShieldCheck, action: () => navigate('/verification') },
-            { label: t('common.support'), Icon: LifeBuoy, action: () => navigate('/messages') },
+            { label: t('common.support'), Icon: LifeBuoy, action: () => navigate('/support') },
           ].map(item => (
             <button key={item.label} onClick={item.action} className="bg-[#1B1F27] rounded-xl border border-white/5 p-4 text-center hover:bg-[#FF6B00]/10 hover:border-[#FF6B00]/20 transition-all group">
               <item.Icon className="w-5 h-5 mx-auto mb-2 text-[#FF6B00]" />

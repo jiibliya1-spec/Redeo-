@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
+import { reportError } from '@/lib/errorLog';
 import { useEffect, useState, Component, lazy, Suspense, type ReactNode, type ErrorInfo } from 'react';
 
 /* ─── Error Boundary: catches component crashes, shows friendly message instead of blank screen ─── */
@@ -12,6 +13,7 @@ class PageErrorBoundary extends Component<{ children: ReactNode }, { hasError: b
   }
   componentDidCatch(error: Error, info: ErrorInfo) {
     console.error('[PageErrorBoundary]', error, info);
+    reportError(error, 'react-boundary');
   }
   render() {
     if (this.state.hasError) {

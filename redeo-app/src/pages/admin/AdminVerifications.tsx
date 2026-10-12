@@ -132,6 +132,7 @@ export function AdminVerifications() {
   const [rejectReason, setRejectReason] = useState('');
   const [processing, setProcessing] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [viewedDocs, setViewedDocs] = useState<Set<string>>(new Set()); // an admin must open every document before approving
   const [showRejectPanel, setShowRejectPanel] = useState(false);
   const [aiSummary, setAiSummary] = useState<any | null>(null);
   const [aiReports, setAiReports] = useState<Record<string, any>>({});
@@ -228,8 +229,12 @@ export function AdminVerifications() {
     return () => { supabase.removeChannel(channel); };
   }, [buildRecord]);
 
+  const unviewedCount = (b: UserBundle) =>
+    b.docs.filter((d) => (d.status === 'pending' || d.status === 'uploaded') && getDocUrl(d) && !viewedDocs.has(d.id)).length;
+
   /* ─── Approve ALL docs for user ─── */
   const handleApproveUser = async (bundle: UserBundle) => {
+    if (unviewedCount(bundle) > 0) { toast.error(`Open every document first (${unviewedCount(bundle)} left)`); return; }
     setProcessing(true);
     try {
       const headers = await getHeaders();
@@ -633,7 +638,7 @@ export function AdminVerifications() {
                         {/* Thumbnail / click to preview */}
                         <div
                           className="relative aspect-[4/3] bg-[#1B1F27] flex items-center justify-center cursor-pointer overflow-hidden"
-                          onClick={() => docUrl && setPreviewUrl(docUrl)}
+                          onClick={() => { if (docUrl) { setPreviewUrl(docUrl); setViewedDocs((s) => new Set(s).add(doc.id)); } }}
                         >
                           {docUrl ? (
                             <>
@@ -729,10 +734,12 @@ export function AdminVerifications() {
                     </div>
                   </div>
                 ) : (
+                  <div>
+                  {unviewedCount(selectedBundle) > 0 && <p className="text-xs text-amber-400 mb-2">Open every document to enable approval ({unviewedCount(selectedBundle)} left)</p>}
                   <div className="flex gap-3">
                     <Button
                       onClick={() => handleApproveUser(selectedBundle)}
-                      disabled={processing}
+                      disabled={processing || unviewedCount(selectedBundle) > 0}
                       className="flex-1 bg-green-500 hover:bg-green-600 text-white rounded-xl h-12 text-sm font-semibold"
                     >
                       {processing
@@ -748,6 +755,7 @@ export function AdminVerifications() {
                     >
                       <X className="w-4 h-4 mr-2" />Reject
                     </Button>
+                  </div>
                   </div>
                 )}
               </div>
@@ -800,7 +808,7 @@ export function AdminVerifications() {
                       <div key={doc.id} className="bg-[#0F1115] rounded-xl border border-white/5 overflow-hidden">
                         <div
                           className="relative aspect-[4/3] bg-[#1B1F27] flex items-center justify-center cursor-pointer"
-                          onClick={() => docUrl && setPreviewUrl(docUrl)}
+                          onClick={() => { if (docUrl) { setPreviewUrl(docUrl); setViewedDocs((s) => new Set(s).add(doc.id)); } }}
                         >
                           {docUrl ? (
                             <>
@@ -847,13 +855,16 @@ export function AdminVerifications() {
                     </div>
                   </div>
                 ) : (
+                  <div>
+                  {unviewedCount(selectedBundle) > 0 && <p className="text-xs text-amber-400 mb-2">Open every document to enable approval ({unviewedCount(selectedBundle)} left)</p>}
                   <div className="flex gap-3">
-                    <Button onClick={() => handleApproveUser(selectedBundle)} disabled={processing} className="flex-1 bg-green-500 hover:bg-green-600 text-white rounded-xl h-12 font-semibold">
+                    <Button onClick={() => handleApproveUser(selectedBundle)} disabled={processing || unviewedCount(selectedBundle) > 0} className="flex-1 bg-green-500 hover:bg-green-600 text-white rounded-xl h-12 font-semibold">
                       {processing ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Check className="w-4 h-4 mr-1" />Approve All</>}
                     </Button>
                     <Button onClick={() => setShowRejectPanel(true)} disabled={processing} variant="outline" className="flex-1 border-red-500/30 text-red-400 hover:bg-red-500/10 rounded-xl h-12 font-semibold">
                       <X className="w-4 h-4 mr-1" />Reject
                     </Button>
+                  </div>
                   </div>
                 )}
               </div>

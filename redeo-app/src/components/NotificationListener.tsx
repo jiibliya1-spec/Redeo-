@@ -2,6 +2,8 @@ import { useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useStore } from '@/store/useStore';
 import { toast } from 'sonner';
+import { localizeNotification } from '@/lib/notifText';
+import { getTranslation } from '@/lib/i18n';
 import { CheckCircle, XCircle, Bell } from 'lucide-react';
 
 const LS_NOTIFS = 'wansniauto_notifications';
@@ -61,38 +63,24 @@ export function NotificationListener() {
     shownRef.current.add(notif.id);
     if (shownRef.current.size > 100) shownRef.current.clear();
 
+    const lang = useStore.getState().language;
+    const { title, message } = localizeNotification(notif, lang);
+
     switch (notif.type) {
       case 'verification_approved':
-        toast.success(notif.message || 'Your documents have been verified!', {
-          icon: <CheckCircle className="w-5 h-5 text-green-500" />,
-          duration: 8000,
-        });
+        toast.success(message || title, { icon: <CheckCircle className="w-5 h-5 text-green-500" />, duration: 8000 });
         break;
       case 'verification_rejected':
-        toast.error(notif.message || 'Your verification was rejected.', {
-          icon: <XCircle className="w-5 h-5 text-red-500" />,
-          duration: 8000,
-        });
+        toast.error(message || title, { icon: <XCircle className="w-5 h-5 text-red-500" />, duration: 8000 });
         break;
       case 'success':
-        toast.success(notif.title || notif.message, {
-          icon: <CheckCircle className="w-5 h-5 text-green-500" />,
-          duration: 8000,
-          description: notif.title ? notif.message?.replace(/\|\|TRIP:[^|]+\|\|/, '').trim() : undefined,
-        });
+        toast.success(title || message, { icon: <CheckCircle className="w-5 h-5 text-green-500" />, duration: 8000, description: title ? message : undefined });
         break;
       case 'warning':
-        toast.warning(notif.title || notif.message, {
-          duration: 8000,
-          description: notif.title ? notif.message?.replace(/\|\|TRIP:[^|]+\|\|/, '').trim() : undefined,
-        });
+        toast.warning(title || message, { duration: 8000, description: title ? message : undefined });
         break;
       default:
-        toast.info(notif.title || notif.message, {
-          icon: <Bell className="w-5 h-5 text-[#FF6B00]" />,
-          duration: 5000,
-          description: notif.title ? notif.message?.replace(/\|\|TRIP:[^|]+\|\|/, '').trim() : undefined,
-        });
+        toast.info(title || message, { icon: <Bell className="w-5 h-5 text-[#FF6B00]" />, duration: 5000, description: title ? message : undefined });
     }
   }, []);
 
@@ -161,12 +149,12 @@ export function NotificationListener() {
             verification_status: p.verification_status,
           });
           if (p.verification_status === 'verified' && !wasVerified) {
-            toast.success('Your account has been verified! You can now publish trips.', {
+            toast.success(getTranslation(useStore.getState().language, 'notif.toast_verified'), {
               icon: <CheckCircle className="w-5 h-5 text-green-500" />,
               duration: 10000,
             });
           } else if (p.verification_status === 'rejected' && prevStatus !== 'rejected') {
-            toast.error('Your verification was rejected. Please re-upload.', {
+            toast.error(getTranslation(useStore.getState().language, 'notif.toast_rejected'), {
               icon: <XCircle className="w-5 h-5 text-red-500" />,
               duration: 10000,
             });

@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useCity } from '@/lib/cities';
+import { RatingBadge } from '@/components/Rating';
 import { resolveAvatar } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -9,13 +11,14 @@ import { MOROCCAN_CITIES } from '@/lib/data';
 import type { Trip, User } from '@/types';
 import { Button } from '@/components/ui/button';
 import {
-  ArrowLeft, MapPin, Clock, Star, Users, Filter, Loader2,
+  ArrowLeft, MapPin, Clock, Users, Filter, Loader2,
   ShieldCheck,
 } from 'lucide-react';
 
 
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '@/lib/supabase';
 function TripCard({ trip, index }: { trip: Trip; index: number }) {
+  const city = useCity();
   const navigate = useNavigate();
   const { t } = useI18n();
 
@@ -52,13 +55,13 @@ function TripCard({ trip, index }: { trip: Trip; index: number }) {
               )}
             </div>
             <div className="flex items-center gap-1">
-              <Star className="w-3.5 h-3.5 text-[#FF6B00] fill-[#FF6B00]" />
-              <span className="text-xs text-[#A0A0A0]">{driver?.rating || 5} &middot; {driver?.trips_count || 0} {t('trip.trips_done')}</span>
+              <RatingBadge rating={driver?.rating} count={(driver as any)?.rating_count} />
+              <span className="text-xs text-[#A0A0A0]">&middot; {driver?.trips_count || 0} {t('trip.trips_done')}</span>
             </div>
           </div>
         </div>
         <div className="text-right">
-          <p className="text-2xl font-bold text-[#FF6B00]">{trip.price} <span className="text-sm font-normal text-[#A0A0A0]">MAD</span></p>
+          <p className="text-2xl font-bold text-[#FF6B00]">{trip.price} <span className="text-sm font-normal text-[#A0A0A0]">{t('trip.price')}</span></p>
           <p className="text-xs text-[#A0A0A0]">{t('trip.price')}</p>
         </div>
       </div>
@@ -70,7 +73,7 @@ function TripCard({ trip, index }: { trip: Trip; index: number }) {
             <div className="w-3 h-3 rounded-full bg-[#FF6B00]" />
             <span className="text-lg font-medium text-white">{trip.departure_time}</span>
           </div>
-          <p className="text-sm text-[#A0A0A0] ml-5">{trip.from_location}</p>
+          <p className="text-sm text-[#A0A0A0] ml-5">{city(trip.from_location)}</p>
         </div>
         <div className="flex flex-col items-center px-2">
           <Clock className="w-4 h-4 text-[#A0A0A0]" />
@@ -81,7 +84,7 @@ function TripCard({ trip, index }: { trip: Trip; index: number }) {
             <span className="text-lg font-medium text-white">{trip.arrival_time || '??'}</span>
             <div className="w-3 h-3 rounded-full border-2 border-[#FF6B00]" />
           </div>
-          <p className="text-sm text-[#A0A0A0] mr-5">{trip.to_location}</p>
+          <p className="text-sm text-[#A0A0A0] mr-5">{city(trip.to_location)}</p>
         </div>
       </div>
 
@@ -104,6 +107,7 @@ function TripCard({ trip, index }: { trip: Trip; index: number }) {
 }
 
 export function SearchResultsPage() {
+  const city = useCity();
   const navigate = useNavigate();
   const { searchFilters, setSearchFilters } = useStore();
   const { t, dir } = useI18n();
@@ -125,7 +129,7 @@ export function SearchResultsPage() {
       // Fetch all driver profiles in one batch
       const idsFilter = driverIds.map(id => `id=eq.${id}`).join(',');
       const res = await fetch(
-        `${SUPABASE_URL}/rest/v1/public_profiles?select=id,name,avatar,bio,is_verified,verification_status,rating,trips_count,role&or=(${idsFilter})&limit=500`,
+        `${SUPABASE_URL}/rest/v1/public_profiles?select=id,name,avatar,bio,is_verified,verification_status,rating,rating_count,trips_count,role&or=(${idsFilter})&limit=500`,
         {
           headers: {
             'apikey': SUPABASE_ANON_KEY,
@@ -152,6 +156,7 @@ export function SearchResultsPage() {
                 is_verified: dp.is_verified,
                 verification_status: dp.verification_status,
                 rating: dp.rating,
+                rating_count: dp.rating_count,
                 trips_count: dp.trips_count,
                 bio: dp.bio,
               } as User,
@@ -250,11 +255,11 @@ export function SearchResultsPage() {
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
             <select value={searchFilters.from} onChange={e => setSearchFilters({ ...searchFilters, from: e.target.value })} className="bg-[#0F1115] border border-white/10 text-white rounded-xl h-10 px-3 text-sm outline-none focus:border-[#FF6B00]/50 appearance-none">
               <option value="">{t('search.from_label')}</option>
-              {MOROCCAN_CITIES.map(c => <option key={c} value={c}>{c}</option>)}
+              {MOROCCAN_CITIES.map(c => <option key={c} value={c}>{city(c)}</option>)}
             </select>
             <select value={searchFilters.to} onChange={e => setSearchFilters({ ...searchFilters, to: e.target.value })} className="bg-[#0F1115] border border-white/10 text-white rounded-xl h-10 px-3 text-sm outline-none focus:border-[#FF6B00]/50 appearance-none">
               <option value="">{t('search.to_label')}</option>
-              {MOROCCAN_CITIES.filter(c => c !== searchFilters.from).map(c => <option key={c} value={c}>{c}</option>)}
+              {MOROCCAN_CITIES.filter(c => c !== searchFilters.from).map(c => <option key={c} value={c}>{city(c)}</option>)}
             </select>
             <input type="date" value={searchFilters.date} onChange={e => setSearchFilters({ ...searchFilters, date: e.target.value })} min={new Date().toISOString().split('T')[0]} className="bg-[#0F1115] border border-white/10 text-white rounded-xl h-10 px-3 text-sm outline-none focus:border-[#FF6B00]/50" />
             <select value={String(searchFilters.passengers)} onChange={e => setSearchFilters({ ...searchFilters, passengers: Number(e.target.value) })} className="bg-[#0F1115] border border-white/10 text-white rounded-xl h-10 px-3 text-sm outline-none focus:border-[#FF6B00]/50 appearance-none">

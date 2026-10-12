@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useCity } from '@/lib/cities';
 import { Logo } from '@/components/Logo';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -8,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { MOROCCAN_CITIES } from '@/lib/data';
 import {
   ArrowRight, Shield, MessageCircle, CreditCard, MapPin,
-  Leaf, Headphones, Star, Car, PlusCircle
+  Leaf, Headphones, Car, PlusCircle
 } from 'lucide-react';
 
 const FEATURES = [
@@ -30,14 +31,9 @@ const STATS = [
   { label: 'stats.users', value: '1M+' },
   { label: 'stats.trips', value: '500K+' },
   { label: 'stats.cities', value: '13' },
-  { label: 'stats.co2', value: '2.5K tons' },
+  { label: 'stats.co2', value: '2.5K t' },
 ];
 
-const TESTIMONIALS = [
-  { name: 'Layla M.', avatar: '/images/avatar-passenger-1.jpg', text: 'Excellent driver! Very punctual and the car was super clean. Will definitely book again.', rating: 5 },
-  { name: 'Karim T.', avatar: '/images/avatar-passenger-2.jpg', text: 'Great ride, smooth driving. WansniAuto makes traveling between cities so easy!', rating: 5 },
-  { name: 'Youssef A.', avatar: '/images/avatar-driver-1.jpg', text: 'As a driver, I earn extra money on my daily commute. The platform is fantastic!', rating: 5 },
-];
 
 function FadeUp({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
   return (
@@ -48,6 +44,7 @@ function FadeUp({ children, delay = 0 }: { children: React.ReactNode; delay?: nu
 }
 
 export function LandingPage() {
+  const city = useCity();
   const navigate = useNavigate();
   const { setSearchFilters, user } = useStore();
   const { lang, setLang, t, dir } = useI18n();
@@ -88,7 +85,7 @@ export function LandingPage() {
               <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }}>
                 <div className="inline-flex items-center gap-2 bg-[#FF6B00]/10 border border-[#FF6B00]/20 rounded-full px-4 py-1.5 mb-6">
                   <span className="w-2 h-2 bg-[#FF6B00] rounded-full animate-pulse" />
-                  <span className="text-sm text-[#FF6B00] font-medium">Morocco's #1 Ride-Sharing</span>
+                  <span className="text-sm text-[#FF6B00] font-medium">{t('landing.badge')}</span>
                 </div>
                 <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white leading-tight mb-6" dir={dir}>
                   {t('landing.hero_title')}
@@ -116,14 +113,14 @@ export function LandingPage() {
                       <label className="text-xs text-[#A0A0A0] font-medium ml-1">{t('driver.from')}</label>
                       <select value={from} onChange={(e) => setFrom(e.target.value)} className="w-full bg-[#0F1115] border border-white/10 rounded-xl h-12 px-4 text-white text-sm outline-none focus:border-[#FF6B00]/50 appearance-none">
                         <option value="">{t('common.select_city')}</option>
-                        {MOROCCAN_CITIES.map(c => <option key={c} value={c}>{c}</option>)}
+                        {MOROCCAN_CITIES.map(c => <option key={c} value={c}>{city(c)}</option>)}
                       </select>
                     </div>
                     <div className="space-y-1">
                       <label className="text-xs text-[#A0A0A0] font-medium ml-1">{t('driver.to')}</label>
                       <select value={to} onChange={(e) => setTo(e.target.value)} className="w-full bg-[#0F1115] border border-white/10 rounded-xl h-12 px-4 text-white text-sm outline-none focus:border-[#FF6B00]/50 appearance-none">
                         <option value="">{t('common.select_city')}</option>
-                        {MOROCCAN_CITIES.filter(c => c !== from).map(c => <option key={c} value={c}>{c}</option>)}
+                        {MOROCCAN_CITIES.filter(c => c !== from).map(c => <option key={c} value={c}>{city(c)}</option>)}
                       </select>
                     </div>
                   </div>
@@ -139,14 +136,14 @@ export function LandingPage() {
                       <label className="text-xs text-[#A0A0A0] font-medium ml-1">{t('landing.search_from')}</label>
                       <select value={from} onChange={(e) => setFrom(e.target.value)} className="w-full bg-[#0F1115] border border-white/10 rounded-xl h-12 px-4 text-white text-sm outline-none focus:border-[#FF6B00]/50 appearance-none">
                         <option value="">{t('common.select_city')}</option>
-                        {MOROCCAN_CITIES.map(c => <option key={c} value={c}>{c}</option>)}
+                        {MOROCCAN_CITIES.map(c => <option key={c} value={c}>{city(c)}</option>)}
                       </select>
                     </div>
                     <div className="space-y-1">
                       <label className="text-xs text-[#A0A0A0] font-medium ml-1">{t('landing.search_to')}</label>
                       <select value={to} onChange={(e) => setTo(e.target.value)} className="w-full bg-[#0F1115] border border-white/10 rounded-xl h-12 px-4 text-white text-sm outline-none focus:border-[#FF6B00]/50 appearance-none">
                         <option value="">{t('common.select_city')}</option>
-                        {MOROCCAN_CITIES.filter(c => c !== from).map(c => <option key={c} value={c}>{c}</option>)}
+                        {MOROCCAN_CITIES.filter(c => c !== from).map(c => <option key={c} value={c}>{city(c)}</option>)}
                     </select>
                     </div>
                   </div>
@@ -170,7 +167,7 @@ export function LandingPage() {
             </div>
 
             <motion.div initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.8, delay: 0.2 }} className="hidden lg:block">
-              <img src="/images/car-2.jpg" alt="Car" className="rounded-3xl shadow-2xl shadow-[#FF6B00]/10 border border-white/5" />
+              <img src="/images/car-2.jpg" alt="" className="rounded-3xl shadow-2xl shadow-[#FF6B00]/10 border border-white/5" />
             </motion.div>
           </div>
         </div>
@@ -264,43 +261,15 @@ export function LandingPage() {
               <FadeUp key={`${route.from}-${route.to}`} delay={i * 0.15}>
                 <div onClick={() => { setSearchFilters({ from: route.from, to: route.to, date: '', passengers: 1 }); navigate('/search'); }} className="bg-[#1B1F27] rounded-2xl border border-white/5 overflow-hidden card-hover cursor-pointer group">
                   <div className="aspect-[4/3] overflow-hidden">
-                    <img src={route.image} alt={`${route.from} to ${route.to}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                    <img src={route.image} alt={`${city(route.from)} → ${city(route.to)}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                   </div>
                   <div className="p-5">
                     <div className="flex items-center gap-2 mb-2">
-                      <span className="text-white font-medium">{route.from}</span>
+                      <span className="text-white font-medium">{city(route.from)}</span>
                       <ArrowRight className="w-4 h-4 text-[#FF6B00]" />
-                      <span className="text-white font-medium">{route.to}</span>
+                      <span className="text-white font-medium">{city(route.to)}</span>
                     </div>
-                    <p className="text-2xl font-bold text-[#FF6B00]">{route.price} <span className="text-sm font-normal text-[#A0A0A0]">MAD / seat</span></p>
-                  </div>
-                </div>
-              </FadeUp>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Testimonials */}
-      <section className="py-20 bg-[#1B1F27]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <FadeUp>
-            <div className="text-center mb-14">
-              <h2 className="text-3xl md:text-4xl font-bold text-white mb-3" dir={dir}>{t('landing.testimonials_title')}</h2>
-              <p className="text-[#A0A0A0]" dir={dir}>{t('landing.testimonials_subtitle')}</p>
-            </div>
-          </FadeUp>
-          <div className="grid md:grid-cols-3 gap-6">
-            {TESTIMONIALS.map((t, i) => (
-              <FadeUp key={i} delay={i * 0.1}>
-                <div className="bg-[#0F1115] border border-white/5 rounded-2xl p-6">
-                  <div className="flex items-center gap-1 mb-4">
-                    {[...Array(5)].map((_, j) => <Star key={j} className={`w-4 h-4 ${j < t.rating ? 'text-[#FF6B00] fill-[#FF6B00]' : 'text-white/10'}`} />)}
-                  </div>
-                  <p className="text-[#A0A0A0] text-sm leading-relaxed mb-5">&ldquo;{t.text}&rdquo;</p>
-                  <div className="flex items-center gap-3">
-                    <img src={t.avatar} alt={t.name} className="w-10 h-10 rounded-full object-cover ring-2 ring-[#FF6B00]/20" />
-                    <span className="text-sm font-medium text-white">{t.name}</span>
+                    <p className="text-2xl font-bold text-[#FF6B00]">{route.price} <span className="text-sm font-normal text-[#A0A0A0]">{t('trip.price')} / {t('landing.per_seat')}</span></p>
                   </div>
                 </div>
               </FadeUp>
@@ -339,7 +308,7 @@ export function LandingPage() {
                 <Logo className="w-8 h-8" />
                 <span className="text-lg font-semibold text-white">Wansni<span className="text-[#FF6B00]">Auto</span></span>
               </Link>
-              <p className="text-sm text-[#A0A0A0]">&ldquo;سافر بسهولة وشارك الطريق&rdquo;</p>
+              <p className="text-sm text-[#A0A0A0]">&ldquo;{t('footer.slogan')}&rdquo;</p>
               <p className="text-xs text-[#A0A0A0]/60 mt-2">{t('footer.tagline_desc')}</p>
             </div>
 

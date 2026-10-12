@@ -1,5 +1,6 @@
 import { useStore } from '@/store/useStore';
 import { useMemo } from 'react';
+import { EXTRA } from './i18n-extra';
 
 export type Lang = 'en' | 'fr' | 'ar';
 
@@ -1891,16 +1892,14 @@ export function useI18n() {
   const setLanguage = useStore((s) => s.setLanguage);
 
   const t = useMemo(() => {
-    return (key: string): string => {
-      // Try current language
-      const current = TRANSLATIONS[language]?.[key];
-      if (current) return current;
-      // Fallback to English
-      const fallback = TRANSLATIONS.en[key];
-      if (fallback) return fallback;
-      // If no fallback, return key (this should NOT happen for proper keys)
-      console.warn(`[i18n] Missing translation key: "${key}"`);
-      return key;
+    return (key: string, params?: Record<string, string | number>): string => {
+      const text = EXTRA[language]?.[key] ?? TRANSLATIONS[language]?.[key]
+        ?? EXTRA.en[key] ?? TRANSLATIONS.en[key];
+      if (text === undefined || text === '') {
+        console.warn(`[i18n] Missing translation key: "${key}"`);
+        return key;
+      }
+      return params ? text.replace(/\{(\w+)\}/g, (m, k) => (params[k] !== undefined ? String(params[k]) : m)) : text;
     };
   }, [language]);
 
@@ -1911,5 +1910,5 @@ export function useI18n() {
 }
 
 export function getTranslation(lang: Lang, key: string): string {
-  return TRANSLATIONS[lang]?.[key] ?? TRANSLATIONS.en[key] ?? key;
+  return EXTRA[lang]?.[key] ?? TRANSLATIONS[lang]?.[key] ?? EXTRA.en[key] ?? TRANSLATIONS.en[key] ?? key;
 }

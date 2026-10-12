@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { RatingBadge } from '@/components/Rating';
 import { resolveAvatar } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -196,7 +197,7 @@ export function SettingsPage() {
       } else {
         // Default payment methods
         setPaymentMethods([
-          { id: 'cash', type: 'cash', label: 'Cash', is_default: true },
+          { id: 'cash', type: 'cash', label: t('settings.cash'), is_default: true },
         ]);
       }
     } catch { /* silent */ }
@@ -371,7 +372,7 @@ export function SettingsPage() {
     const ratings = JSON.parse(localStorage.getItem('wansniauto_app_ratings') || '[]');
     ratings.push({ user_id: user?.id, rating: userRating, comment: ratingComment, date: new Date().toISOString() });
     localStorage.setItem('wansniauto_app_ratings', JSON.stringify(ratings));
-    toast.success(`Thanks for your ${userRating}-star rating!`);
+    toast.success(t('settings.thanks_rating', { n: userRating }));
     setUserRating(0);
     setRatingComment('');
     setActiveDrawer(null);
@@ -421,7 +422,7 @@ export function SettingsPage() {
     { id: 'payments',      icon: CreditCard,  label: t('settings.payments'),      desc: `${paymentMethods.length} ${t('settings.payments_count')}`,    badge: paymentMethods.length || undefined },
     { id: 'refunds',       icon: RefreshCcw,  label: t('settings.refunds'),       desc: `${refunds.length} ${t('settings.refunds_count')}`,            badge: refunds.length || undefined },
     { id: 'rate',          icon: ThumbsUp,    label: t('settings.rate'),          desc: t('settings.rate_desc') },
-    { id: 'account_type', icon: Car, label: mode === 'driver' ? 'Passer en passager' : 'Passer en conducteur', desc: mode === 'driver' ? 'Basculer vers le mode passager' : 'Devenir conducteur (vérification requise)' },
+    { id: 'account_type', icon: Car, label: mode === 'driver' ? t('mode.to_passenger') : t('mode.to_driver'), desc: mode === 'driver' ? t('mode.to_passenger_desc') : t('mode.to_driver_desc') },
     { id: 'help',          icon: HelpCircle,  label: t('settings.help'),          desc: t('settings.help_desc') },
     { id: 'terms',         icon: FileText,    label: t('settings.terms'),         desc: t('settings.terms_desc') },
     { id: 'privacy',       icon: Shield,      label: t('settings.privacy'),       desc: t('settings.privacy_desc') },
@@ -474,7 +475,7 @@ export function SettingsPage() {
               <Input value={newPassengerName} onChange={e => setNewPassengerName(e.target.value)} placeholder={t('ui.full_name_f11b')} className="bg-[#0F1115] border-white/10 text-white rounded-xl" />
               <Input value={newPassengerPhone} onChange={e => setNewPassengerPhone(e.target.value)} placeholder={t('ui.phone_number_1f82')} className="bg-[#0F1115] border-white/10 text-white rounded-xl" />
               <Button onClick={handleSavePassenger} className="w-full bg-[#FF6B00] hover:bg-[#E56000] text-white rounded-xl">
-                <Heart className="w-4 h-4 mr-2" /> Save Passenger
+                <Heart className="w-4 h-4 mr-2" /> {t('settings.save_passenger')}
               </Button>
             </div>
             {/* List */}
@@ -534,7 +535,7 @@ export function SettingsPage() {
               </div>
             ))}
             <Button onClick={handleSaveCommPrefs} className="w-full bg-[#FF6B00] hover:bg-[#E56000] text-white rounded-xl mt-4">
-              <Check className="w-4 h-4 mr-2" /> Save Preferences
+              <Check className="w-4 h-4 mr-2" /> {t('settings.save_prefs')}
             </Button>
           </div>
         );
@@ -586,7 +587,7 @@ export function SettingsPage() {
               <Input value={address.city} onChange={e => setAddress(p => ({ ...p, city: e.target.value }))} placeholder={t('ui.city_57d0')} className="bg-[#0F1115] border-white/10 text-white rounded-xl" />
               <Input value={address.postalCode} onChange={e => setAddress(p => ({ ...p, postalCode: e.target.value }))} placeholder={t('ui.postal_code_572e')} className="bg-[#0F1115] border-white/10 text-white rounded-xl" />
               <Button onClick={handleSaveAddress} className="w-full bg-[#FF6B00] hover:bg-[#E56000] text-white rounded-xl">
-                <Check className="w-4 h-4 mr-2" /> Save Address
+                <Check className="w-4 h-4 mr-2" /> {t('settings.save_address')}
               </Button>
             </div>
           </div>
@@ -599,7 +600,7 @@ export function SettingsPage() {
             <div className="bg-gradient-to-r from-[#FF6B00]/10 to-[#FF6B00]/5 rounded-xl p-5 border border-[#FF6B00]/20 text-center">
               <Wallet className="w-10 h-10 text-[#FF6B00] mx-auto mb-2" />
               <p className="text-sm text-[#A0A0A0]">{t('ui.available_balance_d6df')}</p>
-              <p className="text-3xl font-bold text-white mt-1">0 MAD</p>
+              <p className="text-3xl font-bold text-white mt-1">0 {t('trip.price')}</p>
             </div>
             <div className="bg-[#1B1F27] rounded-xl p-4 border border-white/5">
               <p className="text-sm font-medium text-white mb-3">{t('ui.payout_method_44ca')}</p>
@@ -612,7 +613,7 @@ export function SettingsPage() {
               </div>
             </div>
             <Button disabled className="w-full bg-[#FF6B00]/50 text-white/50 rounded-xl cursor-not-allowed">
-              Withdraw (Coming Soon)
+              {t('settings.withdraw_soon')}
             </Button>
           </div>
         );
@@ -673,8 +674,8 @@ export function SettingsPage() {
               refunds.map((r: any) => (
                 <div key={r.id} className="bg-[#1B1F27] rounded-xl p-4 border border-white/5">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-white">Booking #{r.id?.slice(0, 8)}</span>
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-red-500/10 text-red-400 capitalize">{r.status}</span>
+                    <span className="text-sm font-medium text-white">{t('settings.booking_no', { id: r.id?.slice(0, 8) })}</span>
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-red-500/10 text-red-400 capitalize">{t(`status.${r.status}`) === `status.${r.status}` ? r.status : t(`status.${r.status}`)}</span>
                   </div>
                   <p className="text-xs text-[#A0A0A0]">{r.created_at ? new Date(r.created_at).toLocaleDateString() : ''}</p>
                 </div>
@@ -696,11 +697,11 @@ export function SettingsPage() {
                   </button>
                 ))}
               </div>
-              <p className="text-xs text-[#A0A0A0] mt-2">{userRating > 0 ? ['', 'Poor', 'Fair', 'Good', 'Very Good', 'Excellent'][userRating] : 'Tap a star to rate'}</p>
+              <p className="text-xs text-[#A0A0A0] mt-2">{userRating > 0 ? t(`rating.${userRating}`) : t('rating.tap')}</p>
             </div>
             <Textarea value={ratingComment} onChange={e => setRatingComment(e.target.value)} placeholder={t('ui.tell_us_what_8f0d')} className="bg-[#0F1115] border-white/10 text-white rounded-xl min-h-[100px]" />
             <Button onClick={handleRateApp} disabled={userRating === 0} className="w-full bg-[#FF6B00] hover:bg-[#E56000] text-white rounded-xl">
-              <ThumbsUp className="w-4 h-4 mr-2" /> Submit Rating
+              <ThumbsUp className="w-4 h-4 mr-2" /> {t('settings.rate_submit')}
             </Button>
           </div>
         );
@@ -712,11 +713,11 @@ export function SettingsPage() {
             {/* FAQ */}
             <div className="space-y-2">
               {[
-                { q: 'How do I book a ride?', a: 'Search for your route, select a driver, and book your seat in seconds.' },
-                { q: 'How do I become a driver?', a: 'Register as a driver, complete verification with your documents, and start publishing trips.' },
-                { q: 'Is my payment secure?', a: 'Yes, all payments are processed securely through our encrypted platform.' },
-                { q: 'How do I cancel a booking?', a: 'Go to My Trips, find your booking, and tap Cancel. Refunds are processed within 5-7 days.' },
-                { q: 'How does driver verification work?', a: 'Upload your CIN, license, registration, insurance, and selfie. Our team reviews within 24-48 hours.' },
+                { q: t('faq.q1'), a: t('faq.a1') },
+                { q: t('faq.q2'), a: t('faq.a2') },
+                { q: t('faq.q3'), a: t('faq.a3') },
+                { q: t('faq.q4'), a: t('faq.a4') },
+                { q: t('faq.q8'), a: t('faq.a8') },
               ].map((faq, i) => (
                 <div key={i} className="bg-[#1B1F27] rounded-xl p-4 border border-white/5">
                   <p className="text-sm font-medium text-white mb-1">{faq.q}</p>
@@ -733,7 +734,7 @@ export function SettingsPage() {
                 onClick={() => { setActiveDrawer(null); setTimeout(() => navigate('/support'), 300); }}
                 className="w-full bg-[#FF6B00] hover:bg-[#E56000] text-white rounded-xl"
               >
-                <Send className="w-4 h-4 mr-2" /> Contact Support
+                <Send className="w-4 h-4 mr-2" /> {t('settings.contact_support')}
               </Button>
             </div>
           </div>
@@ -784,7 +785,7 @@ export function SettingsPage() {
               <p className="text-sm text-[#A0A0A0]">{t('ui.this_action_cannot_7d2c')}</p>
             </div>
             <div className="bg-[#1B1F27] rounded-xl p-4 border border-white/5 space-y-3">
-              <p className="text-sm text-white">Type <span className="font-mono text-red-400">DELETE</span> to confirm:</p>
+              <p className="text-sm text-white">{t('settings.type_to_confirm_pre')} <span className="font-mono text-red-400">DELETE</span> {t('settings.type_to_confirm_post')}</p>
               <Input value={deleteConfirmText} onChange={e => setDeleteConfirmText(e.target.value)} placeholder={t('ui.type_delete_0130')} className="bg-[#0F1115] border-red-500/30 text-white rounded-xl font-mono" />
               <Button
                 onClick={handleDeleteAccount}
@@ -837,13 +838,10 @@ export function SettingsPage() {
           />
           <div className="flex-1">
             <p className="text-white font-semibold">{user.name}</p>
-            <p className="text-xs text-[#A0A0A0]">{user.role === 'driver' ? 'Driver' : user.role === 'admin' ? 'Admin' : 'Passenger'} &middot; {user.phone || 'No phone'}</p>
+            <p className="text-xs text-[#A0A0A0]">{t(`settings.role.${user.role === 'driver' ? 'driver' : user.role === 'admin' ? 'admin' : 'passenger'}`)} &middot; {user.phone || t('settings.no_phone')}</p>
           </div>
           <div className="text-right">
-            <div className="flex items-center gap-1">
-              <Star className="w-4 h-4 text-[#FF6B00] fill-[#FF6B00]" />
-              <span className="text-white font-medium">{user.rating || 5}</span>
-            </div>
+            <RatingBadge rating={user.rating} count={user.rating_count} iconClass="w-4 h-4" textClass="text-white font-medium" />
           </div>
         </motion.div>
 
@@ -855,7 +853,7 @@ export function SettingsPage() {
               {(['en', 'fr', 'ar'] as const).map(l => (
                 <button
                   key={l}
-                  onClick={() => { setLang(l); toast.success(`Language: ${l.toUpperCase()}`); }}
+                  onClick={() => { setLang(l); toast.success(t('settings.lang_changed')); }}
                   className={`p-3 rounded-xl border text-center transition-all ${
                     lang === l ? 'border-[#FF6B00] bg-[#FF6B00]/10 text-[#FF6B00]' : 'border-white/10 text-white hover:border-white/20'
                   }`}
@@ -919,7 +917,7 @@ export function SettingsPage() {
         {renderDrawerContent()}
 
         {/* ─── Account Type Switch Drawer ─── */}
-        <Drawer open={activeDrawer === 'account_type'} onClose={() => setActiveDrawer(null)} title={mode === 'driver' ? 'Passer en passager' : 'Passer en conducteur'}>
+        <Drawer open={activeDrawer === 'account_type'} onClose={() => setActiveDrawer(null)} title={mode === 'driver' ? t('mode.to_passenger') : t('mode.to_driver')}>
           <div className="space-y-5">
             {/* Current mode */}
             <div className="bg-[#1B1F27] rounded-xl p-4 flex items-center gap-3">
@@ -927,8 +925,8 @@ export function SettingsPage() {
                 {mode === 'driver' ? <Car className="w-5 h-5 text-[#FF6B00]" /> : <Users className="w-5 h-5 text-blue-400" />}
               </div>
               <div>
-                <p className="text-sm font-semibold text-white">Mode actuel : <span className={mode === 'driver' ? 'text-[#FF6B00]' : 'text-blue-400'}>{mode === 'driver' ? 'Conducteur' : 'Passager'}</span></p>
-                <p className="text-xs text-[#A0A0A0]">{mode === 'driver' ? 'Vous pouvez proposer des trajets' : 'Vous pouvez réserver des trajets'}</p>
+                <p className="text-sm font-semibold text-white">{t('mode.current')} <span className={mode === 'driver' ? 'text-[#FF6B00]' : 'text-blue-400'}>{mode === 'driver' ? t('settings.role.driver') : t('settings.role.passenger')}</span></p>
+                <p className="text-xs text-[#A0A0A0]">{mode === 'driver' ? t('mode.can_offer') : t('mode.can_book')}</p>
               </div>
             </div>
 
@@ -994,7 +992,7 @@ export function SettingsPage() {
                   }}
                   className="w-full bg-blue-500 text-white hover:bg-blue-600 rounded-xl h-12 font-semibold"
                 >
-                  {switchingMode ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Passer en mode passager'}
+                  {switchingMode ? <Loader2 className="w-5 h-5 animate-spin" /> : t('mode.switch_btn')}
                 </Button>
               </div>
             )}

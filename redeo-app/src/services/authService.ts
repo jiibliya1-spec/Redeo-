@@ -58,7 +58,6 @@ export async function signUp(
         phone: userData.phone,
         role: userData.role,
         is_verified: false,
-        rating: 5.0,
         trips_count: 0,
         avatar: defaultAvatar(authData.user.id),
       },
@@ -141,7 +140,6 @@ export async function getCurrentUser(): Promise<User | null> {
       avatar: defaultAvatar(data.user.id),
       role: data.user.user_metadata?.role || 'passenger',
       is_verified: false,
-      rating: 5.0,
       trips_count: 0,
     } as User;
   }
@@ -188,7 +186,6 @@ export function onAuthStateChange(
         avatar: defaultAvatar(session.user.id),
         role: session.user.user_metadata?.role || 'passenger',
         is_verified: false,
-        rating: 5.0,
         trips_count: 0,
       } as User);
     }

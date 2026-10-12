@@ -17,13 +17,13 @@ class PageErrorBoundary extends Component<{ children: ReactNode }, { hasError: b
     if (this.state.hasError) {
       return (
         <div className="min-h-screen bg-[#0F1115] flex flex-col items-center justify-center px-4 gap-4">
-          <p className="text-white text-lg font-semibold">Something went wrong</p>
+          <p className="text-white text-lg font-semibold">{getTranslation(useStore.getState().language, 'common.error_title')}</p>
           <p className="text-[#A0A0A0] text-sm text-center">{this.state.error}</p>
           <button
             onClick={() => { this.setState({ hasError: false, error: '' }); window.location.href = '/'; }}
             className="mt-2 px-6 py-2 bg-[#FF6B00] text-white rounded-xl text-sm font-medium"
           >
-            Go to Home
+            {getTranslation(useStore.getState().language, 'common.go_home')}
           </button>
         </div>
       );
@@ -32,6 +32,7 @@ class PageErrorBoundary extends Component<{ children: ReactNode }, { hasError: b
   }
 }
 import { useStore } from '@/store/useStore';
+import { getTranslation } from '@/lib/i18n';
 import { supabase } from '@/lib/supabase';
 import { Navbar } from '@/components/Navbar';
 import { BottomNav } from '@/components/BottomNav';
@@ -222,7 +223,7 @@ function AppContent() {
       <div className="min-h-screen bg-[#0F1115] flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <Spinner className="w-10 h-10 text-[#FF6B00]" />
-          <p className="text-[#A0A0A0] text-sm">Loading...</p>
+          <p className="text-[#A0A0A0] text-sm">{getTranslation(language, 'common.loading')}</p>
         </div>
       </div>
     );

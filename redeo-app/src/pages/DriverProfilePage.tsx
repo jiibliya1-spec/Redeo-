@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useCity } from '@/lib/cities';
+import { RatingBadge } from '@/components/Rating';
 import { resolveAvatar } from '@/lib/utils';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -16,6 +18,7 @@ import {
 
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '@/lib/supabase';
 export function DriverProfilePage() {
+  const city = useCity();
   const { id } = useParams();
   const navigate = useNavigate();
   const { user: me } = useStore();
@@ -159,11 +162,8 @@ export function DriverProfilePage() {
                 </span>
               )}
               <div className="flex items-center gap-3">
-                <div className="flex items-center gap-1">
-                  <Star className="w-4 h-4 text-[#FF6B00] fill-[#FF6B00]" />
-                  <span className="text-sm text-white font-medium">{driver.rating || 5}</span>
-                </div>
-                <span className="text-xs text-[#A0A0A0]">({driver.trips_count || 0} trips)</span>
+                <RatingBadge rating={driver.rating} count={driver.rating_count} iconClass="w-4 h-4" textClass="text-sm text-white font-medium" />
+                <span className="text-xs text-[#A0A0A0]">({driver.trips_count || 0} {t('ui.trips_4473')})</span>
               </div>
             </div>
           </div>
@@ -237,9 +237,9 @@ export function DriverProfilePage() {
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
                       <MapPin className="w-4 h-4 text-[#FF6B00]" />
-                      <span className="text-sm text-white font-medium">{trip.from_location} → {trip.to_location}</span>
+                      <span className="text-sm text-white font-medium">{city(trip.from_location)} → {city(trip.to_location)}</span>
                     </div>
-                    <span className="text-sm font-bold text-[#FF6B00]">{trip.price} MAD</span>
+                    <span className="text-sm font-bold text-[#FF6B00]">{trip.price} {t('trip.price')}</span>
                   </div>
                   <div className="flex items-center gap-3 text-xs text-[#A0A0A0] mb-3">
                     <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{trip.departure_date}</span>

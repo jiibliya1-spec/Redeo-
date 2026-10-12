@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { authErrorKey } from '@/lib/errors';
 import { Logo } from '@/components/Logo';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -40,7 +41,7 @@ export function LoginPage() {
         navigate('/dashboard', { replace: true });
       }
     } else {
-      toast.error(result.error || 'Login failed');
+      toast.error(t(authErrorKey(result.error)));
     }
 
     setIsLoading(false);

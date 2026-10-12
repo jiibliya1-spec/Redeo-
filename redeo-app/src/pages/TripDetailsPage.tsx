@@ -1,4 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom';
+import { useCity } from '@/lib/cities';
+import { RatingBadge, hasRating } from '@/components/Rating';
 import { resolveAvatar } from '@/lib/utils';
 import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
@@ -9,8 +11,8 @@ import { Button } from '@/components/ui/button';
 import type { Trip, User } from '@/types';
 import {
   ArrowLeft, Star, CheckCircle, MessageCircle,
-  Shield, Users, Loader2, Car, Leaf, AlertTriangle,
-  Share2, PawPrint, Ban, Calendar, ChevronRight, Phone,
+  Shield, Users, Loader2, Leaf, AlertTriangle,
+  Share2, Ban, Calendar, ChevronRight, Phone,
   Circle, CircleDot, Clock,
 } from 'lucide-react';
 
@@ -24,6 +26,7 @@ interface BookingPassenger {
 }
 
 export function TripDetailsPage() {
+  const city = useCity();
   const { id } = useParams();
   const navigate = useNavigate();
   const { user: _user } = useStore();
@@ -79,7 +82,7 @@ export function TripDetailsPage() {
         if (tripData.driver_id) {
           const { data: profiles } = await supabase
             .from('public_profiles')
-            .select('id, name, avatar, bio, role, is_verified, verification_status, passenger_verified, rating, trips_count, created_at')
+            .select('id, name, avatar, bio, role, is_verified, verification_status, passenger_verified, rating, rating_count, trips_count, created_at')
             .eq('id', tripData.driver_id)
             .limit(1);
 
@@ -105,7 +108,7 @@ export function TripDetailsPage() {
     navigate('/messages', {
       state: {
         contactId: trip.driver_id,
-        contactName: driver?.name || 'Driver',
+        contactName: driver?.name || t('trip.driver'),
         contactAvatar: resolveAvatar(driver?.avatar, trip.driver_id),
       }
     });
@@ -238,7 +241,7 @@ export function TripDetailsPage() {
             <div className="relative mb-6">
               <CircleDot className="absolute -left-[21px] top-0 w-5 h-5 text-[#FF6B00] fill-[#FF6B00]" />
               <p className="text-2xl font-bold text-white">{trip.departure_time}</p>
-              <p className="text-sm text-white font-medium">{trip.from_location}</p>
+              <p className="text-sm text-white font-medium">{city(trip.from_location)}</p>
               {trip.duration && <p className="text-xs text-[#A0A0A0]">{trip.duration}</p>}
             </div>
 
@@ -253,7 +256,7 @@ export function TripDetailsPage() {
             <div className="relative">
               <Circle className="absolute -left-[21px] top-0 w-5 h-5 text-[#FF6B00]" />
               <p className="text-2xl font-bold text-white">{trip.arrival_time || '--:--'}</p>
-              <p className="text-sm text-white font-medium">{trip.to_location}</p>
+              <p className="text-sm text-white font-medium">{city(trip.to_location)}</p>
             </div>
           </div>
         </motion.div>
@@ -275,7 +278,7 @@ export function TripDetailsPage() {
               <span className="text-sm text-white">1 {T.seats_left}</span>
             </div>
             <div className="text-right">
-              <p className="text-3xl font-bold text-white">{trip.price} <span className="text-base font-normal text-[#A0A0A0]">MAD</span></p>
+              <p className="text-3xl font-bold text-white">{trip.price} <span className="text-base font-normal text-[#A0A0A0]">{t('trip.price')}</span></p>
               <p className="text-xs text-[#A0A0A0]">{T.price}</p>
             </div>
           </div>
@@ -307,20 +310,26 @@ export function TripDetailsPage() {
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <p className="text-lg font-bold text-white">{driver?.name || 'Driver'}</p>
+                <p className="text-lg font-bold text-white">{driver?.name || t('trip.driver')}</p>
                 {driver?.is_verified && (
                   <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-green-500/10 text-green-400 font-medium shrink-0">
-                    ✓ Verified
+                    ✓ {t('ui.verified_3f68')}
                   </span>
                 )}
               </div>
               {/* Star rating */}
               <div className="flex items-center gap-1.5 mt-0.5">
-                {[1,2,3,4,5].map(s => (
-                  <Star key={s} className={`w-3.5 h-3.5 ${s <= Math.round(driver?.rating || 5) ? 'text-[#FF6B00] fill-[#FF6B00]' : 'text-white/20'}`} />
-                ))}
-                <span className="text-sm text-white font-semibold ml-0.5">{(driver?.rating || 5).toFixed(1)}</span>
-                <span className="text-xs text-[#A0A0A0]">/ 5</span>
+                {hasRating(driver?.rating, (driver as any)?.rating_count) ? (
+                  <>
+                    {[1,2,3,4,5].map(s => (
+                      <Star key={s} className={`w-3.5 h-3.5 ${s <= Math.round(driver?.rating || 0) ? 'text-[#FF6B00] fill-[#FF6B00]' : 'text-white/20'}`} />
+                    ))}
+                    <span className="text-sm text-white font-semibold ml-0.5">{Number(driver?.rating).toFixed(1)}</span>
+                    <span className="text-xs text-[#A0A0A0]">/ 5</span>
+                  </>
+                ) : (
+                  <RatingBadge rating={null} iconClass="w-4 h-4" textClass="text-xs text-[#A0A0A0]" />
+                )}
               </div>
             </div>
             <ChevronRight className="w-5 h-5 text-[#A0A0A0] shrink-0" />
@@ -333,7 +342,7 @@ export function TripDetailsPage() {
               <p className="text-[10px] text-[#A0A0A0] mt-0.5">{t('ui.trips_4473')}</p>
             </div>
             <div className="bg-[#0F1115] rounded-xl p-3 text-center">
-              <p className="text-lg font-bold text-white">{(driver?.rating || 5).toFixed(1)}</p>
+              <p className="text-lg font-bold text-white">{hasRating(driver?.rating, (driver as any)?.rating_count) ? Number(driver?.rating).toFixed(1) : '—'}</p>
               <p className="text-[10px] text-[#A0A0A0] mt-0.5">{t('ui.rating_dda9')}</p>
             </div>
             <div className="bg-[#0F1115] rounded-xl p-3 text-center">
@@ -367,8 +376,8 @@ export function TripDetailsPage() {
                 <Clock className="w-4 h-4 text-green-400" />
               </div>
               <div>
-                <p className="text-sm text-white font-medium">Member since {driver?.created_at ? new Date(driver.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : '—'}</p>
-                <p className="text-xs text-[#A0A0A0]">{driver?.trips_count || 0} trips completed on WansniAuto</p>
+                <p className="text-sm text-white font-medium">{t('trip.member_since', { date: driver?.created_at ? new Date(driver.created_at).toLocaleDateString(lang === 'ar' ? 'ar-MA' : lang === 'fr' ? 'fr-FR' : 'en-US', { month: 'long', year: 'numeric' }) : '—' })}</p>
+                <p className="text-xs text-[#A0A0A0]">{t('trip.completed_on', { n: driver?.trips_count || 0 })}</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -396,7 +405,7 @@ export function TripDetailsPage() {
               variant="outline"
               className="flex-1 border-[#FF6B00]/30 text-[#FF6B00] hover:bg-[#FF6B00]/5 rounded-xl h-11"
             >
-              View Profile
+              {t('trip.view_profile')}
             </Button>
           </div>
         </motion.div>
@@ -405,25 +414,6 @@ export function TripDetailsPage() {
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="flex items-start gap-3 bg-[#1B1F27]/50 rounded-xl p-4 border border-white/5">
           <Phone className="w-5 h-5 text-[#A0A0A0] shrink-0 mt-0.5" />
           <p className="text-sm text-[#A0A0A0] leading-relaxed">{T.booking_note}</p>
-        </motion.div>
-
-        {/* ─── TRIP PREFERENCES ─── */}
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="bg-[#1B1F27] rounded-2xl border border-white/5 p-5 space-y-4">
-          <h3 className="text-sm font-medium text-white uppercase tracking-wider">{t('ui.trip_preferences_1600')}</h3>
-          <div className="space-y-3">
-            <div className="flex items-center gap-3">
-              <PawPrint className="w-5 h-5 text-red-400" />
-              <span className="text-sm text-white">{T.no_animals}</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <Users className="w-5 h-5 text-[#A0A0A0]" />
-              <span className="text-sm text-white">Max. 2 on the back seat</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <Car className="w-5 h-5 text-[#A0A0A0]" />
-              <span className="text-sm text-white">{T.vehicle}: SKODA Octavia - Yellow</span>
-            </div>
-          </div>
         </motion.div>
 
         {/* ─── PASSENGERS ─── */}

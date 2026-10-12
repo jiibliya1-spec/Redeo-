@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useCity } from '@/lib/cities';
+import { hasRating } from '@/components/Rating';
 import { resolveAvatar } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -82,6 +84,7 @@ async function syncStatusFromNotifications(bookings: BookingWithTrip[], userId: 
 }
 
 export function PassengerDashboard() {
+  const city = useCity();
   const navigate = useNavigate();
   const { user } = useStore();
   const { t, dir } = useI18n();
@@ -134,7 +137,7 @@ export function PassengerDashboard() {
       const totalSpent = confirmedBookings.reduce((sum: number, b: BookingWithTrip) => sum + (b.total_price || 0), 0);
       setTotalTrips(confirmedBookings.length);
       setTotalSaved(totalSpent);
-      setRating(user?.rating || 5);
+      setRating(user?.rating ?? 0);
     } catch {
       // silent
     } finally {
@@ -164,8 +167,8 @@ export function PassengerDashboard() {
 
   const stats = [
     { label: t('passenger.trips'), value: totalTrips, icon: Car },
-    { label: t('trip.rating'), value: rating, icon: Star, suffix: '/5' },
-    { label: t('passenger.spent'), value: totalSaved, icon: Wallet, prefix: 'MAD ' },
+    { label: t('trip.rating'), value: hasRating(rating, user?.rating_count) ? Number(rating).toFixed(1) : '—', icon: Star, suffix: hasRating(rating, user?.rating_count) ? '/5' : '' },
+    { label: t('passenger.spent'), value: totalSaved, icon: Wallet, prefix: t('trip.price') + ' ' },
   ];
 
   const renderBookingItem = (booking: BookingWithTrip, index: number) => {
@@ -188,7 +191,7 @@ export function PassengerDashboard() {
           <div className="flex items-center gap-2">
             <MapPin className="w-3.5 h-3.5 text-[#FF6B00] shrink-0" />
             <p className="text-sm font-medium text-white truncate">
-              {trip.from_location} &rarr; {trip.to_location}
+              {city(trip.from_location)} &rarr; {city(trip.to_location)}
             </p>
           </div>
           <div className="flex items-center gap-3 mt-1">
@@ -201,7 +204,7 @@ export function PassengerDashboard() {
           </div>
         </div>
         <div className="text-right shrink-0">
-          <p className="text-sm font-bold text-[#FF6B00]">{booking.total_price} MAD</p>
+          <p className="text-sm font-bold text-[#FF6B00]">{booking.total_price} {t('trip.price')}</p>
           <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
             booking.status === 'confirmed' ? 'bg-green-500/10 text-green-400' :
             booking.status === 'pending' ? 'bg-yellow-500/10 text-yellow-400' :

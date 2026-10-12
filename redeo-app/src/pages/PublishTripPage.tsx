@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useCity } from '@/lib/cities';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useStore } from '@/store/useStore';
@@ -53,6 +54,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from '@/lib/supabase';
 // All trips are stored in Supabase only - no localStorage
 
 export function PublishTripPage() {
+  const city = useCity();
   const navigate = useNavigate();
   const { user } = useStore();
   const { t, dir } = useI18n();
@@ -131,7 +133,7 @@ export function PublishTripPage() {
       if (!data || data.length === 0) {
         setCanPublish(false);
         setVerifStatus('unverified');
-        setVerifMessage('Profile not found. Please complete your profile.');
+        setVerifMessage('publish.msg_profile');
         setIsChecking(false);
         return;
       }
@@ -150,13 +152,13 @@ export function PublishTripPage() {
         setVerifMessage('');
       } else if (status === 'pending' || status === 'submitted') {
         setCanPublish(false);
-        setVerifMessage('Your documents are under review. Please wait for admin approval before publishing rides.');
+        setVerifMessage('publish.msg_review');
       } else if (status === 'rejected') {
         setCanPublish(false);
-        setVerifMessage('Your verification was rejected. Please update your documents and try again.');
+        setVerifMessage('publish.msg_rejected');
       } else {
         setCanPublish(false);
-        setVerifMessage('Verification required. Please upload your documents to start publishing rides.');
+        setVerifMessage('publish.msg_required');
       }
     } catch (err: any) {
       console.error('[PublishTripPage] Error:', err.message);
@@ -222,13 +224,13 @@ export function PublishTripPage() {
       // Save to Supabase via REST API with JWT
       const result = await apiPost('trips', tripData);
       if (!result || !result[0]?.id) {
-        throw new Error('Failed to save trip to database');
+        throw new Error(t('publish.failed_save'));
       }
 
       toast.success(t('ui.trip_published_13be'));
       setFrom(''); setTo(''); setDate(''); setTime(''); setPrice(''); setSeats('3'); setDistance(''); setDuration('');
     } catch (err: any) {
-      toast.error(err.message || 'Failed to publish');
+      toast.error(err.message || t('publish.failed'));
     }
     setIsPublishing(false);
   };
@@ -279,20 +281,20 @@ export function PublishTripPage() {
             {/* Title */}
             <h2 className="text-xl font-bold text-white mb-2">
               {verifStatus === 'pending' || verifStatus === 'submitted'
-                ? 'Under Review'
+                ? t('verif.under_review')
                 : verifStatus === 'rejected'
-                ? 'Verification Rejected'
-                : 'Verification Required'}
+                ? t('verif.rejected_title')
+                : t('verif.required_title')}
             </h2>
 
             {/* Message */}
             <p className="text-sm text-[#A0A0A0] mb-6 leading-relaxed">
-              {verifMessage}
+              {verifMessage ? t(verifMessage) : ''}
             </p>
 
             {/* Status Badge */}
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 mb-6">
-              <span className="text-xs text-[#A0A0A0]">Current status:</span>
+              <span className="text-xs text-[#A0A0A0]">{t('verif.current_status')}</span>
               <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
                 verifStatus === 'verified' || verifStatus === 'approved'
                   ? 'bg-green-500/10 text-green-400'
@@ -302,7 +304,7 @@ export function PublishTripPage() {
                   ? 'bg-red-500/10 text-red-400'
                   : 'bg-white/5 text-[#A0A0A0]'
               }`}>
-                {verifStatus}
+                {t(`verif.s.${verifStatus}`) === `verif.s.${verifStatus}` ? verifStatus : t(`verif.s.${verifStatus}`)}
               </span>
             </div>
 
@@ -313,10 +315,10 @@ export function PublishTripPage() {
                 className="w-full bg-[#FF6B00] text-white hover:bg-[#E56000] rounded-xl h-12 font-semibold"
               >
                 {verifStatus === 'rejected'
-                  ? 'Update Documents'
+                  ? t('verif.update_docs')
                   : verifStatus === 'pending' || verifStatus === 'submitted'
-                  ? 'View Status'
-                  : 'Start Verification'}
+                  ? t('verif.view_status')
+                  : t('verif.start')}
               </Button>
 
               <Button
@@ -324,7 +326,7 @@ export function PublishTripPage() {
                 variant="outline"
                 className="w-full border-white/10 text-[#A0A0A0] hover:bg-white/5 rounded-xl"
               >
-                Refresh Status
+                {t('verif.refresh')}
               </Button>
             </div>
           </motion.div>
@@ -365,7 +367,7 @@ export function PublishTripPage() {
                 </Label>
                 <select value={from} onChange={e => setFrom(e.target.value)} className="w-full bg-[#0F1115] border border-white/10 text-white rounded-xl h-11 px-3 text-sm outline-none appearance-none" required>
                   <option value="">{t('common.select_city')}</option>
-                  {MOROCCAN_CITIES.map(c => <option key={c} value={c}>{c}</option>)}
+                  {MOROCCAN_CITIES.map(c => <option key={c} value={c}>{city(c)}</option>)}
                 </select>
               </div>
               <div>
@@ -374,7 +376,7 @@ export function PublishTripPage() {
                 </Label>
                 <select value={to} onChange={e => setTo(e.target.value)} className="w-full bg-[#0F1115] border border-white/10 text-white rounded-xl h-11 px-3 text-sm outline-none appearance-none" required>
                   <option value="">{t('common.select_city')}</option>
-                  {MOROCCAN_CITIES.filter(c => c !== from).map(c => <option key={c} value={c}>{c}</option>)}
+                  {MOROCCAN_CITIES.filter(c => c !== from).map(c => <option key={c} value={c}>{city(c)}</option>)}
                 </select>
               </div>
             </div>
@@ -417,12 +419,12 @@ export function PublishTripPage() {
               {priceSuggestion && (
                 <div className="bg-[#0F1115] border border-[#FF6B00]/20 rounded-xl p-3">
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="text-xs font-semibold text-[#FF6B00]">💡 Prix suggérés</span>
-                    <span className="text-xs text-[#A0A0A0]">— {priceSuggestion.km} km · moins cher que le bus</span>
+                    <span className="text-xs font-semibold text-[#FF6B00]">{t('publish.suggested')}</span>
+                    <span className="text-xs text-[#A0A0A0]">{t('publish.suggested_note', { km: priceSuggestion.km })}</span>
                   </div>
                   <div className="grid grid-cols-3 gap-2">
                     {[
-                      { label: 'Économique', value: priceSuggestion.min, color: 'text-blue-400' },
+                      { label: t('publish.economy'), value: priceSuggestion.min, color: 'text-blue-400' },
                       { label: t('ui.recommended_6548'), value: priceSuggestion.suggested, color: 'text-[#FF6B00]' },
                       { label: t('ui.comfortable_2416'), value: priceSuggestion.max, color: 'text-green-400' },
                     ].map((opt) => (
@@ -436,7 +438,7 @@ export function PublishTripPage() {
                             : 'border-white/10 hover:border-white/20'
                         }`}
                       >
-                        <p className={`text-sm font-bold ${opt.color}`}>{opt.value} <span className="text-[10px] font-normal text-[#A0A0A0]">MAD</span></p>
+                        <p className={`text-sm font-bold ${opt.color}`}>{opt.value} <span className="text-[10px] font-normal text-[#A0A0A0]">{t('trip.price')}</span></p>
                         <p className="text-[10px] text-white mt-0.5 font-medium">{opt.label}</p>
                       </button>
                     ))}
@@ -448,11 +450,11 @@ export function PublishTripPage() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label className="text-sm text-[#A0A0A0] mb-1.5 block">{t('driver.distance')}</Label>
-                <Input type="text" value={distance} onChange={e => setDistance(e.target.value)} placeholder="240 km" className="bg-[#0F1115] border-white/10 text-white rounded-xl" />
+                <Input type="text" value={distance} onChange={e => setDistance(e.target.value)} placeholder={t('publish.distance_ph')} className="bg-[#0F1115] border-white/10 text-white rounded-xl" />
               </div>
               <div>
                 <Label className="text-sm text-[#A0A0A0] mb-1.5 block">{t('driver.duration')}</Label>
-                <Input type="text" value={duration} onChange={e => setDuration(e.target.value)} placeholder="2h 30min" className="bg-[#0F1115] border-white/10 text-white rounded-xl" />
+                <Input type="text" value={duration} onChange={e => setDuration(e.target.value)} placeholder={t('publish.duration_ph')} className="bg-[#0F1115] border-white/10 text-white rounded-xl" />
               </div>
             </div>
 
@@ -462,7 +464,7 @@ export function PublishTripPage() {
             </Button>
 
             <p className="text-center text-xs text-[#A0A0A0] mt-2">
-              By publishing, you agree to our <span className="text-[#FF6B00]">Terms of Service</span>
+              {t('publish.agree_prefix')} <span className="text-[#FF6B00]">{t('publish.terms_link')}</span>
             </p>
           </form>
         </motion.div>
@@ -485,11 +487,11 @@ export function PublishTripPage() {
                     <CarFront className="w-5 h-5 text-[#FF6B00]" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm text-white font-medium truncate">{trip.from_location} &rarr; {trip.to_location}</p>
+                    <p className="text-sm text-white font-medium truncate">{city(trip.from_location)} &rarr; {city(trip.to_location)}</p>
                     <p className="text-xs text-[#A0A0A0]">{trip.departure_date} &middot; {trip.departure_time}</p>
                   </div>
                   <div className="text-right shrink-0">
-                    <p className="text-sm font-bold text-[#FF6B00]">{trip.price} MAD</p>
+                    <p className="text-sm font-bold text-[#FF6B00]">{trip.price} {t('trip.price')}</p>
                   </div>
                 </motion.div>
               ))}

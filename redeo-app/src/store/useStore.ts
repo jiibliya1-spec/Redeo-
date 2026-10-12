@@ -90,7 +90,8 @@ function buildUser(sessionUser: any, profileData: Partial<User> | null): User {
     verification_status: (profileData?.verification_status as any) || 'unverified',
     passenger_verified: (profileData as any)?.passenger_verified === true,
     passenger_verification_status: (profileData as any)?.passenger_verification_status || 'unverified',
-    rating: profileData?.rating || 5.0,
+    rating: profileData?.rating ?? null,
+    rating_count: (profileData as any)?.rating_count ?? 0,
     trips_count: profileData?.trips_count || 0,
     avatar: resolveAvatar(profileData?.avatar, sessionUser.id),
     bio: profileData?.bio || '',
@@ -170,7 +171,8 @@ export const useStore = create<AppState>()(
               avatar: freshProfile.avatar || currentUser.avatar,
               phone: freshProfile.phone || currentUser.phone,
               bio: freshProfile.bio || currentUser.bio,
-              rating: freshProfile.rating || currentUser.rating,
+              rating: freshProfile.rating ?? null,
+              rating_count: (freshProfile as any).rating_count ?? 0,
               trips_count: freshProfile.trips_count || currentUser.trips_count,
           } as User;
           set({ user: merged });

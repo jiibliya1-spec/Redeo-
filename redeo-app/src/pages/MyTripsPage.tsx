@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useCity } from '@/lib/cities';
 import { resolveAvatar } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -7,9 +8,10 @@ import { useI18n } from '@/lib/i18n';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { RateUserSheet } from '@/components/RateUserSheet';
 import {
   ArrowLeft, Loader2, Calendar, Clock, Users,
-  CheckCircle, XCircle, Clock3, Inbox, Banknote,
+  CheckCircle, XCircle, Clock3, Inbox, Banknote, Star,
 } from 'lucide-react';
 
 interface BookingItem {
@@ -33,12 +35,15 @@ interface BookingItem {
 }
 
 export function MyTripsPage() {
+  const city = useCity();
   const navigate = useNavigate();
   const { user } = useStore();
   const { t, dir } = useI18n();
   const [bookings, setBookings] = useState<BookingItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'upcoming' | 'cancelled'>('upcoming');
+  const [ratedIds, setRatedIds] = useState<Set<string>>(new Set());
+  const [rateTarget, setRateTarget] = useState<BookingItem | null>(null);
 
   const loadBookings = useCallback(async () => {
     if (!user?.id) { setLoading(false); return; }
@@ -129,6 +134,10 @@ export function MyTripsPage() {
 
       data.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
       setBookings(data);
+      // Which trips did I already rate?
+      supabase.from('reviews').select('booking_id').eq('reviewer_id', user.id).then(({ data: rv }) => {
+        if (rv) setRatedIds(new Set(rv.map((r: any) => r.booking_id)));
+      });
     } catch (e) { console.error('loadBookings:', e); }
     setLoading(false);
   }, [user?.id]);
@@ -234,7 +243,7 @@ export function MyTripsPage() {
                       />
                       <div>
                         <p className="text-sm font-medium text-white">
-                          {b.trip?.from_location || '—'} → {b.trip?.to_location || '—'}
+                          {b.trip?.from_location ? city(b.trip.from_location) : '—'} → {b.trip?.to_location ? city(b.trip.to_location) : '—'}
                         </p>
                         <div className="flex items-center gap-2 text-xs text-[#A0A0A0]">
                           {b.trip?.departure_date && (
@@ -255,9 +264,21 @@ export function MyTripsPage() {
                     <div className="flex items-center gap-3 text-xs text-[#A0A0A0]">
                       <span className="flex items-center gap-1"><Users className="w-3 h-3" />{b.seats} {t('mytrips.seats')}</span>
                       <span className="flex items-center gap-1 text-[#FF6B00] font-medium">
-                        <Banknote className="w-3 h-3" />{b.total_price} MAD
+                        <Banknote className="w-3 h-3" />{b.total_price} {t('trip.price')}
                       </span>
                     </div>
+                    {b.status === 'confirmed' && b.trip?.departure_date && b.trip.departure_date <= new Date().toISOString().split('T')[0] && (b.trip.driver_id || (b as any).driver_id) && (
+                      ratedIds.has(b.id) ? (
+                        <span className="flex items-center gap-1 text-xs text-[#A0A0A0]"><Star className="w-3 h-3 text-[#FF6B00] fill-[#FF6B00]" />{t('rating.rated')}</span>
+                      ) : (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setRateTarget(b); }}
+                          className="flex items-center gap-1 text-xs text-[#FF6B00] px-3 py-1.5 rounded-lg bg-[#FF6B00]/10 hover:bg-[#FF6B00]/20 transition-colors font-medium"
+                        >
+                          <Star className="w-3 h-3" />{t('rating.rate_driver')}
+                        </button>
+                      )
+                    )}
                     {b.status === 'pending' && (
                       <button
                         onClick={(e) => { e.stopPropagation(); handleCancel(b.id); }}
@@ -273,6 +294,18 @@ export function MyTripsPage() {
           </div>
         )}
       </div>
+      {rateTarget && user?.id && (
+        <RateUserSheet
+          open
+          onClose={() => setRateTarget(null)}
+          onDone={(id) => setRatedIds(prev => new Set(prev).add(id))}
+          reviewerId={user.id}
+          revieweeId={(rateTarget.trip?.driver_id || (rateTarget as any).driver_id) as string}
+          tripId={rateTarget.trip_id}
+          bookingId={rateTarget.id}
+          name={rateTarget.driver?.name}
+        />
+      )}
     </div>
   );
 }

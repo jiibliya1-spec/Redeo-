@@ -1,4 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useCity } from '@/lib/cities';
+import { encodeText } from '@/lib/notifText';
+import { RatingBadge, hasRating } from '@/components/Rating';
 import { resolveAvatar } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -48,6 +51,7 @@ interface BookingRequest {
     name: string;
     avatar: string;
     rating: number;
+    rating_count?: number;
     trips_count: number;
     is_verified: boolean;
     phone?: string;
@@ -154,6 +158,7 @@ function VehicleManager({ vehicles, onAdd, onRemove }: {
 }
 
 export function DriverDashboard() {
+  const city = useCity();
   const navigate = useNavigate();
   const { user } = useStore();
   const { t, dir } = useI18n();
@@ -259,7 +264,7 @@ export function DriverDashboard() {
       const passengerMap = new Map<string, any>();
       try {
         const passRes = await fetch(
-          `${SUPABASE_URL}/rest/v1/public_profiles?select=id,name,avatar,rating,trips_count,is_verified&id=in.(${passengerIds.join(',')})`,
+          `${SUPABASE_URL}/rest/v1/public_profiles?select=id,name,avatar,rating,rating_count,trips_count,is_verified&id=in.(${passengerIds.join(',')})`,
           { headers }
         );
         if (passRes.ok) {
@@ -352,8 +357,8 @@ export function DriverDashboard() {
           body: JSON.stringify({
             user_id: booking.passenger_id,
             type: 'success',
-            title: 'Booking Confirmed ✅',
-            message: `Your booking for ${booking.seats} seat(s) from ${tripData?.from_location || ''} to ${tripData?.to_location || ''} on ${tripData?.departure_date || ''} is confirmed! Pay ${booking.total_price} MAD cash to the driver. ||TRIP:${booking.trip_id}||`,
+            title: encodeText('notif.booking_confirmed_title'),
+            message: encodeText('notif.booking_confirmed_msg', { seats: booking.seats, from: tripData?.from_location || '', to: tripData?.to_location || '', date: tripData?.departure_date || '', price: booking.total_price }) + `||TRIP:${booking.trip_id}||`,
             read: false,
           }),
         }),
@@ -396,8 +401,8 @@ export function DriverDashboard() {
           body: JSON.stringify({
             user_id: booking.passenger_id,
             type: 'warning',
-            title: 'Booking Not Accepted',
-            message: `Unfortunately your booking from ${tripData?.from_location || ''} to ${tripData?.to_location || ''} on ${tripData?.departure_date || ''} was not accepted by the driver. Please try another trip. ||TRIP:${booking.trip_id}||`,
+            title: encodeText('notif.booking_declined_title'),
+            message: encodeText('notif.booking_declined_msg', { from: tripData?.from_location || '', to: tripData?.to_location || '', date: tripData?.departure_date || '' }) + `||TRIP:${booking.trip_id}||`,
             read: false,
           }),
         }).catch(() => null),
@@ -437,7 +442,7 @@ export function DriverDashboard() {
         if (data && data.length > 0) {
           allTrips = data.map((t: any) => ({
             ...t,
-            driver: { id: user?.id || '', name: user?.name || '', email: user?.email || '', avatar: user?.avatar || '', role: 'driver' as const, rating: user?.rating || 5, trips_count: 0 },
+            driver: { id: user?.id || '', name: user?.name || '', email: user?.email || '', avatar: user?.avatar || '', role: 'driver' as const, rating: user?.rating ?? null, trips_count: 0 },
           })) as Trip[];
         }
       } catch (e) {
@@ -446,7 +451,7 @@ export function DriverDashboard() {
 
       setTrips(allTrips);
       setTotalTrips(allTrips.length);
-      setAvgRating(user?.rating || 0);
+      setAvgRating(user?.rating ?? 0);
 
       // Load bookings from Supabase
       let driverBookings: any[] = [];
@@ -511,7 +516,7 @@ export function DriverDashboard() {
         ...tripData,
         id: result[0].id,
         status: 'upcoming' as const,
-        driver: { id: user.id, name: user.name || '', email: user.email || '', avatar: user.avatar || '', role: 'driver' as const, rating: user.rating || 5, trips_count: 0 },
+        driver: { id: user.id, name: user.name || '', email: user.email || '', avatar: user.avatar || '', role: 'driver' as const, rating: user.rating ?? null, trips_count: 0 },
       };
 
       setTrips(prev => [...prev, newTrip]);
@@ -544,8 +549,8 @@ export function DriverDashboard() {
   const pastTrips = trips.filter(t => t.departure_date < now);
 
   const stats = [
-    { label: t('driver.earnings'), value: totalEarnings, icon: DollarSign, prefix: 'MAD ', suffix: '' },
-    { label: t('driver.rating'), value: avgRating, icon: Star, prefix: '', suffix: '/5' },
+    { label: t('driver.earnings'), value: totalEarnings, icon: DollarSign, prefix: t('trip.price') + ' ', suffix: '' },
+    { label: t('driver.rating'), value: hasRating(avgRating, user?.rating_count) ? Number(avgRating).toFixed(1) : '—', icon: Star, prefix: '', suffix: hasRating(avgRating, user?.rating_count) ? '/5' : '' },
     { label: t('driver.trips'), value: totalTrips, icon: TrendingUp, prefix: '', suffix: '' },
     { label: t('driver.passengers'), value: totalPassengers, icon: Users, prefix: '', suffix: '' },
   ];
@@ -590,14 +595,14 @@ export function DriverDashboard() {
                     <Label className="text-sm text-[#A0A0A0] mb-1.5 block">{t('driver.from')}</Label>
                     <select value={from} onChange={e => setFrom(e.target.value)} className="w-full bg-[#0F1115] border border-white/10 text-white rounded-xl h-11 px-3 text-sm outline-none appearance-none" required>
                       <option value="">{t('common.select_city')}</option>
-                      {MOROCCAN_CITIES.map(c => <option key={c} value={c}>{c}</option>)}
+                      {MOROCCAN_CITIES.map(c => <option key={c} value={c}>{city(c)}</option>)}
                     </select>
                   </div>
                   <div>
                     <Label className="text-sm text-[#A0A0A0] mb-1.5 block">{t('driver.to')}</Label>
                     <select value={to} onChange={e => setTo(e.target.value)} className="w-full bg-[#0F1115] border border-white/10 text-white rounded-xl h-11 px-3 text-sm outline-none appearance-none" required>
                       <option value="">{t('common.select_city')}</option>
-                      {MOROCCAN_CITIES.filter(c => c !== from).map(c => <option key={c} value={c}>{c}</option>)}
+                      {MOROCCAN_CITIES.filter(c => c !== from).map(c => <option key={c} value={c}>{city(c)}</option>)}
                     </select>
                   </div>
                 </div>
@@ -626,11 +631,11 @@ export function DriverDashboard() {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <Label className="text-sm text-[#A0A0A0] mb-1.5 block">{t('driver.distance')}</Label>
-                    <Input type="text" value={distance} onChange={e => setDistance(e.target.value)} placeholder="240 km" className="bg-[#0F1115] border-white/10 text-white rounded-xl" />
+                    <Input type="text" value={distance} onChange={e => setDistance(e.target.value)} placeholder={t('publish.distance_ph')} className="bg-[#0F1115] border-white/10 text-white rounded-xl" />
                   </div>
                   <div>
                     <Label className="text-sm text-[#A0A0A0] mb-1.5 block">{t('driver.duration')}</Label>
-                    <Input type="text" value={duration} onChange={e => setDuration(e.target.value)} placeholder="2h 30min" className="bg-[#0F1115] border-white/10 text-white rounded-xl" />
+                    <Input type="text" value={duration} onChange={e => setDuration(e.target.value)} placeholder={t('publish.duration_ph')} className="bg-[#0F1115] border-white/10 text-white rounded-xl" />
                   </div>
                 </div>
 
@@ -703,7 +708,7 @@ export function DriverDashboard() {
         <div className="flex gap-1 p-1 bg-[#1B1F27] rounded-xl mb-6 border border-white/5">
           {([
             { key: 'upcoming' as const, label: t('passenger.upcoming') },
-            { key: 'requests' as const, label: `Requests${bookingRequests.length > 0 ? ` (${bookingRequests.length})` : ''}` },
+            { key: 'requests' as const, label: `${t('driver.requests')}${bookingRequests.length > 0 ? ` (${bookingRequests.length})` : ''}` },
             { key: 'past' as const, label: t('passenger.past') },
             { key: 'vehicles' as const, label: t('ui.vehicles_8346') },
           ]).map(tab => (
@@ -758,7 +763,7 @@ export function DriverDashboard() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <MapPin className="w-3.5 h-3.5 text-[#FF6B00]" />
-                          <p className="text-sm text-white font-medium truncate">{trip.from_location} &rarr; {trip.to_location}</p>
+                          <p className="text-sm text-white font-medium truncate">{city(trip.from_location)} &rarr; {city(trip.to_location)}</p>
                         </div>
                         <div className="flex items-center gap-3 mt-1">
                           <span className="text-xs text-[#A0A0A0] flex items-center gap-1"><Calendar className="w-3 h-3" />{trip.departure_date}</span>
@@ -766,8 +771,8 @@ export function DriverDashboard() {
                         </div>
                       </div>
                       <div className="text-right shrink-0">
-                        <p className="text-sm text-[#FF6B00] font-bold">{trip.price} MAD</p>
-                        <p className="text-xs text-[#A0A0A0]">{trip.available_seats}/{trip.total_seats} seats</p>
+                        <p className="text-sm text-[#FF6B00] font-bold">{trip.price} {t('trip.price')}</p>
+                        <p className="text-xs text-[#A0A0A0]">{trip.available_seats}/{trip.total_seats} {t('mytrips.seats')}</p>
                       </div>
                       <ChevronRight className="w-4 h-4 text-[#A0A0A0] shrink-0" />
                     </motion.div>
@@ -815,7 +820,7 @@ export function DriverDashboard() {
                         {/* Trip info */}
                         <div className="flex items-center gap-2 mb-3 text-xs text-[#A0A0A0]">
                           <MapPin className="w-3.5 h-3.5 text-[#FF6B00]" />
-                          <span className="text-white font-medium">{bTrip?.from_location} → {bTrip?.to_location}</span>
+                          <span className="text-white font-medium">{city(bTrip?.from_location)} → {city(bTrip?.to_location)}</span>
                           <span>·</span>
                           <Calendar className="w-3 h-3" />
                           <span>{bTrip?.departure_date} at {bTrip?.departure_time}</span>
@@ -843,15 +848,15 @@ export function DriverDashboard() {
                               )}
                             </div>
                             <div className="flex items-center gap-1 mt-0.5">
-                              <Star className="w-3 h-3 text-[#FF6B00] fill-[#FF6B00]" />
-                              <span className="text-xs text-[#A0A0A0]">{(p?.rating || 5).toFixed(1)} · {p?.trips_count || 0} trips</span>
+                              <RatingBadge rating={p?.rating} count={p?.rating_count} iconClass="w-3 h-3" />
+                              <span className="text-xs text-[#A0A0A0]">· {p?.trips_count || 0} {t('ui.trips_4473')}</span>
                             </div>
                           </div>
                           <div className="text-right shrink-0">
                             <p className="text-sm font-bold text-[#FF6B00]">{booking.seats} seat(s)</p>
                             <div className="flex items-center gap-1 text-xs text-[#A0A0A0]">
                               <Banknote className="w-3 h-3" />
-                              <span>{booking.total_price} MAD</span>
+                              <span>{booking.total_price} {t('trip.price')}</span>
                             </div>
                           </div>
                         </div>
@@ -901,8 +906,8 @@ export function DriverDashboard() {
                     <motion.div key={trip.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: idx * 0.05 }} onClick={() => navigate(`/trip/${trip.id}`)} className="p-4 flex items-center gap-4 hover:bg-white/5 transition-colors cursor-pointer opacity-60">
                       <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center shrink-0"><Car className="w-5 h-5 text-[#A0A0A0]" /></div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm text-white font-medium truncate">{trip.from_location} &rarr; {trip.to_location}</p>
-                        <p className="text-xs text-[#A0A0A0]">{trip.departure_date} &middot; {trip.price} MAD</p>
+                        <p className="text-sm text-white font-medium truncate">{city(trip.from_location)} &rarr; {city(trip.to_location)}</p>
+                        <p className="text-xs text-[#A0A0A0]">{trip.departure_date} &middot; {trip.price} {t('trip.price')}</p>
                       </div>
                     </motion.div>
                   ))}

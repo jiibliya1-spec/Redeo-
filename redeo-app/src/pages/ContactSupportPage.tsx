@@ -186,7 +186,7 @@ export function ContactSupportPage() {
       faq3a: 'ايه، كل المدفوعات كاتمشي بأمان عبر منصتنا المشفرة.',
       faq4q: 'كيفاش نلغي الحجز؟',
       faq4a: 'روح لرحلاتي، لقى الحجز ديالك، وضغط على لغي.',
-      faq5q: 'كيفاش كاتمشي verification ديال السائق؟',
+      faq5q: 'كيفاش كاتمشي التحقق ديال السائق؟',
       faq5a: 'حمل CIN، رخصة السياقة، البطاقة الرمادية، التأمين، والصورة. فريقنا كيراجع ف24-48 ساعة.',
       contactEmail: 'wansniauto@protonmail.com',
       replyTime: 'عادة كنجاوبو ف24 ساعة',
@@ -513,7 +513,7 @@ export function ContactSupportPage() {
               className={`bg-[#1B1F27] border ${errors.message ? 'border-red-500/50' : 'border-white/10'} text-white rounded-xl min-h-[140px] resize-none`}
             />
             {errors.message && <p className="text-xs text-red-400 mt-1">{errors.message}</p>}
-            <p className="text-[10px] text-[#A0A0A0]/50 mt-1 text-right">{message.length} chars</p>
+            <p className="text-[10px] text-[#A0A0A0]/50 mt-1 text-right">{message.length} {t('support.chars')}</p>
           </div>
 
           {/* Screenshot Upload */}

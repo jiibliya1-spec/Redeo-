@@ -1,9 +1,11 @@
 import { motion } from 'framer-motion';
+import { useI18n } from '@/lib/i18n';
+import { useCity } from '@/lib/cities';
+import { RatingBadge } from '@/components/Rating';
 import { resolveAvatar } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
 import type { Trip } from '@/types';
-import {
-  Star, ShieldCheck, Users, Zap,
+import { ShieldCheck, Users, Zap,
 } from 'lucide-react';
 
 interface TripCardProps {
@@ -13,6 +15,8 @@ interface TripCardProps {
 }
 
 export function TripCard({ trip, index = 0 }: TripCardProps) {
+  const city = useCity();
+  const { t } = useI18n();
   const navigate = useNavigate();
   const driver = trip.driver;
   const isFullyBooked = (trip.available_seats || 0) <= 0;
@@ -32,7 +36,7 @@ export function TripCard({ trip, index = 0 }: TripCardProps) {
           <div className="flex items-center gap-3">
             <div className="text-center">
               <p className="text-2xl font-bold text-white leading-none">{trip.departure_time}</p>
-              <p className="text-xs text-[#A0A0A0] mt-1">{trip.from_location}</p>
+              <p className="text-xs text-[#A0A0A0] mt-1">{city(trip.from_location)}</p>
             </div>
             <div className="flex flex-col items-center px-2">
               <p className="text-[10px] text-[#A0A0A0]">{trip.duration || '—'}</p>
@@ -44,13 +48,13 @@ export function TripCard({ trip, index = 0 }: TripCardProps) {
             </div>
             <div className="text-center">
               <p className="text-2xl font-bold text-white leading-none">{trip.arrival_time || '??'}</p>
-              <p className="text-xs text-[#A0A0A0] mt-1">{trip.to_location}</p>
+              <p className="text-xs text-[#A0A0A0] mt-1">{city(trip.to_location)}</p>
             </div>
           </div>
           {/* Price */}
           <div className="text-right shrink-0">
             <p className="text-2xl font-bold text-[#FF6B00]">{trip.price}</p>
-            <p className="text-xs text-[#A0A0A0]">MAD</p>
+            <p className="text-xs text-[#A0A0A0]">{t('trip.price')}</p>
           </div>
         </div>
 
@@ -96,10 +100,7 @@ export function TripCard({ trip, index = 0 }: TripCardProps) {
             <div>
               <p className="text-sm font-medium text-white">{driver?.name || 'Driver'}</p>
               <div className="flex items-center gap-2">
-                <div className="flex items-center gap-0.5">
-                  <Star className="w-3 h-3 text-[#FF6B00] fill-[#FF6B00]" />
-                  <span className="text-xs text-[#A0A0A0]">{driver?.rating || 5}</span>
-                </div>
+                <RatingBadge rating={driver?.rating} count={(driver as any)?.rating_count} iconClass="w-3 h-3" />
                 <span className="text-[10px] text-[#A0A0A0]">({driver?.trips_count || 0} trips)</span>
               </div>
             </div>

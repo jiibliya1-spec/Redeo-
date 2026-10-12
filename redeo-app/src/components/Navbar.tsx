@@ -86,7 +86,7 @@ export function Navbar() {
                     </div>
                     {(['en', 'fr', 'ar'] as const).map((l) => (
                       <DropdownMenuItem key={l} onClick={() => setLang(l)} className={`cursor-pointer px-4 py-2.5 ${lang === l ? 'text-[#FF6B00]' : ''}`}>
-                        {l === 'en' ? 'English' : l === 'fr' ? 'Francais' : 'Arabe'}
+                        {t(`lang.name.${l}`)}
                         {lang === l && <span className="ml-auto text-[#FF6B00]">✓</span>}
                       </DropdownMenuItem>
                     ))}
@@ -167,7 +167,7 @@ export function Navbar() {
                     </div>
                     {(['en', 'fr', 'ar'] as const).map((l) => (
                       <DropdownMenuItem key={l} onClick={() => setLang(l)} className={`cursor-pointer px-4 py-2.5 ${lang === l ? 'text-[#FF6B00]' : ''}`}>
-                        {l === 'en' ? 'English' : l === 'fr' ? 'Francais' : 'Arabe'}
+                        {t(`lang.name.${l}`)}
                         {lang === l && <span className="ml-auto text-[#FF6B00]">✓</span>}
                       </DropdownMenuItem>
                     ))}

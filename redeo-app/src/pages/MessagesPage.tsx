@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { decodeText } from '@/lib/notifText';
 import { resolveAvatar } from '@/lib/utils';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -70,7 +71,11 @@ export function MessagesPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, setUnreadCount, incrementUnread } = useStore();
-  const { t, dir } = useI18n();
+  const { t, dir, lang } = useI18n();
+  const SUPPORT_ID = '00000000-0000-0000-0000-000000000000';
+  const convName = (c: { user_id: string; name: string }) => c.user_id === SUPPORT_ID ? t('chat.support_team') : (c.name === 'User' ? t('chat.user') : c.name);
+  const lastText = (s: string) => s === '\u{1F4F7} Photo' ? t('chat.photo') : s === 'Start a conversation...' ? t('chat.start') : (decodeText(s, lang) ?? s);
+
 
   const navState = (location.state || {}) as {
     contactId?: string; contactName?: string; contactAvatar?: string;
@@ -412,14 +417,14 @@ export function MessagesPage() {
                     className={`w-full flex items-center gap-3 p-4 hover:bg-white/5 transition-colors text-left ${activeConv === conv.user_id ? 'bg-[#FF6B00]/5 border-r-2 border-[#FF6B00]' : ''}`}
                   >
                     <div className="relative shrink-0">
-                      <img src={conv.avatar} alt={conv.name} className="w-12 h-12 rounded-full object-cover bg-[#1B1F27]" />
+                      <img src={conv.avatar} alt={convName(conv)} className="w-12 h-12 rounded-full object-cover bg-[#1B1F27]" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
-                        <p className="text-sm font-medium text-white truncate">{conv.name}</p>
+                        <p className="text-sm font-medium text-white truncate">{convName(conv)}</p>
                         {conv.timestamp && <span className="text-[10px] text-[#A0A0A0] shrink-0 ml-1">{conv.timestamp}</span>}
                       </div>
-                      <p className="text-xs text-[#A0A0A0] truncate">{conv.last_message}</p>
+                      <p className="text-xs text-[#A0A0A0] truncate">{lastText(conv.last_message)}</p>
                     </div>
                     {conv.unread > 0 && (
                       <span className="w-5 h-5 bg-[#FF6B00] text-white text-xs font-bold rounded-full flex items-center justify-center shrink-0">{conv.unread}</span>
@@ -440,7 +445,7 @@ export function MessagesPage() {
                   </button>
                   <img src={activeConversation.avatar} alt="" className="w-10 h-10 rounded-full object-cover bg-[#1B1F27]" />
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-white truncate">{activeConversation.name}</p>
+                    <p className="text-sm font-medium text-white truncate">{convName(activeConversation)}</p>
                     <p className="text-xs text-green-400">{t('ui.online_54f6')}</p>
                   </div>
                 </div>
@@ -453,7 +458,7 @@ export function MessagesPage() {
                           <Send className="w-8 h-8 text-[#FF6B00]" />
                         </div>
                         <h3 className="text-lg font-bold text-white mb-2">{t('chat.start_chat')}</h3>
-                        <p className="text-sm text-[#A0A0A0] max-w-xs">Send a message to start chatting with {activeConversation.name}</p>
+                        <p className="text-sm text-[#A0A0A0] max-w-xs">{t('chat.start_with', { name: convName(activeConversation) })}</p>
                       </div>
                     ) : (
                       currentMessages.map(msg => {
@@ -465,8 +470,8 @@ export function MessagesPage() {
                             <div className={`max-w-[75%] ${isMe ? 'order-1' : ''}`}>
                               <div className={`px-4 py-2.5 rounded-2xl text-sm ${isMe ? 'bg-[#FF6B00] text-white rounded-br-md' : 'bg-white/10 text-white rounded-bl-md'}`}>
                                 {isImage ? (
-                                  <img src={imageUrl} alt="Shared" className="max-w-[200px] rounded-lg cursor-pointer" onClick={() => window.open(imageUrl, '_blank')} />
-                                ) : msg.content}
+                                  <img src={imageUrl} alt="" className="max-w-[200px] rounded-lg cursor-pointer" onClick={() => window.open(imageUrl, '_blank')} />
+                                ) : (decodeText(msg.content, lang) ?? msg.content)}
                               </div>
                               <div className={`flex items-center gap-1 mt-1 ${isMe ? 'justify-end' : ''}`}>
                                 <span className="text-[10px] text-[#A0A0A0]">

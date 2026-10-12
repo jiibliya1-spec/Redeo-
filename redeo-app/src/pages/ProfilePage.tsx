@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { RatingBadge } from '@/components/Rating';
 import { resolveAvatar } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -401,15 +402,7 @@ export function ProfilePage() {
                 <p className="text-sm text-[#A0A0A0]">{user.email}</p>
                 <div className="flex items-center gap-2 mt-1 flex-wrap">
                   {renderBadge()}
-                  <span className="flex items-center gap-1 text-xs text-[#A0A0A0]">
-                    {user.trips_count && user.trips_count > 0 && user.rating ? (
-                        <>
-                          <Star className="w-3 h-3 text-[#FF6B00] fill-[#FF6B00]" />
-                          <span>{user.rating.toFixed(1)}</span>
-                          <span className="text-[#555555]">({user.trips_count})</span>
-                        </>
-                      ) : null}
-                  </span>
+                  <RatingBadge rating={user.rating} count={user.rating_count} iconClass="w-3 h-3" showCount />
                   {/* Refresh button to force fresh fetch */}
                   <button
                     onClick={fetchFreshProfile}
@@ -461,9 +454,9 @@ export function ProfilePage() {
           </div>
           <div className="grid grid-cols-3 gap-2">
             {([
-              { code: 'en' as const, label: 'English', flag: 'EN' },
-              { code: 'fr' as const, label: 'Francais', flag: 'FR' },
-              { code: 'ar' as const, label: 'Arabe', flag: 'AR' },
+              { code: 'en' as const, label: t('lang.name.en'), flag: 'EN' },
+              { code: 'fr' as const, label: t('lang.name.fr'), flag: 'FR' },
+              { code: 'ar' as const, label: t('lang.name.ar'), flag: 'AR' },
             ]).map((l) => (
               <button key={l.code} onClick={() => setLang(l.code)}
                 className={`p-3 rounded-xl border text-center transition-all ${

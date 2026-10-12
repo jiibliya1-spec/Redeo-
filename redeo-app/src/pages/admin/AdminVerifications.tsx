@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { encodeText } from '@/lib/notifText';
 import { resolveAvatar } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AdminLayout } from '@/components/admin/AdminLayout';
@@ -256,8 +257,8 @@ export function AdminVerifications() {
         headers: { ...headers, 'Prefer': 'return=minimal' },
         body: JSON.stringify({
           user_id: bundle.user_id, type: 'verification_approved',
-          title: 'Documents Approved ✅',
-          message: 'Your verification documents have been approved! You can now publish trips and use all features.',
+          title: encodeText('notif.verif_approved_title'),
+          message: encodeText('notif.verif_approved_msg'),
           data: JSON.stringify({ status: 'approved' }), read: false, created_at: new Date().toISOString(),
         }),
       });
@@ -266,7 +267,7 @@ export function AdminVerifications() {
         await supabase.from('messages').insert({
           sender_id: '00000000-0000-0000-0000-000000000000',
           receiver_id: bundle.user_id,
-          content: '✅ Félicitations ! Votre vérification a été approuvée. Vous pouvez maintenant publier des trajets et utiliser toutes les fonctionnalités de WansniAuto. Bienvenue dans la communauté des conducteurs ! 🎉',
+          content: encodeText('support.approved'),
           read: false,
           created_at: new Date().toISOString(),
         }).select();
@@ -310,8 +311,8 @@ export function AdminVerifications() {
         headers: { ...headers, 'Prefer': 'return=minimal' },
         body: JSON.stringify({
           user_id: bundle.user_id, type: 'verification_rejected',
-          title: 'Documents Rejected ❌',
-          message: `Your verification was rejected. Reason: ${rejectReason}. Please re-upload your documents.`,
+          title: encodeText('notif.verif_rejected_title'),
+          message: encodeText('notif.verif_rejected_msg', { reason: rejectReason }),
           data: JSON.stringify({ status: 'rejected', reason: rejectReason }), read: false, created_at: new Date().toISOString(),
         }),
       });
@@ -320,7 +321,7 @@ export function AdminVerifications() {
         await supabase.from('messages').insert({
           sender_id: '00000000-0000-0000-0000-000000000000',
           receiver_id: bundle.user_id,
-          content: `❌ Votre vérification a été refusée. Raison : ${rejectReason}. Veuillez corriger vos documents et soumettre à nouveau via la page de vérification. Notre équipe est disponible si vous avez des questions.`,
+          content: encodeText('support.rejected', { reason: rejectReason }),
           read: false,
           created_at: new Date().toISOString(),
         }).select();

@@ -9,7 +9,8 @@ export interface User {
   verification_status?: 'unverified' | 'pending' | 'submitted' | 'approved' | 'verified' | 'rejected';
   passenger_verified?: boolean;
   passenger_verification_status?: 'unverified' | 'pending' | 'verified' | 'rejected';
-  rating?: number;
+  rating?: number | null;
+  rating_count?: number | null;
   trips_count?: number;
   created_at?: string;
   bio?: string;

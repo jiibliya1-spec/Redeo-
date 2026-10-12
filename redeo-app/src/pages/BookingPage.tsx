@@ -1,4 +1,7 @@
 import { useState, useEffect } from 'react';
+import { useCity } from '@/lib/cities';
+import { encodeText } from '@/lib/notifText';
+import { RatingBadge } from '@/components/Rating';
 import { resolveAvatar } from '@/lib/utils';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -10,12 +13,13 @@ import { toast } from 'sonner';
 import type { Trip, User } from '@/types';
 import {
   ArrowLeft, CheckCircle, Loader2,
-  MapPin, Clock, Calendar, Star, ShieldCheck, Leaf, Banknote,
+  MapPin, Clock, Calendar, ShieldCheck, Leaf, Banknote,
 } from 'lucide-react';
 
 
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '@/lib/supabase';
 export function BookingPage() {
+  const city = useCity();
   const { id } = useParams();
   const navigate = useNavigate();
   const { user, mode } = useStore();
@@ -44,7 +48,7 @@ export function BookingPage() {
           setTrip(tr);
           const { data: profiles } = await supabase
             .from('public_profiles')
-            .select('id, name, avatar, bio, role, is_verified, verification_status, passenger_verified, rating, trips_count, created_at')
+            .select('id, name, avatar, bio, role, is_verified, verification_status, passenger_verified, rating, rating_count, trips_count, created_at')
             .eq('id', tr.driver_id)
             .limit(1);
           if (profiles?.[0]) setDriver(profiles[0] as unknown as User);
@@ -105,8 +109,8 @@ export function BookingPage() {
           body: JSON.stringify({
             user_id: trip.driver_id,
             type: 'info',
-            title: 'New Booking Request 🚗',
-            message: `${user.name || 'A passenger'} wants to book ${seats} seat(s) on your trip from ${trip.from_location} to ${trip.to_location} on ${trip.departure_date}. ||TRIP:${trip.id}||`,
+            title: encodeText('notif.booking_request_title'),
+            message: encodeText('notif.booking_request_msg', { name: user.name || '—', seats, from: trip.from_location, to: trip.to_location, date: trip.departure_date }) + `||TRIP:${trip.id}||`,
             read: false,
           }),
         }).catch(() => {});
@@ -142,13 +146,13 @@ export function BookingPage() {
             onClick={() => navigate(-1)}
             className="mt-2 px-6 py-3 bg-[#FF6B00] text-white rounded-xl text-sm font-semibold"
           >
-            Retour
+            {t('common.back')}
           </button>
           <button
             onClick={() => navigate('/settings')}
             className="text-xs text-[#A0A0A0] underline"
           >
-            Aller aux Paramètres
+            {t('booking.go_settings')}
           </button>
         </div>
       );
@@ -181,7 +185,7 @@ export function BookingPage() {
           </div>
           <h2 className="text-2xl font-bold text-white mb-2">{t('book.sent_title')}</h2>
           <p className="text-[#A0A0A0] mb-2">{t('book.sent_desc')}</p>
-          <p className="text-sm text-[#FF6B00] font-medium mb-8">{t('book.cash_label')} {trip.price * seats} MAD</p>
+          <p className="text-sm text-[#FF6B00] font-medium mb-8">{t('book.cash_label')} {trip.price * seats} {t('trip.price')}</p>
           <div className="flex gap-3 justify-center">
             <Button onClick={() => navigate('/my-trips')} className="bg-[#FF6B00] hover:bg-[#E56000] text-white rounded-xl px-6">
               {t('mytrips.title')}
@@ -213,9 +217,9 @@ export function BookingPage() {
             <div className="flex-1">
               <div className="flex items-center gap-2">
                 <MapPin className="w-4 h-4 text-[#FF6B00]" />
-                <span className="text-white font-medium">{trip.from_location}</span>
+                <span className="text-white font-medium">{city(trip.from_location)}</span>
                 <span className="text-[#A0A0A0]">→</span>
-                <span className="text-white font-medium">{trip.to_location}</span>
+                <span className="text-white font-medium">{city(trip.to_location)}</span>
               </div>
               <div className="flex gap-4 mt-2 text-xs text-[#A0A0A0]">
                 <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{trip.departure_date}</span>
@@ -223,7 +227,7 @@ export function BookingPage() {
               </div>
             </div>
             <div className="text-right">
-              <p className="text-xl font-bold text-[#FF6B00]">{trip.price} MAD</p>
+              <p className="text-xl font-bold text-[#FF6B00]">{trip.price} {t('trip.price')}</p>
               <p className="text-xs text-[#A0A0A0]">{t('book.per_seat')}</p>
             </div>
           </div>
@@ -238,8 +242,7 @@ export function BookingPage() {
               <div>
                 <p className="text-sm font-medium text-white">{driver.name}</p>
                 <div className="flex items-center gap-2 text-xs text-[#A0A0A0]">
-                  <Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />
-                  <span>{driver.rating || 5}/5</span>
+                  <RatingBadge rating={driver.rating} count={(driver as any).rating_count} iconClass="w-3 h-3" textClass="text-xs text-[#A0A0A0]" />
                   {driver.is_verified && (
                     <span className="flex items-center gap-1 text-green-400"><ShieldCheck className="w-3 h-3" />{t('profile.verified')}</span>
                   )}
@@ -273,8 +276,8 @@ export function BookingPage() {
             <span className="font-medium">{t('book.cash_only')}</span>
           </div>
           <div className="flex justify-between text-sm">
-            <span className="text-[#A0A0A0]">{seats} {t('mytrips.seats')} × {trip.price} MAD</span>
-            <span className="text-white font-bold">{totalPrice} MAD</span>
+            <span className="text-[#A0A0A0]">{seats} {t('mytrips.seats')} × {trip.price} {t('trip.price')}</span>
+            <span className="text-white font-bold">{totalPrice} {t('trip.price')}</span>
           </div>
           <p className="text-xs text-[#A0A0A0]">{t('book.cash_note')}</p>
           <div className="flex items-center gap-2 text-xs text-green-400">
@@ -291,7 +294,7 @@ export function BookingPage() {
         >
           {isBooking
             ? <Loader2 className="w-5 h-5 animate-spin" />
-            : `${t('book.request_btn')} — ${totalPrice} MAD`
+            : `${t('book.request_btn')} — ${totalPrice} ${t('trip.price')}`
           }
         </Button>
 

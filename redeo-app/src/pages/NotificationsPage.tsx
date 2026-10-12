@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { localizeNotification } from '@/lib/notifText';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useStore } from '@/store/useStore';
@@ -12,6 +13,7 @@ interface NotifItem {
   type: string;
   title: string;
   message: string;
+  data?: any;
   created_at: string;
   read: boolean;
 }
@@ -36,7 +38,7 @@ function clearCache(userId: string) {
 
 export function NotificationsPage() {
   const navigate = useNavigate();
-  const { t, dir } = useI18n();
+  const { t, dir, lang } = useI18n();
   const { user, setUnreadCount } = useStore();
   const [notifs, setNotifs] = useState<NotifItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -49,7 +51,7 @@ export function NotificationsPage() {
     // PRIMARY: Supabase — always filtered by user_id via RLS + explicit eq
     const { data } = await supabase
       .from('notifications')
-      .select('id, type, title, message, created_at, read')
+      .select('id, type, title, message, data, created_at, read')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .limit(80);
@@ -110,7 +112,6 @@ export function NotificationsPage() {
     ? notifs
     : notifs.filter(n => getDisplayType(n.type) === filter);
 
-  const cleanMessage = (msg: string) => msg?.replace(/\|\|TRIP:[^|]+\|\|/, '').trim() || '';
 
   return (
     <div className="min-h-screen bg-[#0F1115] pt-20 pb-8">
@@ -188,12 +189,12 @@ export function NotificationsPage() {
 
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-2">
-                          <p className="text-sm font-medium text-white truncate">{n.title}</p>
+                          <p className="text-sm font-medium text-white truncate">{localizeNotification(n, lang).title}</p>
                           <span className="text-[10px] text-[#A0A0A0] shrink-0">
                             {n.created_at ? new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
                           </span>
                         </div>
-                        <p className="text-xs text-[#A0A0A0] mt-0.5 line-clamp-2">{cleanMessage(n.message)}</p>
+                        <p className="text-xs text-[#A0A0A0] mt-0.5 line-clamp-2">{localizeNotification(n, lang).message}</p>
                       </div>
 
                       <button

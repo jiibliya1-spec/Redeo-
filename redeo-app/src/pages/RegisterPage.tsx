@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { authErrorKey } from '@/lib/errors';
 import { Logo } from '@/components/Logo';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -61,7 +62,7 @@ export function RegisterPage() {
         else navigate('/dashboard');
       }
     } else {
-      toast.error(result.error || 'Registration failed');
+      toast.error(t(authErrorKey(result.error)));
     }
 
     setIsLoading(false);
@@ -75,7 +76,7 @@ export function RegisterPage() {
       options: { emailRedirectTo: window.location.origin + '/dashboard' },
     });
     if (error) {
-      toast.error(t('ui.failed_to_resend_9329') + error.message);
+      toast.error(t('ui.failed_to_resend_9329') + t(authErrorKey(error.message)));
     } else {
       toast.success(t('ui.confirmation_email_resent_5633'));
     }
@@ -154,14 +155,14 @@ export function RegisterPage() {
               </motion.div>
 
               <h2 className="text-2xl font-bold text-white mb-2">{t('ui.check_your_inbox_a11e')}</h2>
-              <p className="text-[#A0A0A0] text-sm mb-1">We sent a confirmation link to:</p>
+              <p className="text-[#A0A0A0] text-sm mb-1">{t('reg.sent_to')}</p>
               <p className="text-white font-semibold mb-6 text-base">{email}</p>
 
               <div className="bg-[#1B1F27] rounded-2xl border border-white/5 p-5 mb-6 text-left space-y-3">
                 {[
-                  { n: '1', text: 'Open your email inbox' },
-                  { n: '2', text: 'Click the confirmation link from WansniAuto' },
-                  { n: '3', text: 'You\'ll be redirected and logged in automatically' },
+                  { n: '1', text: t('reg.step1') },
+                  { n: '2', text: t('reg.step2') },
+                  { n: '3', text: t('reg.step3') },
                 ].map((step) => (
                   <div key={step.n} className="flex items-start gap-3">
                     <div className="w-6 h-6 bg-[#FF6B00]/10 text-[#FF6B00] rounded-full flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">
@@ -292,8 +293,8 @@ export function RegisterPage() {
                       className="mt-0.5 rounded border-white/20"
                     />
                     <span className="text-sm text-[#A0A0A0]">
-                      I agree to the <span className="text-[#FF6B00]">Terms</span> and{' '}
-                      <span className="text-[#FF6B00]">Privacy Policy</span>. I confirm I am at least 18 years old.
+                      {t('reg.agree_pre')} <span className="text-[#FF6B00]">{t('reg.terms')}</span> {t('reg.and')}{' '}
+                      <span className="text-[#FF6B00]">{t('reg.privacy')}</span>. {t('reg.agree_post')}
                     </span>
                   </label>
                 </>

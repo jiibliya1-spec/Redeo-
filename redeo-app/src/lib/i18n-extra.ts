@@ -475,6 +475,10 @@ export const EXTRA: Record<Lang, Record<string, string>> = {
     'support.reply_failed': 'Reply could not be sent. Please try again.',
     'notif.support_reply_title': 'Support replied to your message',
     'notif.support_reply_msg': 'Re: {subject}',
+    'home.hello': 'Hello, {name}',
+    'home.where_to': 'Where do you want to go?',
+    'home.driver_sub': 'Publish a trip and fill your empty seats.',
+    'home.my_trips': 'My trips',
   },
   fr: {
     'rating.none': 'Pas encore noté',
@@ -949,6 +953,10 @@ export const EXTRA: Record<Lang, Record<string, string>> = {
     'support.reply_failed': "La réponse n'a pas pu être envoyée. Réessayez.",
     'notif.support_reply_title': 'Le support a répondu à votre message',
     'notif.support_reply_msg': 'Re : {subject}',
+    'home.hello': 'Bonjour, {name}',
+    'home.where_to': 'Où voulez-vous aller ?',
+    'home.driver_sub': 'Publiez un trajet et remplissez vos places libres.',
+    'home.my_trips': 'Mes trajets',
   },
   ar: {
     'rating.none': 'مازال ماعندو حتى تقييم',
@@ -1423,5 +1431,9 @@ export const EXTRA: Record<Lang, Record<string, string>> = {
     'support.reply_failed': 'ما قدرناش نصيفطو الجواب. عاود المحاولة.',
     'notif.support_reply_title': 'الدعم جاوبك على الرسالة ديالك',
     'notif.support_reply_msg': 'بخصوص: {subject}',
+    'home.hello': 'مرحبا، {name}',
+    'home.where_to': 'فين بغيتي تمشي؟',
+    'home.driver_sub': 'نشر رحلة وعمر البلايص الفارغة.',
+    'home.my_trips': 'رحلاتي',
   },
 };

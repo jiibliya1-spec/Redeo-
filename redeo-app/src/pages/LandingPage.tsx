@@ -19,7 +19,7 @@ const FEATURES = [
   { icon: Headphones, titleKey: 'landing.feature_chat', descKey: 'landing.feature_chat_desc' },
 ];
 
-const POPULAR_ROUTES = [
+export const POPULAR_ROUTES = [
   { from: 'Casablanca', to: 'Marrakech', price: 75, km: 240, hrs: 3, scene: 0 },
   { from: 'Tanger', to: 'Rabat', price: 65, km: 250, hrs: 2.5, scene: 1 },
   { from: 'Fes', to: 'Casablanca', price: 90, km: 290, hrs: 3, scene: 2 },
@@ -32,7 +32,7 @@ const SCENES = [
   { sky: ['#1f2347', '#ff8f5a'], sun: '#ffe2a0', far: '#4c4268', mid: '#35294d', near: '#1a1428', dune: '#d27a3a' },
 ];
 
-function RouteScene({ i, scene }: { i: number; scene: number }) {
+export function RouteScene({ i, scene }: { i: number; scene: number }) {
   const c = SCENES[scene % SCENES.length];
   const sx = scene === 1 ? 70 : 225;
   return (

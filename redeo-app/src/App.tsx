@@ -48,6 +48,7 @@ const MyTripsPage = lazy(() => import('@/pages/MyTripsPage').then((m) => ({ defa
 import { LoginPage } from '@/pages/LoginPage';
 import { RegisterPage } from '@/pages/RegisterPage';
 const PassengerDashboard = lazy(() => import('@/pages/PassengerDashboard').then((m) => ({ default: m.PassengerDashboard })));
+const AppHome = lazy(() => import('@/pages/AppHome').then((m) => ({ default: m.AppHome })));
 const DriverDashboard = lazy(() => import('@/pages/DriverDashboard').then((m) => ({ default: m.DriverDashboard })));
 const AdminDashboard = lazy(() => import('@/pages/admin/AdminDashboard').then((m) => ({ default: m.AdminDashboard })));
 const AdminVerifications = lazy(() => import('@/pages/admin/AdminVerifications').then((m) => ({ default: m.AdminVerifications })));
@@ -249,7 +250,7 @@ function AppContent() {
           <Route path="/admin/*" element={<AdminRoutes />} />
 
           {/* Normal user routes */}
-          <Route path="/" element={<LandingPage />} />
+          <Route path="/" element={isAuthenticated ? <AppHome /> : <LandingPage />} />
           <Route path="/search" element={<SearchResultsPage />} />
           <Route path="/trip/:id" element={<TripDetailsPage />} />
           <Route path="/booking/:id" element={<BookingPage />} />

@@ -1,8 +1,9 @@
 // Shared helpers for the AI verification endpoints (Cloudflare Pages Functions).
 
 export interface Env {
-  ANTHROPIC_API_KEY?: string;
-  ANTHROPIC_MODEL?: string;
+  GROQ_API_KEY?: string;
+  GROQ_MODEL?: string; // vision model for documents
+  GROQ_TEXT_MODEL?: string; // text model for the admin summary
   SUPABASE_URL?: string;
   SUPABASE_ANON_KEY?: string;
   SUPABASE_SERVICE_ROLE_KEY?: string;
@@ -31,8 +32,9 @@ export const cfg = (env: Env) => ({
   url: (env.SUPABASE_URL || DEFAULT_SUPABASE_URL).replace(/\/$/, ''),
   anon: env.SUPABASE_ANON_KEY || DEFAULT_ANON_KEY,
   service: env.SUPABASE_SERVICE_ROLE_KEY || '',
-  anthropic: env.ANTHROPIC_API_KEY || '',
-  model: env.ANTHROPIC_MODEL || 'claude-sonnet-5-5',
+  groq: env.GROQ_API_KEY || '',
+  model: env.GROQ_MODEL || 'qwen/qwen3.8-27b',
+  textModel: env.GROQ_TEXT_MODEL || 'openai/gpt-oss-120b',
 });
 
 /** Validate the caller's Supabase JWT and return their user id. */
@@ -61,39 +63,61 @@ export async function sbService(env: Env, path: string, init: RequestInit = {}):
   });
 }
 
-/** Call Claude and force a structured result through a single tool. */
-export async function callClaude<T>(
+/** Pull the first JSON object out of a model reply (handles <think> blocks and code fences). */
+export function extractJson(text: string): any {
+  const cleaned = text.replace(/<think>[\s\S]*?<\/think>/g, '').replace(/```(?:json)?/g, '').trim();
+  const start = cleaned.indexOf('{');
+  const end = cleaned.lastIndexOf('}');
+  if (start < 0 || end <= start) throw new Error('llm_no_json');
+  return JSON.parse(cleaned.slice(start, end + 1));
+}
+
+/** Call Groq (OpenAI-compatible) and get a JSON object back that follows `schema`. */
+export async function callLLM<T>(
   env: Env,
-  opts: { system: string; content: any[]; toolName: string; toolDescription: string; schema: any; maxTokens?: number },
+  opts: { model: string; system: string; content: any[]; schemaName: string; schema: any; maxTokens?: number },
 ): Promise<T> {
   const c = cfg(env);
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 40000);
-  try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      signal: ctrl.signal,
-      headers: { 'x-api-key': c.anthropic, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-      body: JSON.stringify({
-        model: c.model,
-        max_tokens: opts.maxTokens ?? 1800,
-        system: opts.system,
-        tools: [{ name: opts.toolName, description: opts.toolDescription, input_schema: opts.schema }],
-        tool_choice: { type: 'tool', name: opts.toolName },
-        messages: [{ role: 'user', content: opts.content }],
-      }),
-    });
-    if (!res.ok) {
-      const body = await res.text().catch(() => '');
-      throw new Error(`anthropic_${res.status}: ${body.slice(0, 200)}`);
+  const post = async (responseFormat: any, extraSystem = '') => {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 40000);
+    try {
+      return await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        signal: ctrl.signal,
+        headers: { Authorization: `Bearer ${c.groq}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: opts.model,
+          temperature: 0.1,
+          max_completion_tokens: opts.maxTokens ?? 1800,
+          response_format: responseFormat,
+          messages: [
+            { role: 'system', content: opts.system + extraSystem },
+            { role: 'user', content: opts.content },
+          ],
+        }),
+      });
+    } finally {
+      clearTimeout(timer);
     }
-    const data: any = await res.json();
-    const block = (data.content || []).find((b: any) => b.type === 'tool_use');
-    if (!block?.input) throw new Error('anthropic_no_tool_output');
-    return block.input as T;
-  } finally {
-    clearTimeout(timer);
+  };
+
+  // 1) schema-guided output; 2) plain JSON mode with the schema spelled out in the prompt
+  let res = await post({ type: 'json_schema', json_schema: { name: opts.schemaName, strict: false, schema: opts.schema } });
+  if (res.status === 400) {
+    res = await post(
+      { type: 'json_object' },
+      `\n\nReply with ONE JSON object only, matching exactly this JSON schema:\n${JSON.stringify(opts.schema)}`,
+    );
   }
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`groq_${res.status}: ${body.slice(0, 200)}`);
+  }
+  const data: any = await res.json();
+  const text = data?.choices?.[0]?.message?.content;
+  if (typeof text !== 'string') throw new Error('groq_no_content');
+  return extractJson(text) as T;
 }
 
 export const clip = (v: unknown, n = 300): string => (typeof v === 'string' ? v.slice(0, n) : '');

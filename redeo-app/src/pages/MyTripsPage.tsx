@@ -9,6 +9,9 @@ import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { RateUserSheet } from '@/components/RateUserSheet';
+import { CancelBookingSheet } from '@/components/CancelBookingSheet';
+import { cancelBooking } from '@/services/bookingService';
+import { hasDeparted } from '@/lib/tripTime';
 import {
   ArrowLeft, Loader2, Calendar, Clock, Users,
   CheckCircle, XCircle, Clock3, Inbox, Banknote, Star,
@@ -155,23 +158,21 @@ export function MyTripsPage() {
     };
   }, [loadBookings]);
 
-  const handleCancel = async (bookingId: string) => {
-    if (!window.confirm(t('book.cancel_confirm'))) return;
+  const [cancelTarget, setCancelTarget] = useState<BookingItem | null>(null);
+  const [cancelling, setCancelling] = useState(false);
+
+  const handleCancel = async () => {
+    const b = cancelTarget;
+    if (!b || !user?.id) return;
+    if (b.trip && hasDeparted(b.trip as any)) { toast.error(t('book.cancel_too_late')); setCancelTarget(null); return; }
+    setCancelling(true);
     try {
-      const { error } = await supabase
-        .from('bookings')
-        .update({ status: 'cancelled' })
-        .eq('id', bookingId)
-        .eq('passenger_id', user!.id);
-      if (error) {
-        const all: any[] = JSON.parse(localStorage.getItem('wansniauto_bookings') || '[]');
-        localStorage.setItem('wansniauto_bookings', JSON.stringify(
-          all.map(b => b.id === bookingId ? { ...b, status: 'cancelled' } : b)
-        ));
-      }
-      setBookings(prev => prev.map(b => b.id === bookingId ? { ...b, status: 'cancelled' as const } : b));
+      await cancelBooking(b as any, user.id, user.name || '');
+      setBookings(prev => prev.map(x => x.id === b.id ? { ...x, status: 'cancelled' as const } : x));
       toast.success(t('book.cancelled_ok'));
+      setCancelTarget(null);
     } catch { toast.error(t('book.failed_cancel')); }
+    setCancelling(false);
   };
 
   const statusConfig = {
@@ -279,9 +280,9 @@ export function MyTripsPage() {
                         </button>
                       )
                     )}
-                    {b.status === 'pending' && (
+                    {(b.status === 'pending' || b.status === 'confirmed') && !(b.trip && hasDeparted(b.trip as any)) && (
                       <button
-                        onClick={(e) => { e.stopPropagation(); handleCancel(b.id); }}
+                        onClick={(e) => { e.stopPropagation(); setCancelTarget(b); }}
                         className="text-xs text-red-400 hover:text-red-300 px-2 py-1 rounded-lg hover:bg-red-500/10 transition-colors"
                       >
                         {t('mytrips.cancel_btn')}
@@ -306,6 +307,7 @@ export function MyTripsPage() {
           name={rateTarget.driver?.name}
         />
       )}
+      <CancelBookingSheet open={!!cancelTarget} busy={cancelling} route={cancelTarget?.trip ? `${city(cancelTarget.trip.from_location)} → ${city(cancelTarget.trip.to_location)}` : undefined} onClose={() => setCancelTarget(null)} onConfirm={handleCancel} />
     </div>
   );
 }

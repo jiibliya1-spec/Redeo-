@@ -8,6 +8,9 @@ import { useStore } from '@/store/useStore';
 import { useI18n } from '@/lib/i18n';
 import { supabase } from '@/lib/supabase';
 import { hasDeparted } from '@/lib/tripTime';
+import { toast } from 'sonner';
+import { CancelBookingSheet } from '@/components/CancelBookingSheet';
+import { cancelBooking } from '@/services/bookingService';
 import { Button } from '@/components/ui/button';
 import type { Trip, Booking } from '@/types';
 import {
@@ -94,6 +97,8 @@ export function PassengerDashboard() {
   const [bookings, setBookings] = useState<BookingWithTrip[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const [cancelTarget, setCancelTarget] = useState<BookingWithTrip | null>(null);
+  const [cancelling, setCancelling] = useState(false);
   const [totalTrips, setTotalTrips] = useState(0);
   const [totalSaved, setTotalSaved] = useState(0);
   const [rating, setRating] = useState(0);
@@ -179,6 +184,19 @@ export function PassengerDashboard() {
   const upcomingBookings = bookings.filter(isUpcoming);
   const pastBookings = bookings.filter(b => !isUpcoming(b));
 
+  const doCancel = async () => {
+    const b = cancelTarget;
+    if (!b || !user?.id) return;
+    setCancelling(true);
+    try {
+      await cancelBooking(b as any, user.id, user.name || '');
+      setBookings(prev => prev.map(x => x.id === b.id ? { ...x, status: 'cancelled' as const } : x));
+      toast.success(t('book.cancelled_ok'));
+      setCancelTarget(null);
+    } catch { toast.error(t('book.failed_cancel')); }
+    setCancelling(false);
+  };
+
   const stats = [
     { label: t('passenger.trips'), value: totalTrips, icon: Car },
     { label: t('trip.rating'), value: hasRating(rating, user?.rating_count) ? Number(rating).toFixed(1) : '—', icon: Star, suffix: hasRating(rating, user?.rating_count) ? '/5' : '' },
@@ -225,6 +243,9 @@ export function PassengerDashboard() {
             'bg-red-500/10 text-red-400'
           }`}>{t(`status.${booking.status}`) === `status.${booking.status}` ? booking.status : t(`status.${booking.status}`)}</span>
         </div>
+        {(booking.status === 'pending' || booking.status === 'confirmed') && !hasDeparted(trip as any) && (
+          <button onClick={(e) => { e.stopPropagation(); setCancelTarget(booking); }} className="text-xs text-red-400 hover:text-red-300 px-2.5 py-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 transition-colors shrink-0">{t('mytrips.cancel_btn')}</button>
+        )}
         <ChevronRight className="w-4 h-4 text-[#A0A0A0] opacity-0 group-hover:opacity-100 transition-opacity" />
       </motion.div>
     );
@@ -339,6 +360,7 @@ export function PassengerDashboard() {
           ))}
         </div>
       </div>
+      <CancelBookingSheet open={!!cancelTarget} busy={cancelling} route={cancelTarget?.trip ? `${city(cancelTarget.trip.from_location)} → ${city(cancelTarget.trip.to_location)}` : undefined} onClose={() => setCancelTarget(null)} onConfirm={doCancel} />
     </div>
   );
 }

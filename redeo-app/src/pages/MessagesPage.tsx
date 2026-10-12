@@ -65,6 +65,7 @@ interface Conversation {
   last_message: string;
   timestamp: string;
   unread: number;
+  ts?: number;
 }
 
 export function MessagesPage() {
@@ -86,6 +87,8 @@ export function MessagesPage() {
   const [isSending] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [viewerImage, setViewerImage] = useState<string | null>(null);
+  const loadRef = useRef<() => Promise<void>>(async () => {});
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -110,7 +113,7 @@ export function MessagesPage() {
 
     setConversations(prev => {
       if (prev.find(c => c.user_id === contactId)) return prev;
-      return [{ user_id: contactId, name, avatar, last_message: 'Start a conversation...', timestamp: '', unread: 0 }, ...prev];
+      return [{ user_id: contactId, name, avatar, last_message: 'Start a conversation...', timestamp: '', unread: 0, ts: Date.now() }, ...prev];
     });
 
     setActiveConv(contactId);
@@ -158,20 +161,60 @@ export function MessagesPage() {
             profiles.forEach((p: any) => {
               map[p.id] = { name: p.name || 'User', avatar: resolveAvatar(p.avatar, p.id) };
             });
-            setContactNames(map);
-            setConversations(buildConvs(user.id, grouped, map));
+            setContactNames(prev => ({ ...prev, ...map }));
+            const built = buildConvs(user.id, grouped, map);
+            // keep conversations that were just opened and have no messages yet
+            setConversations(prev => [...built, ...prev.filter(c => !built.some(b => b.user_id === c.user_id))]);
           }
         }
 
-        setMessages(grouped);
+        // keep optimistic (not yet confirmed) messages that are still in flight
+        setMessages(prev => {
+          const merged: Record<string, ChatMessage[]> = { ...grouped };
+          Object.entries(prev).forEach(([k, list]) => {
+            const temps = list.filter(m => String(m.id).startsWith('tmp-'));
+            if (temps.length) merged[k] = [...(merged[k] || []), ...temps];
+            else if (!merged[k]) merged[k] = list;
+          });
+          return merged;
+        });
 
         const totalUnread = allMsgs.filter((m: any) => m.receiver_id === user.id && !m.read).length;
         setUnreadCount(totalUnread);
       } catch (err) { console.error('[Messages] Error:', err); }
     };
 
+    loadRef.current = load;
     load();
   }, [user?.id, setUnreadCount]);
+
+  /* ─── Never miss a message: resync when the app comes back, the network returns, and every few seconds while open ─── */
+  useEffect(() => {
+    if (!user?.id) return;
+    const resync = () => { if (document.visibilityState === 'visible') loadRef.current(); };
+    const timer = setInterval(resync, 8000);
+    document.addEventListener('visibilitychange', resync);
+    window.addEventListener('focus', resync);
+    window.addEventListener('online', resync);
+    window.addEventListener('pageshow', resync);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener('visibilitychange', resync);
+      window.removeEventListener('focus', resync);
+      window.removeEventListener('online', resync);
+      window.removeEventListener('pageshow', resync);
+    };
+  }, [user?.id]);
+
+  const markReadRemote = async (partnerId: string) => {
+    if (!user?.id) return;
+    try {
+      const headers = await getAuthHeaders();
+      await fetch(`${SUPABASE_URL}/rest/v1/messages?receiver_id=eq.${user.id}&sender_id=eq.${partnerId}&read=eq.false`, {
+        method: 'PATCH', headers, body: JSON.stringify({ read: true }),
+      });
+    } catch { /* silent */ }
+  };
 
   /* ─── REALTIME SUBSCRIPTION (stable: reads the latest state through refs) ─── */
   const activeConvRef = useRef(activeConv);
@@ -198,14 +241,15 @@ export function MessagesPage() {
           return { ...prev, [partnerId]: [...existing, msg] };
         });
 
-        incrementUnread();
+        const viewing = activeConv === partnerId && document.visibilityState === 'visible';
+        if (viewing) markReadRemote(partnerId); else incrementUnread();
 
         setConversations(prev => {
           const existing = prev.find(c => c.user_id === partnerId);
           if (existing) {
             return prev.map(c =>
               c.user_id === partnerId
-                ? { ...c, last_message: msg.content.startsWith('[Image]') ? '\u{1F4F7} Photo' : msg.content, timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), unread: activeConv === partnerId ? 0 : c.unread + 1 }
+                ? { ...c, last_message: msg.content.startsWith('[Image]') ? '\u{1F4F7} Photo' : msg.content, timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), unread: viewing ? 0 : c.unread + 1, ts: Date.now() }
                 : c
             );
           }
@@ -215,11 +259,12 @@ export function MessagesPage() {
             avatar: resolveAvatar(contactNames[partnerId]?.avatar, partnerId),
             last_message: msg.content.startsWith('[Image]') ? '\u{1F4F7} Photo' : msg.content,
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            unread: 1,
+            unread: viewing ? 0 : 1,
+            ts: Date.now(),
           }, ...prev];
         });
       })
-      .subscribe();
+      .subscribe((status: string) => { if (status === 'SUBSCRIBED') loadRef.current(); });
 
     return () => { supabase.removeChannel(channel); };
   }, [user?.id, incrementUnread]);
@@ -230,17 +275,7 @@ export function MessagesPage() {
 
     setConversations(prev => prev.map(c => c.user_id === activeConv ? { ...c, unread: 0 } : c));
 
-    // Mark as read via REST API
-    (async () => {
-      try {
-        const headers = await getAuthHeaders();
-        await fetch(`${SUPABASE_URL}/rest/v1/messages?receiver_id=eq.${user.id}&sender_id=eq.${activeConv}&read=eq.false`, {
-          method: 'PATCH',
-          headers,
-          body: JSON.stringify({ read: true }),
-        });
-      } catch { /* silent */ }
-    })();
+    markReadRemote(activeConv);
   }, [activeConv, user?.id]);
 
   /* ─── Scroll to bottom ─── */
@@ -263,9 +298,10 @@ export function MessagesPage() {
         last_message: last.content.startsWith('[Image]') ? '\u{1F4F7} Photo' : last.content,
         timestamp: last.created_at ? new Date(last.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
         unread: list.filter(m => m.receiver_id === uid && !m.read).length,
+        ts: last.created_at ? +new Date(last.created_at) : 0,
       };
     });
-    return Object.values(map).sort((a, b) => +new Date(b.timestamp) - +new Date(a.timestamp));
+    return Object.values(map).sort((a, b) => (b.ts || 0) - (a.ts || 0));
   }
 
   /* ─── SEND TEXT MESSAGE (optimistic: appears instantly, confirmed in background) ─── */
@@ -470,7 +506,7 @@ export function MessagesPage() {
                             <div className={`max-w-[75%] ${isMe ? 'order-1' : ''}`}>
                               <div className={`px-4 py-2.5 rounded-2xl text-sm ${isMe ? 'bg-[#FF6B00] text-white rounded-br-md' : 'bg-white/10 text-white rounded-bl-md'}`}>
                                 {isImage ? (
-                                  <img src={imageUrl} alt="" className="max-w-[200px] rounded-lg cursor-pointer" onClick={() => window.open(imageUrl, '_blank')} />
+                                  <img src={imageUrl} alt="" className="max-w-[200px] rounded-lg cursor-pointer" onClick={() => setViewerImage(imageUrl)} />
                                 ) : (decodeText(msg.content, lang) ?? msg.content)}
                               </div>
                               <div className={`flex items-center gap-1 mt-1 ${isMe ? 'justify-end' : ''}`}>
@@ -524,6 +560,20 @@ export function MessagesPage() {
           </div>
         </div>
       </div>
+
+      {/* Full-screen image viewer (works on iOS, no popup / data: navigation) */}
+      <AnimatePresence>
+        {viewerImage && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[90] bg-black/95 flex items-center justify-center p-3" onClick={() => setViewerImage(null)}>
+            <button onClick={() => setViewerImage(null)} aria-label={t('common.close')}
+              className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/10 flex items-center justify-center" style={{ marginTop: 'env(safe-area-inset-top)' }}>
+              <X className="w-5 h-5 text-white" />
+            </button>
+            <img src={viewerImage} alt="" className="max-w-full max-h-full object-contain rounded-lg" onClick={e => e.stopPropagation()} />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

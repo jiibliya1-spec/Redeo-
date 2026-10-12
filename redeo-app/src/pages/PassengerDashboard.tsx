@@ -16,7 +16,7 @@ import { Button } from '@/components/ui/button';
 import type { Trip, Booking } from '@/types';
 import {
   Car, Clock, Star, Wallet, Shield, Loader2,
-  Calendar, Search, Heart,
+  Calendar, Search, Heart, User, MessageCircle, ShieldCheck, LifeBuoy,
 } from 'lucide-react';
 
 interface BookingWithTrip extends Booking {
@@ -350,12 +350,13 @@ export function PassengerDashboard() {
         {/* Quick Actions */}
         <div className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-3">
           {[
-            { label: t('nav.profile'), icon: '🚗', action: () => navigate('/profile') },
-            { label: t('nav.chat'), icon: '💬', action: () => navigate('/messages') },
-            { label: t('verify.title'), icon: '✓', action: () => navigate('/verification') },
-            { label: t('common.support'), icon: '♣', action: () => navigate('/messages') },
+            { label: t('nav.profile'), Icon: User, action: () => navigate('/profile') },
+            { label: t('nav.chat'), Icon: MessageCircle, action: () => navigate('/messages') },
+            { label: t('verify.title'), Icon: ShieldCheck, action: () => navigate('/verification') },
+            { label: t('common.support'), Icon: LifeBuoy, action: () => navigate('/messages') },
           ].map(item => (
             <button key={item.label} onClick={item.action} className="bg-[#1B1F27] rounded-xl border border-white/5 p-4 text-center hover:bg-[#FF6B00]/10 hover:border-[#FF6B00]/20 transition-all group">
+              <item.Icon className="w-5 h-5 mx-auto mb-2 text-[#FF6B00]" />
               <p className="text-sm font-medium text-white group-hover:text-[#FF6B00] transition-colors">{item.label}</p>
             </button>
           ))}

@@ -163,42 +163,42 @@
     if (a.blurScore < 30) return {
       message: ar ? 'الصورة ضبابية — لا تحرك الكاميرا' : fr ? 'Image floue — restez immobile' : 'Image blurry — hold still',
       subMessage: ar ? 'ثبّت يدك' : fr ? 'Stabilisez votre main' : 'Stabilize your hand',
-      color: 'red', emoji: '🤚',
+      color: 'red', emoji: 'hand',
     };
     if (a.blurScore < 55) return {
       message: ar ? 'قرّب الكاميرا قليلاً' : fr ? 'Rapprochez légèrement' : 'Move slightly closer',
       subMessage: ar ? 'الصورة غير واضحة بما يكفي' : fr ? "L'image n'est pas assez nette" : 'Not sharp enough yet',
-      color: 'yellow', emoji: '🔍',
+      color: 'yellow', emoji: 'search',
     };
     if (a.brightnessScore < 30) return {
       message: ar ? 'الإضاءة ضعيفة — اذهب لمكان أكثر ضوءاً' : fr ? 'Éclairage insuffisant' : 'Too dark — find better lighting',
       subMessage: ar ? 'افتح النافذة أو أضف ضوء' : fr ? "Allez vers une fenêtre" : 'Move near a window',
-      color: 'red', emoji: '💡',
+      color: 'red', emoji: 'dim',
     };
     if (a.brightnessScore < 55) return {
       message: ar ? 'الإضاءة يمكن أن تكون أفضل' : fr ? 'Améliorer l’éclairage' : 'Improve lighting slightly',
       subMessage: ar ? 'تجنب الظلال على الوثيقة' : fr ? 'Évitez les ombres' : 'Avoid shadows on document',
-      color: 'yellow', emoji: '🌤',
+      color: 'yellow', emoji: 'dim',
     };
     if (a.brightnessScore < 30) return {
       message: ar ? 'الإضاءة قوية جداً' : fr ? 'Trop lumineux' : 'Too bright — avoid glare',
       subMessage: ar ? 'تجنب الضوء المباشر' : fr ? 'Évitez le reflet' : 'Avoid direct light',
-      color: 'yellow', emoji: '🌟',
+      color: 'yellow', emoji: 'bright',
     };
     if (a.fraudScore > 60) return {
       message: ar ? 'يبدو أن الوثيقة مصورة من شاشة' : fr ? 'Document semble être une copie d’écran' : 'Looks like a screen copy — use original',
       subMessage: ar ? 'استخدم الوثيقة الأصلية' : fr ? 'Utilisez le document original' : 'Use original document',
-      color: 'red', emoji: '⚠️',
+      color: 'red', emoji: 'alert',
     };
     if (a.ready) return {
-      message: ar ? 'ممتاز! الوثيقة واضحة ✓' : fr ? 'Excellent! Document net ✓' : 'Perfect! Document clear ✓',
+      message: ar ? 'ممتاز! الوثيقة واضحة' : fr ? 'Excellent! Document net' : 'Perfect! Document clear',
       subMessage: ar ? 'جاري التصوير التلقائي...' : fr ? 'Capture automatique...' : 'Auto-capturing...',
-      color: 'green', emoji: '✅',
+      color: 'green', emoji: 'ok',
     };
     return {
       message: ar ? 'ضع الوثيقة داخل الإطار' : fr ? 'Placez le document dans le cadre' : 'Place document in the frame',
       subMessage: ar ? 'اقترب وتأكد من الإضاءة الجيدة' : fr ? 'Approchez-vous et assurez un bon éclairage' : 'Get closer and ensure good lighting',
-      color: 'yellow', emoji: '📄',
+      color: 'yellow', emoji: 'doc',
     };
   }
 

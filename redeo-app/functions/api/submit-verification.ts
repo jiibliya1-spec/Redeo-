@@ -190,10 +190,10 @@ export const onRequestPost = async ({ request, env }: { request: Request; env: E
   if (doubts.size && recommendation !== 'review_carefully') recommendation = 'review_carefully';
 
   const summaryText = [
-    aiAvailable ? '' : '⚠️ تعذّر إنشاء الملخص الذكي، هذه معلومات آلية أساسية فقط.\n',
-    '✅ واضح:\n' + bullets(clear),
-    '\n❓ ناقص:\n' + bullets([...missing]),
-    '\n⚠️ شكوك:\n' + bullets([...doubts]),
+    aiAvailable ? '' : 'تعذّر إنشاء الملخص الذكي، هذه معلومات آلية أساسية فقط.\n',
+    'واضح:\n' + bullets(clear),
+    '\nناقص:\n' + bullets([...missing]),
+    '\nشكوك:\n' + bullets([...doubts]),
   ].join('\n');
 
   const now = new Date().toISOString();

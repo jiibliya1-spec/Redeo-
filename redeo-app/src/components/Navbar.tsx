@@ -7,7 +7,7 @@ import { useI18n } from '@/lib/i18n';
 import {
   Car, Menu, X, Bell, MessageCircle, User, LogOut,
   Shield, ChevronDown, Search, Globe
-} from 'lucide-react';
+, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -87,7 +87,7 @@ export function Navbar() {
                     {(['en', 'fr', 'ar'] as const).map((l) => (
                       <DropdownMenuItem key={l} onClick={() => setLang(l)} className={`cursor-pointer px-4 py-2.5 ${lang === l ? 'text-[#FF6B00]' : ''}`}>
                         {t(`lang.name.${l}`)}
-                        {lang === l && <span className="ml-auto text-[#FF6B00]">✓</span>}
+                        {lang === l && <Check className="ml-auto w-4 h-4 text-[#FF6B00]" />}
                       </DropdownMenuItem>
                     ))}
                   </DropdownMenuContent>
@@ -168,7 +168,7 @@ export function Navbar() {
                     {(['en', 'fr', 'ar'] as const).map((l) => (
                       <DropdownMenuItem key={l} onClick={() => setLang(l)} className={`cursor-pointer px-4 py-2.5 ${lang === l ? 'text-[#FF6B00]' : ''}`}>
                         {t(`lang.name.${l}`)}
-                        {lang === l && <span className="ml-auto text-[#FF6B00]">✓</span>}
+                        {lang === l && <Check className="ml-auto w-4 h-4 text-[#FF6B00]" />}
                       </DropdownMenuItem>
                     ))}
                   </DropdownMenuContent>

@@ -49,6 +49,10 @@ function legacyEnglish(n: { title?: string; message?: string }, lang: Lang): { t
 }
 
 /** Title + message of a notification in the reader's language (old English rows still work). */
+const EMOJI_RE = /[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2300}-\u{23FF}\u{2B00}-\u{2BFF}\u{FE0F}\u{200D}]/gu;
+/** Removes emoji from old stored texts so the app only shows icons. */
+export function stripEmoji(s: string): string { return s.replace(EMOJI_RE, '').replace(/ {2,}/g, ' ').trim(); }
+
 export function localizeNotification(n: { type?: string; title?: string; message?: string; data?: any }, lang: Lang) {
   let title = decodeText(n.title, lang);
   let message = decodeText(n.message, lang);
@@ -64,10 +68,10 @@ export function localizeNotification(n: { type?: string; title?: string; message
   }
   if (title === null && message === null) {
     const old = legacyEnglish(n, lang);
-    if (old) return old;
+    if (old) return { title: stripEmoji(old.title), message: stripEmoji(old.message) };
   }
   return {
-    title: title ?? n.title ?? '',
-    message: (message ?? n.message ?? '').replace(/\|\|TRIP:[^|]+\|\|/, '').trim(),
+    title: stripEmoji(title ?? n.title ?? ''),
+    message: stripEmoji((message ?? n.message ?? '').replace(/\|\|TRIP:[^|]+\|\|/, '').trim()),
   };
 }

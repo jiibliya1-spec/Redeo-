@@ -14,7 +14,7 @@ import {
   Shield, Users, Loader2, Leaf, AlertTriangle,
   Share2, Ban, Calendar, ChevronRight, Phone,
   Circle, CircleDot, Clock,
-} from 'lucide-react';
+  Check } from 'lucide-react';
 
 
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '@/lib/supabase';
@@ -313,7 +313,7 @@ export function TripDetailsPage() {
                 <p className="text-lg font-bold text-white">{driver?.name || t('trip.driver')}</p>
                 {driver?.is_verified && (
                   <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-green-500/10 text-green-400 font-medium shrink-0">
-                    ✓ {t('ui.verified_3f68')}
+                    <Check className="w-3 h-3 inline -mt-0.5 me-0.5" />{t('ui.verified_3f68')}
                   </span>
                 )}
               </div>

@@ -5,7 +5,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
   import {
     ArrowLeft, Upload, CheckCircle, Clock, XCircle,
     User, CreditCard, Car, Shield, Eye, Trash2, Send, Camera, Sparkles, Brain
-  } from 'lucide-react';
+  , TriangleAlert } from 'lucide-react';
   import { useStore } from '@/store/useStore';
   import { useI18n } from '@/lib/i18n';
   import { supabase } from '@/lib/supabase';
@@ -164,7 +164,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
           const currentUser = useStore.getState().user;
           const wasVerified = currentUser?.is_verified === true;
           if (currentUser) setUser({ ...currentUser, is_verified: p.is_verified === true, verification_status: p.verification_status });
-          if (p.is_verified && !wasVerified) toast.success(lang === 'ar' ? '🎉 تم التحقق من حسابك!' : lang === 'fr' ? '🎉 Votre compte est vérifié!' : '🎉 Your account has been verified!');
+          if (p.is_verified && !wasVerified) toast.success(lang === 'ar' ? 'تم التحقق من حسابك!' : lang === 'fr' ? 'Votre compte est vérifié!' : 'Your account has been verified!');
           else if (p.verification_status === 'rejected') toast.error(lang === 'ar' ? 'تم رفض وثائقك' : lang === 'fr' ? 'Vos documents ont été rejetés' : 'Your documents were rejected');
         })
         .subscribe();
@@ -240,7 +240,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
         if (allUploaded.length >= 3) {
           const { autoVerified, score } = computeAutoVerifyScore(allUploaded);
           if (autoVerified && score >= 80) {
-            toast.success(lang === 'ar' ? '🤖 جودة ممتازة! يمكنك إرسال الوثائق للمراجعة' : lang === 'fr' ? '🤖 Excellent! Soumettez vos documents' : '🤖 Excellent quality! Ready to submit for review', { duration: 5000 });
+            toast.success(lang === 'ar' ? 'جودة ممتازة! يمكنك إرسال الوثائق للمراجعة' : lang === 'fr' ? 'Excellent! Soumettez vos documents' : 'Excellent quality! Ready to submit for review', { duration: 5000 });
           }
         }
       } catch (err: any) {
@@ -315,7 +315,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
         setSteps((prev) => prev.map((s) => s.status === 'uploaded' ? { ...s, status: 'pending' as const } : s));
         const currentUser = useStore.getState().user;
         if (currentUser) setUser({ ...currentUser, verification_status: 'submitted', is_verified: false });
-        toast.success(lang === 'ar' ? '📤 تم إرسال الوثائق للمراجعة!' : lang === 'fr' ? '📤 Documents soumis!' : '📤 Documents submitted for review!');
+        toast.success(lang === 'ar' ? 'تم إرسال الوثائق للمراجعة!' : lang === 'fr' ? 'Documents soumis!' : 'Documents submitted for review!');
       } catch (err: any) { toast.error(t('ui.submit_failed_7fba') + err.message); }
       setSubmitting(false);
     };
@@ -391,7 +391,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
               className="bg-green-500/10 border border-green-500/20 rounded-xl p-4 mb-6 flex items-center gap-3">
               <CheckCircle className="w-6 h-6 text-green-500 shrink-0" />
               <div>
-                <p className="text-sm font-semibold text-green-400">{lang === 'ar' ? 'الحساب موثق ✓' : 'Account Verified ✓'}</p>
+                <p className="text-sm font-semibold text-green-400">{lang === 'ar' ? 'الحساب موثق' : 'Account Verified'}</p>
                 <p className="text-xs text-[#A0A0A0]">{lang === 'ar' ? 'تمت الموافقة على وثائقك من طرف الإدارة' : 'Your documents were approved by admin'}</p>
               </div>
             </motion.div>
@@ -449,7 +449,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
                   </div>
                   <p className="text-xs text-[#A0A0A0] mt-1">
                     {kycScore.autoVerified
-                      ? (lang === 'ar' ? '✅ الوثائق عالية الجودة — جاهز للإرسال' : '✅ High quality — ready to submit')
+                      ? (lang === 'ar' ? 'الوثائق عالية الجودة — جاهز للإرسال' : 'High quality — ready to submit')
                       : (lang === 'ar' ? 'حاول تحسين جودة الصور للحصول على موافقة أسرع' : 'Improve photo quality for faster approval')}
                   </p>
                 </div>
@@ -533,7 +533,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
                         )}
 
                         {step.errorMsg && (
-                          <p className="text-xs text-red-400 mt-1 bg-red-500/10 px-2 py-1 rounded-lg">⚠️ {step.errorMsg}</p>
+                          <p className="text-xs text-red-400 mt-1 bg-red-500/10 px-2 py-1 rounded-lg flex items-center gap-1.5"><TriangleAlert className="w-3.5 h-3.5 shrink-0" />{step.errorMsg}</p>
                         )}
                         {step.status === 'rejected' && step.rejectionReason && (
                           <p className="text-xs text-red-300 mt-1 bg-red-500/10 px-2 py-1 rounded-lg">
@@ -616,10 +616,10 @@ import { useState, useEffect, useCallback, useRef } from 'react';
               </button>
               <p className="text-[11px] text-[#A0A0A0]/70 text-center mt-3 leading-relaxed">
                 {lang === 'ar'
-                  ? '🔒 كيتم فحص الوثائق بالذكاء الاصطناعي قبل المراجعة اليدوية، وما كيتم استعمالها لأي غرض آخر.'
+                  ? 'كيتم فحص الوثائق بالذكاء الاصطناعي قبل المراجعة اليدوية، وما كيتم استعمالها لأي غرض آخر.'
                   : lang === 'fr'
-                  ? "🔒 Vos documents sont analysés par une IA avant la revue manuelle et ne servent à aucun autre usage."
-                  : '🔒 Your documents are checked by AI before the manual review and are not used for anything else.'}
+                  ? "Vos documents sont analysés par une IA avant la revue manuelle et ne servent à aucun autre usage."
+                  : 'Your documents are checked by AI before the manual review and are not used for anything else.'}
               </p>
               {hasUploadedDocs && (
                 <p className="text-xs text-[#A0A0A0] text-center mt-2">

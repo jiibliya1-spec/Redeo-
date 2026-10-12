@@ -1,7 +1,7 @@
 
   import { useRef, useState, useEffect, useCallback } from 'react';
   import { motion, AnimatePresence } from 'framer-motion';
-  import { Camera, X, RotateCcw, Check, Scan } from 'lucide-react';
+  import { Camera, X, RotateCcw, Check, Scan, Hand, ScanSearch, SunDim, Sun, TriangleAlert, CheckCircle2, FileText } from 'lucide-react';
   import { analyzeCanvasFrame, getGuidanceInfo, type FrameAnalysis } from '@/services/kycService';
 
   interface Props {
@@ -13,6 +13,12 @@
     lang: string;
     onCapture: (file: File, analysis: FrameAnalysis) => void;
     onCancel: () => void;
+  }
+
+  function GuidanceIcon({ name, color }: { name: string; color: string }) {
+    const map: Record<string, any> = { hand: Hand, search: ScanSearch, dim: SunDim, bright: Sun, alert: TriangleAlert, ok: CheckCircle2, doc: FileText };
+    const I = map[name] || FileText;
+    return <I className="w-7 h-7 shrink-0" style={{ color }} />;
   }
 
   export function CameraCapture({ docId, docLabel, docLabelAr, docLabelFr, isSelfie, lang, onCapture, onCancel }: Props) {
@@ -350,7 +356,7 @@
             className="z-20 px-4 py-3 flex items-center gap-3 bg-black/90 border-t"
             style={{ borderColor: guidanceColor + '40' }}
           >
-            <span className="text-2xl">{guidance.emoji}</span>
+            <GuidanceIcon name={guidance.emoji} color={guidanceColor} />
             <div>
               <p className="text-sm font-semibold" style={{ color: guidanceColor }}>{guidance.message}</p>
               <p className="text-xs text-white/50">{guidance.subMessage}</p>

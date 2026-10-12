@@ -122,17 +122,17 @@ export function decideVerdict(r: any): Verdict {
 
 const NEUTRAL: Record<string, Record<Verdict, string>> = {
   ar: {
-    accept: 'الوثيقة مقبولة مبدئيا ✅',
+    accept: 'الوثيقة مقبولة مبدئيا',
     retake: 'الوثيقة غير واضحة أو غير مطابقة. عاود صورها من جديد.',
     review: 'تم استلام الوثيقة، وغادي تدوز لمراجعة يدوية من الإدارة.',
   },
   fr: {
-    accept: 'Document accepté provisoirement ✅',
+    accept: 'Document accepté provisoirement',
     retake: "Le document n'est pas lisible ou ne correspond pas. Veuillez le reprendre.",
     review: "Document reçu, il sera examiné manuellement par l'équipe.",
   },
   en: {
-    accept: 'Document provisionally accepted ✅',
+    accept: 'Document provisionally accepted',
     retake: 'The document is unclear or does not match. Please retake it.',
     review: 'Document received; it will go through a manual review by our team.',
   },

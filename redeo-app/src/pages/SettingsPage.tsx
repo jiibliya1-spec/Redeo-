@@ -17,7 +17,7 @@ import {
   CreditCard, RefreshCcw, ThumbsUp, HelpCircle, FileText, Shield,
   LogOut, Trash2, ChevronRight, Loader2, X, Bell, Mail, Phone,
   Check, ToggleLeft, ToggleRight, Send, Heart, MessageCircle, Car,
-} from 'lucide-react';
+  CheckCircle2 } from 'lucide-react';
 
 
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '@/lib/supabase';
@@ -948,7 +948,7 @@ export function SettingsPage() {
                     t('ui.insurance_certificate_583d'),
                     t('ui.vehicle_photos_0c74'),
                   ].map((item) => (
-                    <p key={item} className="text-xs text-[#A0A0A0]">{item}</p>
+                    <p key={item} className="text-xs text-[#A0A0A0] flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-green-400 shrink-0" />{item}</p>
                   ))}
                 </div>
                 <Button

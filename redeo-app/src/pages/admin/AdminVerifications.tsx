@@ -12,7 +12,7 @@ import {
   ShieldCheck, Check, X, Search, CreditCard, Camera, FileText,
   Shield, Clock, UserCheck, UserX, Eye, Loader2, Car,
   ChevronRight, ZoomIn, Brain, Sparkles, AlertTriangle,
-} from 'lucide-react';
+  Bot, TriangleAlert } from 'lucide-react';
 
 
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '@/lib/supabase';
@@ -682,12 +682,12 @@ export function AdminVerifications() {
                             return (
                               <div dir="rtl" className="mt-2 pt-2 border-t border-white/5 space-y-1 text-right">
                                 <p className={`text-[10px] font-semibold ${color}`}>
-                                  🤖 {rep.verdict === 'accept' ? 'سليمة' : rep.verdict === 'retake' ? 'غير صالحة' : 'تحتاج مراجعة'} · خطر التزوير: {rep.authenticity_risk === 'high' ? 'مرتفع' : rep.authenticity_risk === 'medium' ? 'متوسط' : 'منخفض'}
+                                  <Bot className="w-3 h-3 inline -mt-0.5 me-1" />{rep.verdict === 'accept' ? 'سليمة' : rep.verdict === 'retake' ? 'غير صالحة' : 'تحتاج مراجعة'} · خطر التزوير: {rep.authenticity_risk === 'high' ? 'مرتفع' : rep.authenticity_risk === 'medium' ? 'متوسط' : 'منخفض'}
                                 </p>
                                 {rep.admin_notes && <p className="text-[10px] text-[#D0D0D0] leading-snug">{rep.admin_notes}</p>}
                                 {sigs.map((sg, i) => (
                                   <p key={i} className={`text-[10px] leading-snug ${sg.severity === 'high' ? 'text-red-400' : sg.severity === 'medium' ? 'text-amber-400' : 'text-[#A0A0A0]'}`}>
-                                    ⚠ {sg.signal}{sg.location ? ` (${sg.location})` : ''}
+                                    <TriangleAlert className="w-3 h-3 inline -mt-0.5 me-1" />{sg.signal}{sg.location ? ` (${sg.location})` : ''}
                                   </p>
                                 ))}
                               </div>

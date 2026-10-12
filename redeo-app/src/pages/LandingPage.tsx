@@ -22,11 +22,45 @@ const FEATURES = [
 ];
 
 const POPULAR_ROUTES = [
-  { from: 'Casablanca', to: 'Marrakech', price: 75, km: 240, hrs: 3, hue: 'from-[#FF6B00]/25 via-[#FF6B00]/5' },
-  { from: 'Tanger', to: 'Rabat', price: 65, km: 250, hrs: 2.5, hue: 'from-[#22D3EE]/20 via-[#22D3EE]/5' },
-  { from: 'Fes', to: 'Casablanca', price: 90, km: 290, hrs: 3, hue: 'from-[#A78BFA]/20 via-[#A78BFA]/5' },
+  { from: 'Casablanca', to: 'Marrakech', price: 75, km: 240, hrs: 3, scene: 0 },
+  { from: 'Tanger', to: 'Rabat', price: 65, km: 250, hrs: 2.5, scene: 1 },
+  { from: 'Fes', to: 'Casablanca', price: 90, km: 290, hrs: 3, scene: 2 },
 ];
 
+
+const SCENES = [
+  { sky: ['#2b1a3d', '#ff7a2f'], sun: '#ffd27a', far: '#5a3a5e', mid: '#3b2447', near: '#1d1226', dune: '#c9692a' },
+  { sky: ['#1b2a4a', '#ffb25a'], sun: '#fff0b0', far: '#7a5a52', mid: '#a1623a', near: '#6b3a22', dune: '#e08a3c' },
+  { sky: ['#1f2347', '#ff8f5a'], sun: '#ffe2a0', far: '#4c4268', mid: '#35294d', near: '#1a1428', dune: '#d27a3a' },
+];
+
+function RouteScene({ i, scene }: { i: number; scene: number }) {
+  const c = SCENES[scene % SCENES.length];
+  const sx = scene === 1 ? 70 : 225;
+  return (
+    <svg viewBox="0 0 300 140" className="absolute inset-0 w-full h-full" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+      <defs>
+        <linearGradient id={`sky-${i}`} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor={c.sky[0]} /><stop offset="1" stopColor={c.sky[1]} /></linearGradient>
+        <linearGradient id={`road-${i}`} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#2a2a32" /><stop offset="1" stopColor="#15151a" /></linearGradient>
+      </defs>
+      <rect width="300" height="140" fill={`url(#sky-${i})`} />
+      <circle cx={sx} cy="52" r="34" fill={c.sun} opacity=".18" />
+      <circle cx={sx} cy="52" r="20" fill={c.sun} opacity=".95" />
+      {[[30, 24], [90, 14], [150, 30], [250, 18], [200, 10]].map(([x, y], k) => <circle key={k} cx={x} cy={y} r="0.9" fill="#fff" opacity=".6" />)}
+      <path d="M0 88 L28 62 L46 76 L78 44 L108 74 L134 56 L170 84 L206 50 L240 76 L270 58 L300 80 L300 140 L0 140Z" fill={c.far} />
+      <path d="M78 44 L69 53 L78 51 L85 54Z M206 50 L198 58 L206 56 L213 59Z" fill="#fff" opacity=".5" />
+      <path d="M0 106 L40 80 L72 98 L112 70 L150 100 L190 76 L232 102 L270 82 L300 98 L300 140 L0 140Z" fill={c.mid} />
+      <path d="M0 116 Q40 98 85 112 T170 108 T300 112 L300 140 L0 140Z" fill={c.dune} opacity=".9" />
+      <path d="M0 126 Q60 112 120 124 T240 120 T300 126 L300 140 L0 140Z" fill={c.near} />
+      <path d="M-10 140 C 80 118, 120 132, 170 112 S 270 96, 310 86 L310 98 C 270 108, 190 124, 150 130 S 60 142, -10 150Z" fill={`url(#road-${i})`} opacity=".95" />
+      <path d="M-10 145 C 80 124, 120 136, 170 118 S 270 100, 310 92" fill="none" stroke="#ffd27a" strokeWidth="1.2" strokeDasharray="6 6" opacity=".85" />
+      <g fill={c.near} opacity=".95">
+        <rect x="262" y="104" width="1.6" height="16" /><path d="M263 104 q-9 -2 -12 4 q8 -3 12 -1 q8 -3 12 3 q-4 -6 -12 -6Z" />
+        <rect x="38" y="108" width="1.6" height="14" /><path d="M39 108 q-8 -2 -11 4 q7 -3 11 -1 q7 -3 11 3 q-4 -6 -11 -6Z" />
+      </g>
+    </svg>
+  );
+}
 
 function FadeUp({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
   return (
@@ -237,13 +271,13 @@ export function LandingPage() {
             {POPULAR_ROUTES.map((route, i) => (
               <FadeUp key={`${route.from}-${route.to}`} delay={i * 0.15}>
                 <div role="link" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter') (e.currentTarget as HTMLElement).click(); }} onClick={() => { setSearchFilters({ from: route.from, to: route.to, date: '', passengers: 1 }); navigate('/search'); }} className="group relative bg-[#1B1F27] rounded-3xl border border-white/10 overflow-hidden cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:border-[#FF6B00]/40 hover:shadow-2xl hover:shadow-[#FF6B00]/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#FF6B00]">
-                  <div className={`relative h-44 bg-gradient-to-br ${route.hue} to-transparent`} dir="ltr">
-                    <div className="absolute inset-0 opacity-[0.07]" style={{ backgroundImage: 'radial-gradient(circle, #fff 1px, transparent 1px)', backgroundSize: '16px 16px' }} />
+                  <div className="relative h-48 overflow-hidden" dir="ltr">
+                    <RouteScene i={i} scene={route.scene} />
                     <svg viewBox="0 0 300 120" className="absolute inset-0 w-full h-full" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
-                      <path id={`rt-${i}`} d="M40 85 C 100 10, 200 110, 260 35" fill="none" stroke="#FF6B00" strokeOpacity=".25" strokeWidth="6" strokeLinecap="round" />
-                      <path d="M40 85 C 100 10, 200 110, 260 35" fill="none" stroke="#FF6B00" strokeWidth="2.5" strokeLinecap="round" strokeDasharray="2 8" />
-                      <circle cx="40" cy="85" r="7" fill="#0F1115" stroke="#fff" strokeWidth="3" />
-                      <circle cx="260" cy="35" r="7" fill="#FF6B00" stroke="#fff" strokeWidth="3" />
+                      <path id={`rt-${i}`} d="M40 95 C 100 40, 200 100, 260 45" fill="none" stroke="#fff" strokeOpacity=".35" strokeWidth="5" strokeLinecap="round" />
+                      <path d="M40 95 C 100 40, 200 100, 260 45" fill="none" stroke="#FF6B00" strokeWidth="2.5" strokeLinecap="round" strokeDasharray="2 8" />
+                      <circle cx="40" cy="95" r="7" fill="#0F1115" stroke="#fff" strokeWidth="3" />
+                      <circle cx="260" cy="45" r="7" fill="#FF6B00" stroke="#fff" strokeWidth="3" />
                       <circle r="5" fill="#fff"><animateMotion dur="3.5s" repeatCount="indefinite" rotate="auto"><mpath href={`#rt-${i}`} /></animateMotion></circle>
                     </svg>
                     <div className="absolute top-3 left-3 right-3 flex justify-between text-xs font-medium text-white/90">

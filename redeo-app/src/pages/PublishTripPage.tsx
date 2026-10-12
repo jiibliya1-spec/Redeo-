@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { useStore } from '@/store/useStore';
 import { useI18n } from '@/lib/i18n';
 import { apiPost, apiGet, supabase } from '@/lib/supabase';
+import { walletBlocksPublishing } from '@/lib/wallet';
 import { MOROCCAN_CITIES } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -198,6 +199,12 @@ export function PublishTripPage() {
       navigate('/verification');
       return;
     }
+    const wb = await walletBlocksPublishing(user.id);
+    if (wb.blocked) {
+      toast.error(t('wallet.low_publish'));
+      navigate('/wallet');
+      return;
+    }
 
     if (from === to) {
       toast.error(t('ui.departure_and_arrival_d020'));
@@ -229,7 +236,8 @@ export function PublishTripPage() {
       toast.success(t('ui.trip_published_13be'));
       setFrom(''); setTo(''); setDate(''); setTime(''); setPrice(''); setSeats('3'); setDistance(''); setDuration('');
     } catch (err: any) {
-      toast.error(err.message || t('publish.failed'));
+      if (String(err?.message).includes('wallet_low')) { toast.error(t('wallet.low_publish')); navigate('/wallet'); }
+      else toast.error(err.message || t('publish.failed'));
     }
     setIsPublishing(false);
   };

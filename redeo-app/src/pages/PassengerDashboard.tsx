@@ -7,6 +7,7 @@ import { motion } from 'framer-motion';
 import { useStore } from '@/store/useStore';
 import { useI18n } from '@/lib/i18n';
 import { supabase } from '@/lib/supabase';
+import { hasDeparted } from '@/lib/tripTime';
 import { Button } from '@/components/ui/button';
 import type { Trip, Booking } from '@/types';
 import {
@@ -102,10 +103,21 @@ export function PassengerDashboard() {
     try {
       setLoading(true);
 
-      // Load from localStorage (primary — bookings table may not exist in Supabase)
-      let allBookings: BookingWithTrip[] = getLocalBookings().filter(
-        (b: BookingWithTrip) => b.passenger_id === user.id
-      );
+      // Source of truth = database (works across devices/reinstalls); localStorage only as offline fallback
+      let allBookings: BookingWithTrip[] = [];
+      let fromDb = false;
+      try {
+        const { data: sb, error } = await supabase
+          .from('bookings')
+          .select('*')
+          .eq('passenger_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(100);
+        if (!error && sb) { allBookings = sb as BookingWithTrip[]; fromDb = true; }
+      } catch { /* fall back below */ }
+      if (!fromDb) {
+        allBookings = getLocalBookings().filter((b: BookingWithTrip) => b.passenger_id === user.id);
+      }
 
       // Try to enrich with trip data for any booking missing it
       const needsTrip = allBookings.filter(b => !b.trip?.from_location && b.trip_id);
@@ -129,7 +141,7 @@ export function PassengerDashboard() {
       }
 
       // Sync status from Supabase notifications (driver accepted/rejected)
-      allBookings = await syncStatusFromNotifications(allBookings, user.id);
+      if (!fromDb) allBookings = await syncStatusFromNotifications(allBookings, user.id);
 
       setBookings(allBookings);
 
@@ -155,15 +167,17 @@ export function PassengerDashboard() {
     window.addEventListener('wansniauto:booking-updated', onUpdate);
     const onVisible = () => { if (document.visibilityState === 'visible') loadBookings(); };
     document.addEventListener('visibilitychange', onVisible);
+    const iv = setInterval(() => { if (document.visibilityState === 'visible') loadBookings(); }, 20000);
     return () => {
+      clearInterval(iv);
       window.removeEventListener('wansniauto:booking-updated', onUpdate);
       document.removeEventListener('visibilitychange', onVisible);
     };
   }, [loadBookings]);
 
-  const now = new Date().toISOString().split('T')[0];
-  const upcomingBookings = bookings.filter(b => b.trip && b.trip.departure_date >= now && b.status !== 'cancelled');
-  const pastBookings = bookings.filter(b => !b.trip || b.trip.departure_date < now || b.status === 'cancelled');
+  const isUpcoming = (b: BookingWithTrip) => !!b.trip && b.status !== 'cancelled' && !hasDeparted(b.trip as any);
+  const upcomingBookings = bookings.filter(isUpcoming);
+  const pastBookings = bookings.filter(b => !isUpcoming(b));
 
   const stats = [
     { label: t('passenger.trips'), value: totalTrips, icon: Car },
@@ -209,7 +223,7 @@ export function PassengerDashboard() {
             booking.status === 'confirmed' ? 'bg-green-500/10 text-green-400' :
             booking.status === 'pending' ? 'bg-yellow-500/10 text-yellow-400' :
             'bg-red-500/10 text-red-400'
-          }`}>{booking.status}</span>
+          }`}>{t(`status.${booking.status}`) === `status.${booking.status}` ? booking.status : t(`status.${booking.status}`)}</span>
         </div>
         <ChevronRight className="w-4 h-4 text-[#A0A0A0] opacity-0 group-hover:opacity-100 transition-opacity" />
       </motion.div>

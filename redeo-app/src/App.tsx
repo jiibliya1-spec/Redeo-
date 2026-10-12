@@ -131,14 +131,14 @@ function AdminRoutes() {
     <AdminRouteGuard>
       <Suspense fallback={<div className="min-h-[60vh] flex items-center justify-center"><Spinner /></div>}>
       <Routes>
-        <Route path="/" element={isAdmin ? <Navigate to="/admin" replace /> : (<AdminDashboard />)} />
+        <Route path="/" element={<AdminDashboard />} />
         <Route path="/verifications" element={<AdminVerifications />} />
         <Route path="/users" element={<AdminUsers />} />
         <Route path="/trips" element={<AdminTrips />} />
-        <Route path="/messages" element={isAdmin ? <Navigate to="/admin" replace /> : (<AdminMessages />)} />
+        <Route path="/messages" element={<AdminMessages />} />
         <Route path="/settings" element={<AdminSettings />} />
         <Route path="/support" element={<AdminSupportTickets />} />
-        <Route path="/wallet" element={isAdmin ? <Navigate to="/admin" replace /> : (<AdminWallet />)} />
+        <Route path="/wallet" element={<AdminWallet />} />
         <Route path="*" element={<Navigate to="/admin" replace />} />
       </Routes>
       </Suspense>
@@ -149,7 +149,6 @@ function AdminRoutes() {
 /* ─── App content with conditional navbar ─── */
 function AppContent() {
   const { isAuthenticated, user, isLoading, initAuth, refreshProfile, setUser, mode } = useStore();
-  const isAdmin = user?.role === 'admin';
   const [showSplash, setShowSplash] = useState(() => {
     try { return !sessionStorage.getItem('wa_splash_seen'); } catch { return true; }
   });

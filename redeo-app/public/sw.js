@@ -1,4 +1,4 @@
-const CACHE_NAME = 'wansniauto-v6';
+const CACHE_NAME = 'redeo-v7';
 const STATIC_ASSETS = [
   '/',
   '/index.html',

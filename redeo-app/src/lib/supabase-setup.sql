@@ -1,5 +1,5 @@
 -- ============================================================
--- WansniAuto - PRODUCTION Supabase Setup
+-- Redeo - PRODUCTION Supabase Setup
 -- Run this ENTIRE script in Supabase SQL Editor
 -- ============================================================
 

@@ -905,7 +905,7 @@ export function SettingsPage() {
         </div>
 
         {/* App Version */}
-        <p className="text-center text-[10px] text-[#A0A0A0]/40 mt-8">WansniAuto v2.0.0</p>
+        <p className="text-center text-[10px] text-[#A0A0A0]/40 mt-8">Redeo v2.0.0</p>
       </div>
 
       {/* Drawer */}

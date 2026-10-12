@@ -66,7 +66,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
           <Link to="/admin" className="flex items-center gap-3">
             <Logo className="w-9 h-9" />
             <div>
-              <h1 className="text-sm font-bold text-white">WansniAuto</h1>
+              <h1 className="text-sm font-bold text-white">Redeo</h1>
               <p className="text-[10px] text-[#FF6B00] uppercase tracking-wider font-semibold">{t('adm.admin_panel_a0e0')}</p>
             </div>
           </Link>

@@ -98,7 +98,7 @@ export function RegisterPage() {
           <Link to="/" className="inline-flex items-center gap-2 mb-6">
             <Logo className="w-10 h-10" />
             <span className="text-2xl font-semibold text-white">
-              Wansni<span className="text-[#FF6B00]">Auto</span>
+              Re<span className="text-[#FF6B00]">deo</span>
             </span>
           </Link>
           {step < 3 && (

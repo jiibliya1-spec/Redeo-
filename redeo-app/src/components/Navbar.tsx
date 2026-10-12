@@ -51,7 +51,7 @@ export function Navbar() {
           <Link to="/" className="flex items-center gap-2.5 group">
             <Logo className="w-9 h-9" />
             <span className="text-xl font-semibold text-white tracking-tight">
-              Wansni<span className="text-[#FF6B00]">Auto</span>
+              Re<span className="text-[#FF6B00]">deo</span>
             </span>
           </Link>
 

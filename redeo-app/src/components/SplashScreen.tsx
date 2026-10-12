@@ -37,7 +37,7 @@ function Car() {
       <rect x="8" y="58" width="184" height="12" rx="6" fill="rgba(0,0,0,0.16)" />
       {/* door line + brand mark */}
       <path d="M106 42 L106 62" stroke="rgba(0,0,0,0.25)" strokeWidth="1.5" />
-      <path d="M126 50 L131 60 L135 53 L139 60 L144 50" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M129 62 V49 H135 A4.5 4.5 0 0 1 135 58 H129 M134 58 L140 63" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
       {/* lights */}
       <rect x="9" y="48" width="9" height="6" rx="3" fill="#FFF2C4" />
       <rect x="183" y="48" width="8" height="6" rx="3" fill="#FF3B30" />
@@ -137,7 +137,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
                 lineHeight: 1,
               }}
             >
-              Wansni<span style={{ color: '#FF6B00' }}>Auto</span>
+              Re<span style={{ color: '#FF6B00' }}>deo</span>
             </div>
           </motion.div>
 

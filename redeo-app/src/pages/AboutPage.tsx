@@ -26,7 +26,7 @@ export default function AboutPage() {
 
         {/* Hero Image */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="relative rounded-2xl overflow-hidden mb-8">
-          <img src="/images/about-hero.jpg" alt="WansniAuto" className="w-full h-56 sm:h-72 object-cover" />
+          <img src="/images/about-hero.jpg" alt="Redeo" className="w-full h-56 sm:h-72 object-cover" />
           <div className="absolute inset-0 bg-gradient-to-t from-[#0F1115] via-transparent to-transparent" />
         </motion.div>
 

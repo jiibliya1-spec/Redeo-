@@ -65,7 +65,7 @@ function crossChecks(docs: Record<string, any>, profileName: string): Check[] {
   return out;
 }
 
-const SUMMARY_SYSTEM = `You write a short case summary in Arabic (Modern Standard Arabic, simple wording; Moroccan terms are fine) for the administrator of WansniAuto, a Moroccan carpooling app. Input is structured pre-screening data about one user's verification documents. You are NOT deciding: a human admin decides.
+const SUMMARY_SYSTEM = `You write a short case summary in Arabic (Modern Standard Arabic, simple wording; Moroccan terms are fine) for the administrator of Redeo, a Moroccan carpooling app. Input is structured pre-screening data about one user's verification documents. You are NOT deciding: a human admin decides.
 Rules:
 - Only use the facts given. Never invent details. Never state a document IS forged; say what looks suspicious and where.
 - "clear": what looks fine. "missing": required documents not uploaded or not scanned, or missing information. "doubts": every suspicious signal, mismatch or failed cross-check, each naming the document and the place on it.

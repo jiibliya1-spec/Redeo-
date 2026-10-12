@@ -336,7 +336,7 @@ export function LandingPage() {
             <div className="col-span-2 md:col-span-1">
               <Link to="/" className="flex items-center gap-2 mb-3">
                 <Logo className="w-8 h-8" />
-                <span className="text-lg font-semibold text-white">Wansni<span className="text-[#FF6B00]">Auto</span></span>
+                <span className="text-lg font-semibold text-white">Re<span className="text-[#FF6B00]">deo</span></span>
               </Link>
               <p className="text-sm text-[#A0A0A0]">&ldquo;{t('footer.slogan')}&rdquo;</p>
               <p className="text-xs text-[#A0A0A0]/60 mt-2">{t('footer.tagline_desc')}</p>

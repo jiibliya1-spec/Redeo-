@@ -53,7 +53,7 @@ export function LoginPage() {
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex items-center gap-2 mb-6">
             <Logo className="w-10 h-10" />
-            <span className="text-2xl font-semibold text-white">Wansni<span className="text-[#FF6B00]">Auto</span></span>
+            <span className="text-2xl font-semibold text-white">Re<span className="text-[#FF6B00]">deo</span></span>
           </Link>
           <h1 className="text-2xl font-bold text-white">{t('auth.welcome_back')}</h1>
           <p className="text-sm text-[#A0A0A0] mt-1">{t('auth.login')}</p>

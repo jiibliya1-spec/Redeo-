@@ -122,7 +122,7 @@ export function TripDetailsPage() {
   const handleShare = () => {
     if (navigator.share) {
       navigator.share({
-        title: `WansniAuto: ${trip?.from_location} → ${trip?.to_location}`,
+        title: `Redeo: ${trip?.from_location} → ${trip?.to_location}`,
         text: `Trip from ${trip?.from_location} to ${trip?.to_location} on ${trip?.departure_date}`,
         url: window.location.href,
       });

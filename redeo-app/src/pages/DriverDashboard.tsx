@@ -535,17 +535,51 @@ export function DriverDashboard() {
     setIsPublishing(false);
   };
 
-  const handleAddVehicle = (v: Vehicle) => {
-    const updated = [...vehicles, v];
+  /* Vehicles live in the database (survive logout / other devices); localStorage is only a fast cache and a one-time migration source */
+  const vehKey = `wansniauto_vehicles_${user?.id || 'guest'}`;
+  const cacheVehicles = (list: Vehicle[]) => { try { localStorage.setItem(vehKey, JSON.stringify(list)); } catch { /* ignore */ } };
+  useEffect(() => {
+    if (!user?.id) return;
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase.from('driver_vehicles').select('*').eq('user_id', user.id).order('created_at');
+      if (error || cancelled) return;
+      let list: Vehicle[] = (data || []) as Vehicle[];
+      if (!list.length) {
+        // one-time migration of vehicles saved on this device before
+        let local: Vehicle[] = [];
+        try { local = JSON.parse(localStorage.getItem(vehKey) || '[]'); } catch { /* ignore */ }
+        if (local.length) {
+          const rows = local.map(v => ({ make: v.make, model: v.model, year: v.year, color: v.color, plate: v.plate, seats: v.seats || 4 }));
+          const ins = await supabase.from('driver_vehicles').insert(rows).select();
+          if (!ins.error && ins.data) list = ins.data as Vehicle[];
+        }
+      }
+      if (cancelled) return;
+      setVehicles(list);
+      cacheVehicles(list);
+    })();
+    return () => { cancelled = true; };
+  }, [user?.id]);
+
+  const handleAddVehicle = async (v: Vehicle) => {
+    const { data, error } = await supabase.from('driver_vehicles')
+      .insert({ make: v.make, model: v.model, year: v.year, color: v.color, plate: v.plate, seats: v.seats || 4 })
+      .select().single();
+    if (error || !data) { toast.error(t('err.generic')); return; }
+    const updated = [...vehicles, data as Vehicle];
     setVehicles(updated);
-    localStorage.setItem(`wansniauto_vehicles_${user?.id || 'guest'}`, JSON.stringify(updated));
+    cacheVehicles(updated);
     toast.success(t('ui.vehicle_added_418e'));
   };
 
-  const handleRemoveVehicle = (id: string) => {
+  const handleRemoveVehicle = async (id: string) => {
+    const prev = vehicles;
     const updated = vehicles.filter(v => v.id !== id);
     setVehicles(updated);
-    localStorage.setItem(`wansniauto_vehicles_${user?.id || 'guest'}`, JSON.stringify(updated));
+    cacheVehicles(updated);
+    const { error } = await supabase.from('driver_vehicles').delete().eq('id', id);
+    if (error) { setVehicles(prev); cacheVehicles(prev); toast.error(t('err.generic')); }
   };
 
   const upcomingTrips = trips.filter(t => !hasDeparted(t));

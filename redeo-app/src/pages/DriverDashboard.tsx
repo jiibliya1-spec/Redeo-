@@ -75,13 +75,15 @@ interface Vehicle {
   seats: number;
 }
 
-function VehicleManager({ vehicles, onAdd, onRemove }: {
+function VehicleManager({ vehicles, onAdd, onRemove, openAdd }: {
+  openAdd?: number;
   vehicles: Vehicle[];
   onAdd: (v: Vehicle) => void;
   onRemove: (id: string) => void;
 }) {
   const { t } = useI18n();
   const [showAdd, setShowAdd] = useState(false);
+  useEffect(() => { if (openAdd) setShowAdd(true); }, [openAdd]);
   const [make, setMake] = useState('');
   const [model, setModel] = useState('');
   const [year, setYear] = useState('');
@@ -174,6 +176,7 @@ export function DriverDashboard() {
 
   // Publish form
   const [showPublish, setShowPublish] = useState(false);
+  const [openAddVehicle, setOpenAddVehicle] = useState(0);
   const [showVerifyAlert, setShowVerifyAlert] = useState(false);
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
@@ -635,7 +638,7 @@ export function DriverDashboard() {
                   </div>
                   <div>
                     <Label className="text-sm text-[#A0A0A0] mb-1.5 block">{t('driver.duration')}</Label>
-                    <Input type="text" value={duration} onChange={e => setDuration(e.target.value)} placeholder={t('publish.duration_ph')} className="bg-[#0F1115] border-white/10 text-white rounded-xl" />
+                    <Input type="text" dir="ltr" value={duration} onChange={e => setDuration(e.target.value)} placeholder={t('publish.duration_ph')} className="bg-[#0F1115] border-white/10 text-white rounded-xl" />
                   </div>
                 </div>
 
@@ -653,10 +656,11 @@ export function DriverDashboard() {
                       ))}
                     </div>
                   ) : (
-                    <div className="p-4 bg-yellow-500/5 border border-yellow-500/20 rounded-xl flex items-center gap-2">
-                      <AlertCircle className="w-4 h-4 text-yellow-400" />
-                      <span className="text-xs text-yellow-400">{t('driver.vehicle_info')}</span>
-                    </div>
+                    <button type="button" onClick={() => { setShowPublish(false); setActiveTab('vehicles'); setOpenAddVehicle(n => n + 1); }}
+                      className="w-full p-4 bg-yellow-500/5 border border-yellow-500/30 rounded-xl flex items-center gap-2 text-start">
+                      <AlertCircle className="w-4 h-4 text-yellow-400 shrink-0" />
+                      <span className="text-xs text-yellow-400">{t('driver.add_vehicle_first')}</span>
+                    </button>
                   )}
                 </div>
 
@@ -919,7 +923,7 @@ export function DriverDashboard() {
           {/* Vehicles */}
           {activeTab === 'vehicles' && (
             <div className="p-5">
-              <VehicleManager vehicles={vehicles} onAdd={handleAddVehicle} onRemove={handleRemoveVehicle} />
+              <VehicleManager openAdd={openAddVehicle} vehicles={vehicles} onAdd={handleAddVehicle} onRemove={handleRemoveVehicle} />
             </div>
           )}
         </div>

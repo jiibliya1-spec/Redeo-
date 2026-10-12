@@ -199,6 +199,7 @@ export const EXTRA: Record<Lang, Record<string, string>> = {
     'admin.loading': 'Loading admin panel...',
     'footer.slogan': 'Travel easy, share the road',
     'common.open': 'Open',
+    'driver.add_vehicle_first': 'Add your vehicle first to publish a trip — tap here',
   },
   fr: {
     'rating.none': 'Pas encore noté',
@@ -397,6 +398,7 @@ export const EXTRA: Record<Lang, Record<string, string>> = {
     'admin.loading': 'Chargement du panneau admin...',
     'footer.slogan': 'Voyagez facilement, partagez la route',
     'common.open': 'Ouvrir',
+    'driver.add_vehicle_first': 'Ajoutez d’abord votre véhicule pour publier un trajet — appuyez ici',
   },
   ar: {
     'rating.none': 'مازال ماعندو حتى تقييم',
@@ -595,5 +597,6 @@ export const EXTRA: Record<Lang, Record<string, string>> = {
     'admin.loading': 'جاري تحميل لوحة الإدارة...',
     'footer.slogan': 'سافر بسهولة وشارك الطريق',
     'common.open': 'فتح',
+    'driver.add_vehicle_first': 'زيد السيارة ديالك أولا باش تنشر رحلة — ضغط هنا',
   },
 };

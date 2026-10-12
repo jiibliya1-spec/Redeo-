@@ -41,13 +41,12 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from '@/lib/supabase';
   function getSuggestedPrice(from: string, to: string): { km: number; min: number; suggested: number; max: number } | null {
     const km = CITY_DISTANCES[from]?.[to] ?? CITY_DISTANCES[to]?.[from];
     if (!km) return null;
-    // Fuel: ~8L/100km at 11 MAD/L = 0.88 MAD/km total fuel cost
-    // Shared between avg 3 passengers → 0.29 MAD/km per seat
-    // Add amortization ~0.10 MAD/km per seat
-    // Min = pure fuel/amort cost, Suggested = fair price, Max = still ~40% below CTM bus
-    const min       = Math.max(20, Math.round((km * 0.39) / 5) * 5);
-    const suggested = Math.max(30, Math.round((km * 0.50) / 5) * 5);
-    const max       = Math.max(40, Math.round((km * 0.65) / 5) * 5);
+    // Moroccan market reference: bus/train between big cities ≈ 0.40-0.45 MAD/km.
+    // Carpooling must stay clearly under that: cost-sharing only, never a profit trip.
+    const round5 = (v: number) => Math.round(v / 5) * 5;
+    const min       = Math.max(15, round5(km * 0.25));
+    const suggested = Math.max(20, round5(km * 0.32));
+    const max       = Math.max(25, round5(km * 0.40));
     return { km, min, suggested, max };
   }
   

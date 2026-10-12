@@ -11,6 +11,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
   import { toast } from 'sonner';
   import { CameraCapture } from '@/components/CameraCapture';
   import { analyzeFile, getQualityLabel, computeAutoVerifyScore, type FrameAnalysis } from '@/services/kycService';
+  import { compressImage, scanDocument, submitVerification, AI_MESSAGES, type AiVerdict } from '@/services/aiVerify';
 
   /* ─── Single bucket 'documents' with subfolders per doc type ─── */
   const BUCKET = 'documents';
@@ -30,6 +31,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
     rejectionReason?: string;
     errorMsg?: string;
     analysis?: FrameAnalysis;
+    ai?: { state: AiVerdict | 'scanning'; message?: string; issues?: string[] };
   }
 
   const ALL_DOCS: DocStep[] = [
@@ -119,6 +121,9 @@ import { useState, useEffect, useCallback, useRef } from 'react';
               url,
               filePath: d.storage_path || undefined,
               rejectionReason: d.rejection_reason || d.admin_notes || undefined,
+              ai: d.ai_verdict && d.ai_storage_path && d.ai_storage_path === d.storage_path
+                ? { state: d.ai_verdict as AiVerdict, message: (AI_MESSAGES[lang] || AI_MESSAGES.en)[d.ai_verdict as AiVerdict], issues: Array.isArray(d.ai_issues) ? d.ai_issues : [] }
+                : s.ai && s.ai.state === 'scanning' ? s.ai : undefined,
             };
           })
         );
@@ -152,7 +157,8 @@ import { useState, useEffect, useCallback, useRef } from 'react';
     }, [user?.id]);
 
     /* ─── Upload (handles both camera + file input) ─── */
-    const handleUpload = async (docId: string, file: File, analysis?: FrameAnalysis) => {
+    const handleUpload = async (docId: string, inputFile: File, analysis?: FrameAnalysis) => {
+      let file = inputFile;
       if (uploadingRef.current.has(docId)) return;
       uploadingRef.current.add(docId);
 
@@ -168,6 +174,9 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 
       try {
         const uid = user.id;
+        /* Downscale once: the exact same bytes are stored and scanned */
+        const prepared = await compressImage(file).catch(() => null);
+        if (prepared) file = prepared.file;
         const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
         const fileName = `${docId}_${Date.now()}.${ext}`;
         const filePath = `${uid}/${docId}/${fileName}`;
@@ -223,6 +232,16 @@ import { useState, useEffect, useCallback, useRef } from 'react';
         );
         toast.success(lang === 'ar' ? '✅ تم تحميل الوثيقة بنجاح!' : lang === 'fr' ? '✅ Document téléchargé!' : '✅ Document uploaded successfully!');
 
+        /* Smart AI check (server side). Never blocks the user if the service is down. */
+        if (prepared) {
+          setSteps((prev) => prev.map((s) => s.id === docId ? { ...s, ai: { state: 'scanning' as const } } : s));
+          const scan = await scanDocument(docId, filePath, prepared.b64, prepared.mediaType, lang);
+          setSteps((prev) => prev.map((s) => s.id === docId
+            ? { ...s, ai: scan ? { state: scan.verdict, message: scan.message || (AI_MESSAGES[lang] || AI_MESSAGES.en)[scan.verdict], issues: scan.issues } : undefined }
+            : s));
+          if (scan?.verdict === 'retake') toast.error(scan.message || (AI_MESSAGES[lang] || AI_MESSAGES.en).retake, { duration: 6000 });
+        }
+
         /* Check auto-verify eligibility */
         const allUploaded = Object.values(allAnalyses.current);
         if (allUploaded.length >= 3) {
@@ -259,6 +278,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
     };
 
     /* ─── Submit for Review ─── */
+    const REQUIRED_PASSENGER = ['cin_front', 'cin_back', 'selfie'];
     const handleSubmit = async () => {
       if (!user?.id) return;
       const uploadedDocs = steps.filter((s) => s.status === 'uploaded');
@@ -266,12 +286,40 @@ import { useState, useEffect, useCallback, useRef } from 'react';
         toast.error(lang === 'ar' ? 'يرجى رفع وثيقة واحدة على الأقل' : 'Please upload at least one document');
         return;
       }
+      if (steps.some((s) => s.ai?.state === 'scanning')) {
+        toast.message(AI_MESSAGES[lang]?.scanning || AI_MESSAGES.en.scanning);
+        return;
+      }
+      const toRetake = steps.filter((s) => s.status === 'uploaded' && s.ai?.state === 'retake');
+      if (toRetake.length) {
+        toast.error((lang === 'ar' ? 'عاود صور: ' : lang === 'fr' ? 'À reprendre : ' : 'Please retake: ') + toRetake.map(getLabel).join(', '));
+        return;
+      }
+      const required = user.role === 'driver' ? ALL_DOCS.map((d) => d.id) : REQUIRED_PASSENGER;
+      const have = new Set(steps.filter((s) => ['uploaded', 'pending', 'approved'].includes(s.status)).map((s) => s.id));
+      const missing = steps.filter((s) => required.includes(s.id) && !have.has(s.id));
+      if (missing.length && !window.confirm(
+        (lang === 'ar' ? 'مازال ناقصين هاد الوثائق:\n' : lang === 'fr' ? 'Documents manquants :\n' : 'Missing documents:\n')
+        + missing.map(getLabel).join('\n')
+        + (lang === 'ar' ? '\n\nواش بغيتي تبعت بلا بيهم؟' : lang === 'fr' ? '\n\nEnvoyer quand même ?' : '\n\nSubmit anyway?')
+      )) return;
+
       setSubmitting(true);
       try {
-        for (const doc of uploadedDocs) {
-          await supabase.from('verifications').update({ status: 'pending', updated_at: new Date().toISOString() }).eq('user_id', user.id).eq('doc_type', doc.id);
+        const result = await submitVerification();
+        if (!result.ok && result.error === 'needs_retake') {
+          toast.error(lang === 'ar' ? 'بعض الوثائق خاصها تتصور من جديد' : 'Some documents need to be retaken');
+          await loadDocuments();
+          setSubmitting(false);
+          return;
         }
-        await supabase.from('profiles').update({ verification_status: 'submitted', is_verified: false }).eq('id', user.id);
+        if (!result.ok) {
+          /* AI/server unavailable: fall back to the direct submission so users are never blocked */
+          for (const doc of uploadedDocs) {
+            await supabase.from('verifications').update({ status: 'pending', updated_at: new Date().toISOString() }).eq('user_id', user.id).eq('doc_type', doc.id);
+          }
+          await supabase.from('profiles').update({ verification_status: 'submitted', is_verified: false }).eq('id', user.id);
+        }
         setSteps((prev) => prev.map((s) => s.status === 'uploaded' ? { ...s, status: 'pending' as const } : s));
         const currentUser = useStore.getState().user;
         if (currentUser) setUser({ ...currentUser, verification_status: 'submitted', is_verified: false });
@@ -297,6 +345,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 
     const uploadedCount = steps.filter((s) => ['uploaded', 'pending', 'approved'].includes(s.status)).length;
     const hasUploadedDocs = steps.some((s) => s.status === 'uploaded');
+    const isScanning = steps.some((s) => s.ai?.state === 'scanning');
     const isVerified  = user?.is_verified === true || user?.verification_status === 'verified';
     const isSubmitted = user?.verification_status === 'submitted' || steps.some((s) => s.status === 'pending');
     const isRejected  = user?.verification_status === 'rejected' && !steps.some((s) => s.status === 'pending');
@@ -432,7 +481,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
           <div className="space-y-3">
             {steps.map((step, i) => {
               const st = getStatus(step.status);
-              const canUpload = step.status === 'not_uploaded' || step.status === 'rejected';
+              const canUpload = step.status === 'not_uploaded' || step.status === 'rejected' || (step.status === 'uploaded' && step.ai?.state === 'retake');
               const canDelete = step.status === 'uploaded';
               const qualLabel = step.analysis ? getQualityLabel(step.analysis.overallScore, lang) : null;
 
@@ -467,6 +516,23 @@ import { useState, useEffect, useCallback, useRef } from 'react';
                               {lang === 'ar' ? 'جودة: ' : 'Quality: '}{qualLabel.label}
                             </span>
                             <span className="text-xs text-[#A0A0A0]">({step.analysis!.overallScore}/100)</span>
+                          </div>
+                        )}
+
+                        {/* Smart AI check result */}
+                        {step.ai && (
+                          <div className={`mt-1.5 text-xs px-2 py-1.5 rounded-lg flex items-start gap-1.5 ${
+                            step.ai.state === 'accept' ? 'bg-green-500/10 text-green-400'
+                            : step.ai.state === 'retake' ? 'bg-red-500/10 text-red-300'
+                            : step.ai.state === 'review' ? 'bg-blue-500/10 text-blue-300'
+                            : 'bg-white/5 text-[#A0A0A0]'}`}>
+                            {step.ai.state === 'scanning'
+                              ? <div className="w-3.5 h-3.5 mt-0.5 border-2 border-[#FF6B00] border-t-transparent rounded-full animate-spin shrink-0" />
+                              : <Brain className="w-3.5 h-3.5 mt-0.5 shrink-0" />}
+                            <span>
+                              {step.ai.state === 'scanning' ? (AI_MESSAGES[lang] || AI_MESSAGES.en).scanning : (step.ai.message || '')}
+                              {step.ai.state === 'retake' && step.ai.issues && step.ai.issues.length > 0 && ` (${step.ai.issues.join('، ')})`}
+                            </span>
                           </div>
                         )}
 
@@ -538,9 +604,9 @@ import { useState, useEffect, useCallback, useRef } from 'react';
           {/* ── Submit Button ── */}
           {!isVerified && !isSubmitted && (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-6">
-              <button onClick={handleSubmit} disabled={!hasUploadedDocs || submitting}
+              <button onClick={handleSubmit} disabled={!hasUploadedDocs || submitting || isScanning}
                 className={`w-full py-3.5 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-2 ${
-                  hasUploadedDocs && !submitting
+                  hasUploadedDocs && !submitting && !isScanning
                     ? 'bg-[#FF6B00] hover:bg-[#E56000] text-white shadow-lg shadow-[#FF6B00]/20'
                     : 'bg-white/5 text-white/30 cursor-not-allowed'}`}>
                 {submitting
@@ -552,6 +618,13 @@ import { useState, useEffect, useCallback, useRef } from 'react';
                   ? (lang === 'ar' ? 'ارفع وثيقة واحدة على الأقل' : 'Upload at least one document')
                   : (lang === 'ar' ? 'إرسال للمراجعة' : 'Submit for Review')}
               </button>
+              <p className="text-[11px] text-[#A0A0A0]/70 text-center mt-3 leading-relaxed">
+                {lang === 'ar'
+                  ? '🔒 كيتم فحص الوثائق بالذكاء الاصطناعي قبل المراجعة اليدوية، وما كيتم استعمالها لأي غرض آخر.'
+                  : lang === 'fr'
+                  ? "🔒 Vos documents sont analysés par une IA avant la revue manuelle et ne servent à aucun autre usage."
+                  : '🔒 Your documents are checked by AI before the manual review and are not used for anything else.'}
+              </p>
               {hasUploadedDocs && (
                 <p className="text-xs text-[#A0A0A0] text-center mt-2">
                   {uploadedCount} {lang === 'ar' ? 'وثائق جاهزة للإرسال' : 'document(s) ready to submit'}

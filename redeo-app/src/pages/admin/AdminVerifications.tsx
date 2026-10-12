@@ -132,6 +132,8 @@ export function AdminVerifications() {
   const [processing, setProcessing] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [showRejectPanel, setShowRejectPanel] = useState(false);
+  const [aiSummary, setAiSummary] = useState<any | null>(null);
+  const [aiReports, setAiReports] = useState<Record<string, any>>({});
   const usersMapRef = useRef<Map<string, any>>(new Map());
 
   const getHeaders = useCallback(async () => {
@@ -349,6 +351,31 @@ export function AdminVerifications() {
     return matchStatus && matchSearch;
   });
 
+  /* AI pre-screening data for the opened user (admin-only tables) */
+  useEffect(() => {
+    setAiSummary(null);
+    setAiReports({});
+    if (!selectedUserId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const headers = await getHeaders();
+        const [sRes, rRes] = await Promise.all([
+          fetch(`${SUPABASE_URL}/rest/v1/verification_summaries?user_id=eq.${selectedUserId}&select=*`, { headers }),
+          fetch(`${SUPABASE_URL}/rest/v1/verification_doc_reports?user_id=eq.${selectedUserId}&select=doc_type,storage_path,report`, { headers }),
+        ]);
+        if (cancelled) return;
+        if (sRes.ok) setAiSummary(((await sRes.json()) as any[])[0] || null);
+        if (rRes.ok) {
+          const map: Record<string, any> = {};
+          ((await rRes.json()) as any[]).forEach((r) => { map[r.doc_type] = r; });
+          setAiReports(map);
+        }
+      } catch { /* optional data */ }
+    })();
+    return () => { cancelled = true; };
+  }, [selectedUserId, getHeaders]);
+
   const selectedBundle = selectedUserId ? allBundles.find((b) => b.user_id === selectedUserId) ?? null : null;
 
   const counts = {
@@ -525,6 +552,31 @@ export function AdminVerifications() {
                 </button>
               </div>
 
+              {/* AI case summary (written for the admin) */}
+              {aiSummary && (
+                <div className="px-5 pt-4">
+                  <div className={`rounded-xl p-4 border ${
+                    aiSummary.recommendation === 'review_carefully' ? 'bg-red-500/5 border-red-500/25'
+                    : aiSummary.recommendation === 'needs_more_info' ? 'bg-amber-500/5 border-amber-500/25'
+                    : 'bg-green-500/5 border-green-500/25'}`}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Brain className="w-4 h-4 text-[#FF6B00]" />
+                      <span className="text-xs font-semibold text-white">AI Case Summary</span>
+                      <span className={`ml-auto text-[10px] px-2 py-0.5 rounded-full ${
+                        aiSummary.recommendation === 'review_carefully' ? 'text-red-400 bg-red-500/10'
+                        : aiSummary.recommendation === 'needs_more_info' ? 'text-amber-400 bg-amber-500/10'
+                        : 'text-green-400 bg-green-500/10'}`}>
+                        {aiSummary.recommendation === 'review_carefully' ? 'راجع بعناية'
+                          : aiSummary.recommendation === 'needs_more_info' ? 'ناقص معلومات'
+                          : 'يبدو سليما'}
+                      </span>
+                    </div>
+                    <p dir="rtl" className="text-xs text-[#D0D0D0] whitespace-pre-line leading-relaxed text-right">{aiSummary.summary_text}</p>
+                    <p className="text-[10px] text-[#A0A0A0]/70 mt-2">AI pre-screening only — the final decision is yours.</p>
+                  </div>
+                </div>
+              )}
+
               {/* KYC AI Score Panel */}
                  {selectedBundle.avgQualityScore > 0 && (
                    <div className="px-5 pt-4">
@@ -615,6 +667,24 @@ export function AdminVerifications() {
                           {doc.rejection_reason && (
                             <p className="text-[10px] text-red-400 mt-1 line-clamp-2">{doc.rejection_reason}</p>
                           )}
+                          {aiReports[doc.doc_type]?.report && (() => {
+                            const rep = aiReports[doc.doc_type].report;
+                            const color = rep.verdict === 'accept' ? 'text-green-400' : rep.verdict === 'retake' ? 'text-red-400' : 'text-amber-400';
+                            const sigs: any[] = rep.authenticity_signals || [];
+                            return (
+                              <div dir="rtl" className="mt-2 pt-2 border-t border-white/5 space-y-1 text-right">
+                                <p className={`text-[10px] font-semibold ${color}`}>
+                                  🤖 {rep.verdict === 'accept' ? 'سليمة' : rep.verdict === 'retake' ? 'غير صالحة' : 'تحتاج مراجعة'} · خطر التزوير: {rep.authenticity_risk === 'high' ? 'مرتفع' : rep.authenticity_risk === 'medium' ? 'متوسط' : 'منخفض'}
+                                </p>
+                                {rep.admin_notes && <p className="text-[10px] text-[#D0D0D0] leading-snug">{rep.admin_notes}</p>}
+                                {sigs.map((sg, i) => (
+                                  <p key={i} className={`text-[10px] leading-snug ${sg.severity === 'high' ? 'text-red-400' : sg.severity === 'medium' ? 'text-amber-400' : 'text-[#A0A0A0]'}`}>
+                                    ⚠ {sg.signal}{sg.location ? ` (${sg.location})` : ''}
+                                  </p>
+                                ))}
+                              </div>
+                            );
+                          })()}
                         </div>
                       </div>
                     );

@@ -14,10 +14,8 @@ import { CancelBookingSheet } from '@/components/CancelBookingSheet';
 import { cancelBooking } from '@/services/bookingService';
 import { Button } from '@/components/ui/button';
 import type { Trip, Booking } from '@/types';
-import {
-  Car, Clock, Star, Wallet, Shield, Loader2,
-  Calendar, Search, Heart, User, MessageCircle, ShieldCheck, LifeBuoy,
-} from 'lucide-react';
+import { Clock, Star, Wallet, Shield, Loader2, Calendar, Search, Heart, User, MessageCircle, ShieldCheck, LifeBuoy } from 'lucide-react';
+import { Car } from '@/components/icons/CarIcon';
 
 interface BookingWithTrip extends Booking {
   trip?: Trip;

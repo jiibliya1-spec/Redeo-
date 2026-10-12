@@ -1,7 +1,8 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useStore } from '@/store/useStore';
 import { useI18n } from '@/lib/i18n';
-import { Search, Plus, Car, MessageCircle, User, LayoutDashboard } from 'lucide-react';
+import { Search, Plus, MessageCircle, User, LayoutDashboard } from 'lucide-react';
+import { Car } from '@/components/icons/CarIcon';
 
 export function BottomNav() {
   const { isAuthenticated, unreadCount, mode } = useStore();

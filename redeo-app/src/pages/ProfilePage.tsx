@@ -13,7 +13,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { Camera, Edit, Check, Shield, Star, Car, ChevronRight, Loader2, LogOut, Upload, Globe, Users, RefreshCw, Settings, Clock } from 'lucide-react';
+import { Camera, Edit, Check, Shield, Star, ChevronRight, Loader2, LogOut, Upload, Globe, Users, RefreshCw, Settings, Clock } from 'lucide-react';
+import { Car } from '@/components/icons/CarIcon';
 
 
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '@/lib/supabase';

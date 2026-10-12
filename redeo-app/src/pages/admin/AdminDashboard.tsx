@@ -5,9 +5,8 @@ import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { supabase } from '@/lib/supabase';
-import {
-  Users, ShieldCheck, Car, MessageSquare, UserCheck, UserX, Clock, ChevronRight,
-} from 'lucide-react';
+import { Users, ShieldCheck, MessageSquare, UserCheck, UserX, Clock, ChevronRight } from 'lucide-react';
+import { Car } from '@/components/icons/CarIcon';
 
 
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '@/lib/supabase';

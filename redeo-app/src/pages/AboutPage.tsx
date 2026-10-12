@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Car, Shield, CreditCard, Leaf, Heart } from 'lucide-react';
+import { ArrowLeft, Shield, CreditCard, Leaf, Heart } from 'lucide-react';
+import { Car } from '@/components/icons/CarIcon';
 import { useI18n } from '@/lib/i18n';
 
 export default function AboutPage() {

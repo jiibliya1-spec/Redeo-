@@ -15,27 +15,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import type { Trip } from '@/types';
-import {
-  Car,
-  Plus,
-  DollarSign,
-  Star,
-  Users,
-  X,
-  Loader2,
-  MapPin,
-  Calendar,
-  Clock,
-  AlertCircle,
-  ChevronRight,
-  TrendingUp,
-  CarFront,
-  Shield,
-  Check,
-  ShieldCheck,
-  Inbox,
-  Banknote,
-} from 'lucide-react';
+import { Plus, DollarSign, Star, Users, X, Loader2, MapPin, Calendar, Clock, AlertCircle, ChevronRight, TrendingUp, CarFront, Shield, Check, ShieldCheck, Inbox, Banknote } from 'lucide-react';
+import { Car } from '@/components/icons/CarIcon';
 
 
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '@/lib/supabase';

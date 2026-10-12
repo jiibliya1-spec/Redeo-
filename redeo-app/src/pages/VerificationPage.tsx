@@ -2,10 +2,8 @@ import { PassengerVerification } from '@/components/PassengerVerification';
 import { useState, useEffect, useCallback, useRef } from 'react';
   import { Link } from 'react-router-dom';
   import { motion, AnimatePresence } from 'framer-motion';
-  import {
-    ArrowLeft, Upload, CheckCircle, Clock, XCircle,
-    User, CreditCard, Car, Shield, Eye, Trash2, Send, Camera, Sparkles, Brain
-  , TriangleAlert } from 'lucide-react';
+  import { ArrowLeft, Upload, CheckCircle, Clock, XCircle, User, CreditCard, Shield, Eye, Trash2, Send, Camera, Sparkles, Brain, TriangleAlert } from 'lucide-react';
+import { Car } from '@/components/icons/CarIcon';
   import { useStore } from '@/store/useStore';
   import { useI18n } from '@/lib/i18n';
   import { supabase } from '@/lib/supabase';

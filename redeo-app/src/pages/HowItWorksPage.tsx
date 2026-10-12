@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Search, Calendar, CreditCard, Car, Star } from 'lucide-react';
+import { ArrowLeft, Search, Calendar, CreditCard, Star } from 'lucide-react';
+import { Car } from '@/components/icons/CarIcon';
 import { useI18n } from '@/lib/i18n';
 
 export default function HowItWorksPage() {

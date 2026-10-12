@@ -8,11 +8,8 @@ import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
-import {
-  ShieldCheck, Check, X, Search, CreditCard, Camera, FileText,
-  Shield, Clock, UserCheck, UserX, Eye, Loader2, Car,
-  ChevronRight, ZoomIn, Brain, Sparkles, AlertTriangle,
-  Bot, TriangleAlert } from 'lucide-react';
+import { ShieldCheck, Check, X, Search, CreditCard, Camera, FileText, Shield, Clock, UserCheck, UserX, Eye, Loader2, ChevronRight, ZoomIn, Brain, Sparkles, AlertTriangle, Bot, TriangleAlert } from 'lucide-react';
+import { Car } from '@/components/icons/CarIcon';
 
 
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '@/lib/supabase';

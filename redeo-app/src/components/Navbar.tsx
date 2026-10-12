@@ -4,10 +4,8 @@ import { resolveAvatar } from '@/lib/utils';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useStore } from '@/store/useStore';
 import { useI18n } from '@/lib/i18n';
-import {
-  Car, Menu, X, Bell, MessageCircle, User, LogOut,
-  Shield, ChevronDown, Search, Globe
-, Check } from 'lucide-react';
+import { Menu, X, Bell, MessageCircle, User, LogOut, Shield, ChevronDown, Search, Globe, Check } from 'lucide-react';
+import { Car } from '@/components/icons/CarIcon';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,

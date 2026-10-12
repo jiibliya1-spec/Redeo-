@@ -5,19 +5,8 @@ import { resolveAvatar } from '@/lib/utils';
 import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useStore } from '@/store/useStore';
-import {
-  LayoutDashboard,
-  ShieldCheck,
-  Users,
-  Settings,
-  LogOut,
-  Menu,
-  ChevronRight,
-  Car,
-  MessageSquare,
-  Bell,
-  Ticket,
-} from 'lucide-react';
+import { LayoutDashboard, ShieldCheck, Users, Settings, LogOut, Menu, ChevronRight, MessageSquare, Bell, Ticket } from 'lucide-react';
+import { Car } from '@/components/icons/CarIcon';
 
 const navItems = [
   { path: '/admin', label: 'adm.overview_3b87', icon: LayoutDashboard },

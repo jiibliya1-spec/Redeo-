@@ -7,10 +7,8 @@ import { useStore } from '@/store/useStore';
 import { useI18n } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
 import { MOROCCAN_CITIES } from '@/lib/data';
-import {
-  ArrowRight, Shield, MessageCircle, CreditCard, MapPin,
-  Leaf, Headphones, Car, PlusCircle
-} from 'lucide-react';
+import { ArrowRight, Shield, MessageCircle, CreditCard, MapPin, Leaf, Headphones, PlusCircle } from 'lucide-react';
+import { Car } from '@/components/icons/CarIcon';
 
 const FEATURES = [
   { icon: Shield, titleKey: 'landing.feature_drivers', descKey: 'landing.feature_drivers_desc' },

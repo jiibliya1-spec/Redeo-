@@ -7,10 +7,8 @@ import { supabase } from '@/lib/supabase';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import {
-  Car, MapPin, Calendar, DollarSign, Users, Loader2, Search,
-  Trash2, Ban, ChevronRight,
-} from 'lucide-react';
+import { MapPin, Calendar, DollarSign, Users, Loader2, Search, Trash2, Ban, ChevronRight } from 'lucide-react';
+import { Car } from '@/components/icons/CarIcon';
 
 
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '@/lib/supabase';

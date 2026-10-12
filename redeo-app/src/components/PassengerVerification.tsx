@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
-import { CheckCircle2, Circle, ShieldCheck, Car } from 'lucide-react';
+import { CheckCircle2, Circle, ShieldCheck } from 'lucide-react';
+import { Car } from '@/components/icons/CarIcon';
 import { useStore } from '@/store/useStore';
 import { useI18n } from '@/lib/i18n';
 import { passengerChecks } from '@/lib/verify';

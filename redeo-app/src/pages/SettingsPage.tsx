@@ -12,12 +12,8 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import type { Review } from '@/types';
-import {
-  ArrowLeft, Star, Users, MessageSquare, Moon, Lock, MapPin, Wallet,
-  CreditCard, RefreshCcw, ThumbsUp, HelpCircle, FileText, Shield,
-  LogOut, Trash2, ChevronRight, Loader2, X, Bell, Mail, Phone,
-  Check, ToggleLeft, ToggleRight, Send, Heart, MessageCircle, Car,
-  CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Star, Users, MessageSquare, Moon, Lock, MapPin, Wallet, CreditCard, RefreshCcw, ThumbsUp, HelpCircle, FileText, Shield, LogOut, Trash2, ChevronRight, Loader2, X, Bell, Mail, Phone, Check, ToggleLeft, ToggleRight, Send, Heart, MessageCircle, CheckCircle2 } from 'lucide-react';
+import { Car } from '@/components/icons/CarIcon';
 
 
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '@/lib/supabase';

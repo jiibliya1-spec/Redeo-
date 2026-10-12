@@ -10,11 +10,8 @@ import { useI18n } from '@/lib/i18n';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import type { Trip, User } from '@/types';
-import {
-  ArrowLeft, Star, ShieldCheck, MessageCircle, Car, Calendar,
-  MapPin, Clock, Users, Loader2, Shield, Award, ThumbsUp,
-
-} from 'lucide-react';
+import { ArrowLeft, Star, ShieldCheck, MessageCircle, Calendar, MapPin, Clock, Users, Loader2, Shield, Award, ThumbsUp } from 'lucide-react';
+import { Car } from '@/components/icons/CarIcon';
 
 
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '@/lib/supabase';

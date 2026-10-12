@@ -9,7 +9,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Car, Eye, EyeOff, Loader2, Mail, RefreshCw, CheckCircle2, Users } from 'lucide-react';
+import { Eye, EyeOff, Loader2, Mail, RefreshCw, CheckCircle2, Users } from 'lucide-react';
+import { Car } from '@/components/icons/CarIcon';
 import { supabase } from '@/lib/supabase';
 
 export function RegisterPage() {

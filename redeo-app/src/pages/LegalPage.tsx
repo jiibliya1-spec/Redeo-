@@ -1,6 +1,7 @@
 import { Link, useSearchParams, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, FileText, Shield, Cookie, Car } from 'lucide-react';
+import { ArrowLeft, FileText, Shield, Cookie } from 'lucide-react';
+import { Car } from '@/components/icons/CarIcon';
 import { useI18n } from '@/lib/i18n';
 
 export default function LegalPage() {

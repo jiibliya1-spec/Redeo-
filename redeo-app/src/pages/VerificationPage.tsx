@@ -10,7 +10,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
   import { supabase } from '@/lib/supabase';
   import { toast } from 'sonner';
   import { CameraCapture } from '@/components/CameraCapture';
-  import { analyzeFile, getQualityLabel, computeAutoVerifyScore, type FrameAnalysis } from '@/services/kycService';
+  import { getQualityLabel, computeAutoVerifyScore, type FrameAnalysis } from '@/services/kycService';
   import { compressImage, scanDocument, submitVerification, AI_MESSAGES, type AiVerdict } from '@/services/aiVerify';
 
   /* ─── Single bucket 'documents' with subfolders per doc type ─── */
@@ -32,6 +32,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
     errorMsg?: string;
     analysis?: FrameAnalysis;
     ai?: { state: AiVerdict | 'scanning'; message?: string; issues?: string[] };
+    busy?: boolean;
   }
 
   const ALL_DOCS: DocStep[] = [
@@ -115,10 +116,11 @@ import { useState, useEffect, useCallback, useRef } from 'react';
             const d = docs.find((doc: any) => doc.doc_type === s.id);
             if (!d) return s;
             const url = (d.storage_path && signedByPath.get(d.storage_path)) || undefined;
+            const keepLocal = !!s.url && s.url.startsWith('blob:') && (s.busy || s.filePath === (d.storage_path || undefined));
             return {
               ...s,
               status: d.status as DocStep['status'],
-              url,
+              url: keepLocal ? s.url : url,
               filePath: d.storage_path || undefined,
               rejectionReason: d.rejection_reason || d.admin_notes || undefined,
               ai: d.ai_verdict && d.ai_storage_path && d.ai_storage_path === d.storage_path
@@ -137,13 +139,24 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 
     useEffect(() => { loadDocuments(); }, [loadDocuments]);
 
+    /* Realtime bursts (upload = several row changes) are coalesced, and never run while a file is being processed */
+    const loadTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const scheduleLoad = useCallback(() => {
+      if (loadTimer.current) clearTimeout(loadTimer.current);
+      loadTimer.current = setTimeout(() => {
+        if (uploadingRef.current.size > 0) { scheduleLoad(); return; }
+        loadDocuments();
+      }, 800);
+    }, [loadDocuments]);
+    useEffect(() => () => { if (loadTimer.current) clearTimeout(loadTimer.current); }, []);
+
     /* ─── Realtime: watch verifications + profile changes ─── */
     useEffect(() => {
       if (!user?.id) return;
       const uid = user.id;
       const ch = supabase
         .channel(`vd-${uid}-${Date.now()}`)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'verifications', filter: `user_id=eq.${uid}` }, () => { loadDocuments(); })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'verifications', filter: `user_id=eq.${uid}` }, () => scheduleLoad())
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${uid}` }, (payload) => {
           const p = payload.new as any;
           if (!p) return;
@@ -156,93 +169,71 @@ import { useState, useEffect, useCallback, useRef } from 'react';
       return () => { supabase.removeChannel(ch); };
     }, [user?.id]);
 
-    /* ─── Upload (handles both camera + file input) ─── */
+    /* ─── Upload (handles both camera + file input) ───
+       The card shows the document immediately (no "uploading" state or toast); compression, upload
+       and the AI check all run in the background. Errors revert the card and tell the user. */
     const handleUpload = async (docId: string, inputFile: File, analysis?: FrameAnalysis) => {
-      let file = inputFile;
       if (uploadingRef.current.has(docId)) return;
+      if (!user?.id) return;
       uploadingRef.current.add(docId);
+      const uid = user.id;
 
-      const { data: sessionData } = await supabase.auth.getSession();
-      if (!sessionData.session?.user) {
-        toast.error(lang === 'ar' ? 'يرجى تسجيل الدخول أولاً' : 'Please login first');
-        uploadingRef.current.delete(docId);
-        return;
-      }
-      if (!user?.id) { uploadingRef.current.delete(docId); return; }
-
-      setSteps((prev) => prev.map((s) => s.id === docId ? { ...s, status: 'uploading' as const, errorMsg: undefined } : s));
+      setSteps((prev) => prev.map((s) => s.id === docId
+        ? { ...s, status: 'uploaded' as const, busy: true, errorMsg: undefined, ai: { state: 'scanning' as const }, url: undefined }
+        : s));
 
       try {
-        const uid = user.id;
-        /* Downscale once: the exact same bytes are stored and scanned */
-        const prepared = await compressImage(file).catch(() => null);
-        if (prepared) file = prepared.file;
-        const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
-        const fileName = `${docId}_${Date.now()}.${ext}`;
-        const filePath = `${uid}/${docId}/${fileName}`;
+        const { data: sessionData } = await supabase.auth.getSession();
+        if (!sessionData.session?.user) throw new Error(lang === 'ar' ? 'يرجى تسجيل الدخول أولاً' : 'Please login first');
 
-        /* If no analysis passed, analyze the file now */
-        let finalAnalysis = analysis;
-        if (!finalAnalysis) {
-          try { finalAnalysis = await analyzeFile(file); } catch { /* ignore */ }
-        }
+        /* Decode once: stored file, AI scan and quality score all come from the same downscaled image */
+        const prepared = await compressImage(inputFile).catch(() => null);
+        const file = prepared?.file || inputFile;
+        const finalAnalysis = analysis || prepared?.analysis;
         if (finalAnalysis) allAnalyses.current[docId] = finalAnalysis;
+        const previewUrl = URL.createObjectURL(file);
+        setSteps((prev) => prev.map((s) => s.id === docId ? { ...s, url: previewUrl, analysis: finalAnalysis } : s));
 
-        /* Upload to Supabase Storage */
+        const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+        const filePath = `${uid}/${docId}/${docId}_${Date.now()}.${ext}`;
+
+        /* Upload to Supabase Storage (private bucket) */
         const { error: uploadError } = await supabase.storage
           .from(BUCKET)
           .upload(filePath, file, { upsert: true, contentType: file.type || 'image/jpeg' });
-
         if (uploadError) throw new Error(`Storage: ${uploadError.message}`);
 
-        // Bucket is private: only the storage path is stored. Admins get short-lived signed URLs.
-        /* Save to DB with KYC quality data */
         const dbPayload: any = {
-          user_id: uid,
-          doc_type: docId,
-          status: 'uploaded',
-          storage_path: filePath,
-          updated_at: new Date().toISOString(),
+          user_id: uid, doc_type: docId, status: 'uploaded', storage_path: filePath, updated_at: new Date().toISOString(),
         };
         if (finalAnalysis) {
-          dbPayload.ai_quality_score   = finalAnalysis.overallScore;
-          dbPayload.blur_score         = finalAnalysis.blurScore;
-          dbPayload.brightness_score   = finalAnalysis.brightnessScore;
-          dbPayload.fraud_score        = finalAnalysis.fraudScore;
+          dbPayload.ai_quality_score = finalAnalysis.overallScore;
+          dbPayload.blur_score = finalAnalysis.blurScore;
+          dbPayload.brightness_score = finalAnalysis.brightnessScore;
+          dbPayload.fraud_score = finalAnalysis.fraudScore;
         }
-
-        const { error: dbError } = await supabase
-          .from('verifications')
-          .upsert(dbPayload, { onConflict: 'user_id,doc_type' });
-
+        const { error: dbError } = await supabase.from('verifications').upsert(dbPayload, { onConflict: 'user_id,doc_type' });
         if (dbError) {
           console.error('[Upload] DB ERROR:', dbError.message);
-          /* Continue even if new columns don't exist yet */
           if (!dbError.message.includes('column')) throw new Error(`Database: ${dbError.message}`);
-          /* Retry without new columns */
           await supabase.from('verifications').upsert({
-            user_id: uid, doc_type: docId, status: 'uploaded',
-            storage_path: filePath,
-            updated_at: new Date().toISOString(),
+            user_id: uid, doc_type: docId, status: 'uploaded', storage_path: filePath, updated_at: new Date().toISOString(),
           }, { onConflict: 'user_id,doc_type' });
         }
 
-        setSteps((prev) =>
-          prev.map((s) => s.id === docId ? { ...s, status: 'uploaded' as const, url: URL.createObjectURL(file), filePath, errorMsg: undefined, analysis: finalAnalysis } : s)
-        );
-        toast.success(lang === 'ar' ? '✅ تم تحميل الوثيقة بنجاح!' : lang === 'fr' ? '✅ Document téléchargé!' : '✅ Document uploaded successfully!');
+        setSteps((prev) => prev.map((s) => s.id === docId ? { ...s, filePath, busy: false } : s));
 
         /* Smart AI check (server side). Never blocks the user if the service is down. */
         if (prepared) {
-          setSteps((prev) => prev.map((s) => s.id === docId ? { ...s, ai: { state: 'scanning' as const } } : s));
           const scan = await scanDocument(docId, filePath, prepared.b64, prepared.mediaType, lang);
           setSteps((prev) => prev.map((s) => s.id === docId
             ? { ...s, ai: scan ? { state: scan.verdict, message: scan.message || (AI_MESSAGES[lang] || AI_MESSAGES.en)[scan.verdict], issues: scan.issues } : undefined }
             : s));
           if (scan?.verdict === 'retake') toast.error(scan.message || (AI_MESSAGES[lang] || AI_MESSAGES.en).retake, { duration: 6000 });
+        } else {
+          setSteps((prev) => prev.map((s) => s.id === docId ? { ...s, ai: undefined } : s));
         }
 
-        /* Check auto-verify eligibility */
         const allUploaded = Object.values(allAnalyses.current);
         if (allUploaded.length >= 3) {
           const { autoVerified, score } = computeAutoVerifyScore(allUploaded);
@@ -251,7 +242,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
           }
         }
       } catch (err: any) {
-        setSteps((prev) => prev.map((s) => s.id === docId ? { ...s, status: 'not_uploaded' as const, errorMsg: err.message } : s));
+        setSteps((prev) => prev.map((s) => s.id === docId ? { ...s, status: 'not_uploaded' as const, busy: false, ai: undefined, url: undefined, errorMsg: err.message } : s));
         toast.error((lang === 'ar' ? 'فشل التحميل: ' : 'Upload failed: ') + err.message);
       } finally {
         uploadingRef.current.delete(docId);
@@ -345,7 +336,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 
     const uploadedCount = steps.filter((s) => ['uploaded', 'pending', 'approved'].includes(s.status)).length;
     const hasUploadedDocs = steps.some((s) => s.status === 'uploaded');
-    const isScanning = steps.some((s) => s.ai?.state === 'scanning');
+    const isScanning = steps.some((s) => s.ai?.state === 'scanning' || s.busy);
     const isVerified  = user?.is_verified === true || user?.verification_status === 'verified';
     const isSubmitted = user?.verification_status === 'submitted' || steps.some((s) => s.status === 'pending');
     const isRejected  = user?.verification_status === 'rejected' && !steps.some((s) => s.status === 'pending');
@@ -482,7 +473,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
             {steps.map((step, i) => {
               const st = getStatus(step.status);
               const canUpload = step.status === 'not_uploaded' || step.status === 'rejected' || (step.status === 'uploaded' && step.ai?.state === 'retake');
-              const canDelete = step.status === 'uploaded';
+              const canDelete = step.status === 'uploaded' && !step.busy;
               const qualLabel = step.analysis ? getQualityLabel(step.analysis.overallScore, lang) : null;
 
               return (

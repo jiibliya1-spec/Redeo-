@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { analyzeCanvasFrame, type FrameAnalysis } from '@/services/kycService';
 
 export type AiVerdict = 'accept' | 'retake' | 'review';
 
@@ -17,11 +18,14 @@ export interface SubmitResult {
 
 const MAX_SIDE = 1600;
 
-/** Downscale to a JPEG (max 1600px) so the scan is fast and the uploaded file is exactly what gets scanned. */
-export async function compressImage(file: File): Promise<{ file: File; b64: string; mediaType: string }> {
+/**
+ * Decode the photo ONCE, downscale to a JPEG (max 1600px) and compute the quality analysis from the same canvas.
+ * The exact bytes returned here are what gets stored and scanned.
+ */
+export async function compressImage(file: File): Promise<{ file: File; b64: string; mediaType: string; analysis?: FrameAnalysis }> {
   const bitmap = await createImageBitmap(file).catch(() => null);
   if (!bitmap) {
-    // cannot decode (unusual format): send as-is if small enough
+    // cannot decode (unusual format): send as-is
     const buf = await file.arrayBuffer();
     return { file, b64: toB64(new Uint8Array(buf)), mediaType: file.type || 'image/jpeg' };
   }
@@ -35,9 +39,24 @@ export async function compressImage(file: File): Promise<{ file: File; b64: stri
   if (!ctx) throw new Error('canvas_unavailable');
   ctx.drawImage(bitmap, 0, 0, w, h);
   bitmap.close?.();
+
+  // quality analysis on a small copy of the already-decoded canvas (no second decode of the big photo)
+  let analysis: FrameAnalysis | undefined;
+  try {
+    const k = Math.min(1, 800 / Math.max(w, h));
+    const small = document.createElement('canvas');
+    small.width = Math.round(w * k);
+    small.height = Math.round(h * k);
+    const sctx = small.getContext('2d', { willReadFrequently: true });
+    if (sctx) {
+      sctx.drawImage(canvas, 0, 0, small.width, small.height);
+      analysis = analyzeCanvasFrame(sctx.getImageData(0, 0, small.width, small.height));
+    }
+  } catch { /* quality score is optional */ }
+
   const blob: Blob = await new Promise((res, rej) => canvas.toBlob((b) => (b ? res(b) : rej(new Error('encode_failed'))), 'image/jpeg', 0.85));
   const out = new File([blob], file.name.replace(/\.[^.]+$/, '') + '.jpg', { type: 'image/jpeg' });
-  return { file: out, b64: toB64(new Uint8Array(await blob.arrayBuffer())), mediaType: 'image/jpeg' };
+  return { file: out, b64: toB64(new Uint8Array(await blob.arrayBuffer())), mediaType: 'image/jpeg', analysis };
 }
 
 function toB64(bytes: Uint8Array): string {

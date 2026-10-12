@@ -5,7 +5,7 @@ import { resolveAvatar } from '@/lib/utils';
 import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useStore } from '@/store/useStore';
-import { LayoutDashboard, ShieldCheck, Users, Settings, LogOut, Menu, ChevronRight, MessageSquare, Bell, Ticket } from 'lucide-react';
+import { LayoutDashboard, ShieldCheck, Users, Settings, LogOut, Menu, ChevronRight, MessageSquare, Bell, Ticket, Wallet } from 'lucide-react';
 import { Car } from '@/components/icons/CarIcon';
 
 const navItems = [
@@ -15,6 +15,7 @@ const navItems = [
   { path: '/admin/trips', label: 'adm.trips_4473', icon: Car },
   { path: '/admin/messages', label: 'adm.messages_41de', icon: MessageSquare },
   { path: '/admin/support', label: 'adm.support_tickets_fdca', icon: Ticket },
+  { path: '/admin/wallet', label: 'adm.wallet', icon: Wallet },
   { path: '/admin/settings', label: 'adm.settings_f4f7', icon: Settings },
 ];
 

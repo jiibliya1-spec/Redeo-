@@ -55,6 +55,8 @@ const AdminUsers = lazy(() => import('@/pages/admin/AdminUsers').then((m) => ({ 
 const AdminTrips = lazy(() => import('@/pages/admin/AdminTrips').then((m) => ({ default: m.AdminTrips })));
 const AdminMessages = lazy(() => import('@/pages/admin/AdminMessages').then((m) => ({ default: m.AdminMessages })));
 const AdminSettings = lazy(() => import('@/pages/admin/AdminSettings').then((m) => ({ default: m.AdminSettings })));
+const AdminWallet = lazy(() => import('@/pages/admin/AdminWallet').then((m) => ({ default: m.AdminWallet })));
+const WalletPage = lazy(() => import('@/pages/WalletPage').then((m) => ({ default: m.WalletPage })));
 const AdminSupportTickets = lazy(() => import('@/pages/admin/AdminSupportTickets').then((m) => ({ default: m.AdminSupportTickets })));
 const ProfilePage = lazy(() => import('@/pages/ProfilePage').then((m) => ({ default: m.ProfilePage })));
 const VerificationPage = lazy(() => import('@/pages/VerificationPage'));
@@ -134,6 +136,7 @@ function AdminRoutes() {
         <Route path="/messages" element={<AdminMessages />} />
         <Route path="/settings" element={<AdminSettings />} />
         <Route path="/support" element={<AdminSupportTickets />} />
+        <Route path="/wallet" element={<AdminWallet />} />
         <Route path="*" element={<Navigate to="/admin" replace />} />
       </Routes>
       </Suspense>
@@ -256,6 +259,7 @@ function AppContent() {
           <Route path="/dashboard" element={<DashboardRouter />} />
           <Route path="/driver" element={isAuthenticated && (mode === 'driver' || user?.role === 'admin') ? <DriverDashboard /> : <Navigate to="/dashboard" />} />
           <Route path="/publish-trip" element={isAuthenticated ? (mode === 'driver' ? <PublishTripPage /> : <Navigate to="/dashboard" />) : <Navigate to="/login" />} />
+          <Route path="/wallet" element={isAuthenticated && (mode === 'driver' || user?.role === 'admin') ? <WalletPage /> : <Navigate to="/dashboard" />} />
           <Route path="/profile" element={isAuthenticated ? <ProfilePage /> : <Navigate to="/login" />} />
           <Route path="/verification" element={isAuthenticated ? <VerificationPage /> : <Navigate to="/login" />} />
           <Route path="/messages" element={isAuthenticated ? <MessagesPage /> : <Navigate to="/login" />} />

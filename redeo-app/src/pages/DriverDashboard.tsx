@@ -15,7 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import type { Trip } from '@/types';
-import { Plus, DollarSign, Star, Users, X, Loader2, MapPin, Calendar, Clock, AlertCircle, ChevronRight, TrendingUp, CarFront, Shield, Check, ShieldCheck, Inbox, Banknote } from 'lucide-react';
+import { Plus, DollarSign, Star, Users, X, Loader2, MapPin, Calendar, Clock, AlertCircle, ChevronRight, TrendingUp, CarFront, Shield, Check, ShieldCheck, Inbox, Banknote, Wallet } from 'lucide-react';
 import { Car } from '@/components/icons/CarIcon';
 
 
@@ -722,6 +722,11 @@ export function DriverDashboard() {
             </motion.div>
           ))}
         </div>
+
+        <button onClick={() => navigate('/wallet')} className="w-full flex items-center justify-between bg-[#1B1F27] rounded-2xl border border-white/5 p-4 mb-6 active:scale-[0.99] transition-transform">
+          <span className="flex items-center gap-3 text-sm font-medium text-white"><span className="w-9 h-9 rounded-xl bg-[#FF6B00]/10 flex items-center justify-center"><Wallet className="w-5 h-5 text-[#FF6B00]" /></span>{t('wallet.open')}</span>
+          <ChevronRight className="w-4 h-4 text-[#A0A0A0] rtl:rotate-180" />
+        </button>
 
         {/* Tabs */}
         <div className="flex gap-1 p-1 bg-[#1B1F27] rounded-xl mb-6 border border-white/5">

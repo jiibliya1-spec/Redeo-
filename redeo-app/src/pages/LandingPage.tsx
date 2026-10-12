@@ -22,9 +22,9 @@ const FEATURES = [
 ];
 
 const POPULAR_ROUTES = [
-  { from: 'Casablanca', to: 'Marrakech', price: 75, image: '/images/route-casa-marrakech.jpg' },
-  { from: 'Tanger', to: 'Rabat', price: 65, image: '/images/route-tangier-rabat.jpg' },
-  { from: 'Fes', to: 'Casablanca', price: 90, image: '/images/route-fes-casa.jpg' },
+  { from: 'Casablanca', to: 'Marrakech', price: 75, km: 240, hrs: 3, hue: 'from-[#FF6B00]/25 via-[#FF6B00]/5' },
+  { from: 'Tanger', to: 'Rabat', price: 65, km: 250, hrs: 2.5, hue: 'from-[#22D3EE]/20 via-[#22D3EE]/5' },
+  { from: 'Fes', to: 'Casablanca', price: 90, km: 290, hrs: 3, hue: 'from-[#A78BFA]/20 via-[#A78BFA]/5' },
 ];
 
 
@@ -236,17 +236,36 @@ export function LandingPage() {
           <div className="grid md:grid-cols-3 gap-6">
             {POPULAR_ROUTES.map((route, i) => (
               <FadeUp key={`${route.from}-${route.to}`} delay={i * 0.15}>
-                <div onClick={() => { setSearchFilters({ from: route.from, to: route.to, date: '', passengers: 1 }); navigate('/search'); }} className="bg-[#1B1F27] rounded-2xl border border-white/5 overflow-hidden card-hover cursor-pointer group">
-                  <div className="aspect-[4/3] overflow-hidden">
-                    <img src={route.image} alt={`${city(route.from)} → ${city(route.to)}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                  </div>
-                  <div className="p-5">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="text-white font-medium">{city(route.from)}</span>
-                      <ArrowRight className="w-4 h-4 text-[#FF6B00]" />
-                      <span className="text-white font-medium">{city(route.to)}</span>
+                <div role="link" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter') (e.currentTarget as HTMLElement).click(); }} onClick={() => { setSearchFilters({ from: route.from, to: route.to, date: '', passengers: 1 }); navigate('/search'); }} className="group relative bg-[#1B1F27] rounded-3xl border border-white/10 overflow-hidden cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:border-[#FF6B00]/40 hover:shadow-2xl hover:shadow-[#FF6B00]/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#FF6B00]">
+                  <div className={`relative h-44 bg-gradient-to-br ${route.hue} to-transparent`} dir="ltr">
+                    <div className="absolute inset-0 opacity-[0.07]" style={{ backgroundImage: 'radial-gradient(circle, #fff 1px, transparent 1px)', backgroundSize: '16px 16px' }} />
+                    <svg viewBox="0 0 300 120" className="absolute inset-0 w-full h-full" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+                      <path id={`rt-${i}`} d="M40 85 C 100 10, 200 110, 260 35" fill="none" stroke="#FF6B00" strokeOpacity=".25" strokeWidth="6" strokeLinecap="round" />
+                      <path d="M40 85 C 100 10, 200 110, 260 35" fill="none" stroke="#FF6B00" strokeWidth="2.5" strokeLinecap="round" strokeDasharray="2 8" />
+                      <circle cx="40" cy="85" r="7" fill="#0F1115" stroke="#fff" strokeWidth="3" />
+                      <circle cx="260" cy="35" r="7" fill="#FF6B00" stroke="#fff" strokeWidth="3" />
+                      <circle r="5" fill="#fff"><animateMotion dur="3.5s" repeatCount="indefinite" rotate="auto"><mpath href={`#rt-${i}`} /></animateMotion></circle>
+                    </svg>
+                    <div className="absolute top-3 left-3 right-3 flex justify-between text-xs font-medium text-white/90">
+                      <span className="px-2.5 py-1 rounded-full bg-black/40 backdrop-blur border border-white/10">{t('landing.km', { n: route.km })}</span>
+                      <span className="px-2.5 py-1 rounded-full bg-black/40 backdrop-blur border border-white/10">{t('landing.hrs', { n: route.hrs })}</span>
                     </div>
-                    <p className="text-2xl font-bold text-[#FF6B00]">{route.price} <span className="text-sm font-normal text-[#A0A0A0]">{t('trip.price')} / {t('landing.per_seat')}</span></p>
+                  </div>
+                  <div className="p-5" dir={dir}>
+                    <div className="flex items-center gap-2 mb-4 text-lg">
+                      <span className="text-white font-semibold">{city(route.from)}</span>
+                      <ArrowRight className={`w-4 h-4 text-[#FF6B00] ${dir === 'rtl' ? 'rotate-180' : ''}`} />
+                      <span className="text-white font-semibold">{city(route.to)}</span>
+                    </div>
+                    <div className="flex items-end justify-between">
+                      <div>
+                        <p className="text-xs text-[#A0A0A0]">{t('landing.from_price')}</p>
+                        <p className="text-3xl font-bold text-[#FF6B00] leading-none">{route.price} <span className="text-sm font-normal text-[#A0A0A0]">{t('trip.price')} / {t('landing.per_seat')}</span></p>
+                      </div>
+                      <span className="inline-flex items-center gap-1.5 h-10 px-4 rounded-xl bg-[#FF6B00] text-white text-sm font-semibold shadow-lg shadow-[#FF6B00]/25 transition-colors group-hover:bg-[#E56000]">
+                        {t('landing.route_cta')} <ArrowRight className={`w-4 h-4 ${dir === 'rtl' ? 'rotate-180' : ''}`} />
+                      </span>
+                    </div>
                   </div>
                 </div>
               </FadeUp>
@@ -266,8 +285,8 @@ export function LandingPage() {
                 <h2 className="text-3xl md:text-5xl font-bold text-white mb-4" dir={dir}>{t('landing.cta_title')}</h2>
                 <p className="text-white/80 text-lg mb-8 max-w-xl mx-auto" dir={dir}>{t('landing.cta_subtitle')}</p>
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                  <Button onClick={() => navigate('/register')} className="bg-white text-[#FF6B00] hover:bg-white/90 rounded-xl px-8 py-6 text-base font-semibold shadow-lg">{t('landing.cta_btn')}</Button>
-                  <Button onClick={() => navigate('/search')} variant="outline" className="border-white/30 text-white hover:bg-white/10 rounded-xl px-8 py-6 text-base font-semibold">{t('landing.search_btn')}</Button>
+                  <Button onClick={() => navigate('/register')} className="bg-white text-[#FF6B00] hover:bg-white/90 hover:-translate-y-0.5 transition-all rounded-2xl px-10 h-14 text-base font-bold shadow-xl shadow-black/20">{t('landing.cta_btn')}</Button>
+                  <Button onClick={() => navigate('/search')} variant="outline" className="border-white/40 bg-white/5 backdrop-blur text-white hover:bg-white/15 hover:text-white rounded-2xl px-10 h-14 text-base font-semibold">{t('landing.search_btn')}</Button>
                 </div>
               </div>
             </div>

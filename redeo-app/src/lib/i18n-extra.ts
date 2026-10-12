@@ -389,6 +389,10 @@ export const EXTRA: Record<Lang, Record<string, string>> = {
     'adm.role_passenger': 'passenger',
     'adm.role_driver': 'driver',
     'adm.role_admin': 'admin',
+    'landing.route_cta': 'Find a ride',
+    'landing.km': '{n} km',
+    'landing.hrs': '{n}h',
+    'landing.from_price': 'From',
   },
   fr: {
     'rating.none': 'Pas encore noté',
@@ -777,6 +781,10 @@ export const EXTRA: Record<Lang, Record<string, string>> = {
     'adm.role_passenger': 'passager',
     'adm.role_driver': 'conducteur',
     'adm.role_admin': 'admin',
+    'landing.route_cta': 'Trouver un trajet',
+    'landing.km': '{n} km',
+    'landing.hrs': '{n}h',
+    'landing.from_price': 'À partir de',
   },
   ar: {
     'rating.none': 'مازال ماعندو حتى تقييم',
@@ -1165,5 +1173,9 @@ export const EXTRA: Record<Lang, Record<string, string>> = {
     'adm.role_passenger': 'راكب',
     'adm.role_driver': 'سائق',
     'adm.role_admin': 'أدمين',
+    'landing.route_cta': 'لقا رحلة',
+    'landing.km': '{n} كم',
+    'landing.hrs': '{n} س',
+    'landing.from_price': 'ابتداء من',
   },
 };

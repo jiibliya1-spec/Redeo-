@@ -41,7 +41,7 @@ export async function uploadAvatar(userId: string, file: File) {
 export async function uploadChatImage(userId: string, file: File) {
   validateFile(file, ALLOWED_IMAGE_TYPES);
   const ext = getFileExt(file);
-  const path = generateFileName(userId, 'chat', ext);
+  const path = `${userId}/chat-${crypto.randomUUID()}.${ext}`; // unguessable name: the bucket is public-read
 
   const { error } = await supabase.storage
     .from('chat-images')

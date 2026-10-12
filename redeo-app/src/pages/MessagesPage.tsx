@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { uploadChatImage } from '@/services/storageService';
 import { decodeText } from '@/lib/notifText';
 import { resolveAvatar } from '@/lib/utils';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -363,6 +364,14 @@ export function MessagesPage() {
 
     setIsUploading(true);
 
+    // Upload the (already shrunk) photo to Storage and send only its URL; fall back to inline data if the upload fails
+    let imageRef = dataUrl;
+    try {
+      const blob = await (await fetch(dataUrl)).blob();
+      const file = new File([blob], 'chat.jpg', { type: blob.type || 'image/jpeg' });
+      imageRef = await uploadChatImage(user.id, file);
+    } catch { /* keep inline data URL */ }
+
     let data: ChatMessage | null = null;
     try {
       const headers = await getAuthHeaders();
@@ -370,7 +379,7 @@ export function MessagesPage() {
         method: 'POST',
         headers,
         body: JSON.stringify({
-          sender_id: user.id, receiver_id: activeConv, content: `[Image] ${dataUrl}`, read: false,
+          sender_id: user.id, receiver_id: activeConv, content: `[Image] ${imageRef}`, read: false,
         }),
       });
       if (!res.ok) throw new Error(await res.text());

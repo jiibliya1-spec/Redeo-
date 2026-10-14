@@ -5,7 +5,7 @@ import { Car } from '@/components/icons/CarIcon';
 import { useStore } from '@/store/useStore';
 import { useI18n } from '@/lib/i18n';
 import { useCity } from '@/lib/cities';
-import { MOROCCAN_CITIES } from '@/lib/data';
+import { CityPicker } from '@/components/CityPicker';
 import { Button } from '@/components/ui/button';
 import { POPULAR_ROUTES, RouteScene } from '@/pages/LandingPage';
 
@@ -49,17 +49,11 @@ export function AppHome() {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
                 <label className="text-xs text-[#A0A0A0] font-medium ml-1">{t('landing.search_from')}</label>
-                <select value={from} onChange={(e) => setFrom(e.target.value)} className={`${field} appearance-none`}>
-                  <option value="">{t('common.select_city')}</option>
-                  {MOROCCAN_CITIES.map((c) => <option key={c} value={c}>{city(c)}</option>)}
-                </select>
+                <CityPicker value={from} onChange={setFrom} placeholder={t('common.select_city')} className={field} />
               </div>
               <div className="space-y-1">
                 <label className="text-xs text-[#A0A0A0] font-medium ml-1">{t('landing.search_to')}</label>
-                <select value={to} onChange={(e) => setTo(e.target.value)} className={`${field} appearance-none`}>
-                  <option value="">{t('common.select_city')}</option>
-                  {MOROCCAN_CITIES.filter((c) => c !== from).map((c) => <option key={c} value={c}>{city(c)}</option>)}
-                </select>
+                <CityPicker value={to} onChange={setTo} exclude={from} placeholder={t('common.select_city')} className={field} />
               </div>
               <div className="space-y-1">
                 <label className="text-xs text-[#A0A0A0] font-medium ml-1">{t('landing.search_date')}</label>

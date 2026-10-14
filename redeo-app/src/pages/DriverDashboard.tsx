@@ -9,7 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useStore } from '@/store/useStore';
 import { useI18n } from '@/lib/i18n';
 import { apiGet, apiPost, supabase } from '@/lib/supabase';
-import { MOROCCAN_CITIES } from '@/lib/data';
+import { CityPicker } from '@/components/CityPicker';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -460,6 +460,7 @@ export function DriverDashboard() {
   const handlePublish = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user?.id) return;
+    if (!from || !to) { toast.error(t('common.select_city')); return; }
 
     const isVerified = user?.is_verified || user?.verification_status === 'verified' || user?.verification_status === 'approved';
     if (!isVerified) {
@@ -611,17 +612,11 @@ export function DriverDashboard() {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <Label className="text-sm text-[#A0A0A0] mb-1.5 block">{t('driver.from')}</Label>
-                    <select value={from} onChange={e => setFrom(e.target.value)} className="w-full bg-[#0F1115] border border-white/10 text-white rounded-xl h-11 px-3 text-sm outline-none appearance-none" required>
-                      <option value="">{t('common.select_city')}</option>
-                      {MOROCCAN_CITIES.map(c => <option key={c} value={c}>{city(c)}</option>)}
-                    </select>
+                    <CityPicker value={from} onChange={setFrom} placeholder={t('common.select_city')} className="w-full bg-[#0F1115] border border-white/10 text-white rounded-xl h-11 px-3 text-sm outline-none" />
                   </div>
                   <div>
                     <Label className="text-sm text-[#A0A0A0] mb-1.5 block">{t('driver.to')}</Label>
-                    <select value={to} onChange={e => setTo(e.target.value)} className="w-full bg-[#0F1115] border border-white/10 text-white rounded-xl h-11 px-3 text-sm outline-none appearance-none" required>
-                      <option value="">{t('common.select_city')}</option>
-                      {MOROCCAN_CITIES.filter(c => c !== from).map(c => <option key={c} value={c}>{city(c)}</option>)}
-                    </select>
+                    <CityPicker value={to} onChange={setTo} exclude={from} placeholder={t('common.select_city')} className="w-full bg-[#0F1115] border border-white/10 text-white rounded-xl h-11 px-3 text-sm outline-none" />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">

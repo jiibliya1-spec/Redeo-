@@ -1,9 +1,7 @@
 import type { User, Vehicle, Trip, Booking, Review, Notification, Message } from '@/types';
 
-export const MOROCCAN_CITIES = [
-  'Casablanca', 'Rabat', 'Marrakech', 'Tanger', 'Agadir',
-  'Fes', 'Oujda', 'Nador', 'Meknes', 'Tetouan', 'El Jadida', 'Safi', 'Kenitra'
-];
+import { MOROCCAN_CITY_KEYS } from '@/lib/cities';
+export const MOROCCAN_CITIES = MOROCCAN_CITY_KEYS;
 
 export const AMENITIES = [
   'Air Conditioning', 'WiFi', 'USB Charging', 'Music', 'Pets Allowed',

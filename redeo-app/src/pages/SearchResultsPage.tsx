@@ -8,7 +8,7 @@ import { motion } from 'framer-motion';
 import { useStore } from '@/store/useStore';
 import { useI18n } from '@/lib/i18n';
 import { apiGet, supabase } from '@/lib/supabase';
-import { MOROCCAN_CITIES } from '@/lib/data';
+import { CityPicker } from '@/components/CityPicker';
 import type { Trip, User } from '@/types';
 import { Button } from '@/components/ui/button';
 import {
@@ -108,7 +108,6 @@ function TripCard({ trip, index }: { trip: Trip; index: number }) {
 }
 
 export function SearchResultsPage() {
-  const city = useCity();
   const navigate = useNavigate();
   const { searchFilters, setSearchFilters } = useStore();
   const { t, dir } = useI18n();
@@ -254,14 +253,8 @@ export function SearchResultsPage() {
         {/* Filters */}
         <div className="bg-[#1B1F27] rounded-2xl border border-white/5 p-4 mb-6">
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
-            <select value={searchFilters.from} onChange={e => setSearchFilters({ ...searchFilters, from: e.target.value })} className="bg-[#0F1115] border border-white/10 text-white rounded-xl h-10 px-3 text-sm outline-none focus:border-[#FF6B00]/50 appearance-none">
-              <option value="">{t('search.from_label')}</option>
-              {MOROCCAN_CITIES.map(c => <option key={c} value={c}>{city(c)}</option>)}
-            </select>
-            <select value={searchFilters.to} onChange={e => setSearchFilters({ ...searchFilters, to: e.target.value })} className="bg-[#0F1115] border border-white/10 text-white rounded-xl h-10 px-3 text-sm outline-none focus:border-[#FF6B00]/50 appearance-none">
-              <option value="">{t('search.to_label')}</option>
-              {MOROCCAN_CITIES.filter(c => c !== searchFilters.from).map(c => <option key={c} value={c}>{city(c)}</option>)}
-            </select>
+            <CityPicker value={searchFilters.from} onChange={(v) => setSearchFilters({ ...searchFilters, from: v })} placeholder={t('search.from_label')} className="bg-[#0F1115] border border-white/10 text-white rounded-xl h-10 px-3 text-sm outline-none focus:border-[#FF6B00]/50" />
+            <CityPicker value={searchFilters.to} onChange={(v) => setSearchFilters({ ...searchFilters, to: v })} exclude={searchFilters.from} placeholder={t('search.to_label')} className="bg-[#0F1115] border border-white/10 text-white rounded-xl h-10 px-3 text-sm outline-none focus:border-[#FF6B00]/50" />
             <input type="date" value={searchFilters.date} onChange={e => setSearchFilters({ ...searchFilters, date: e.target.value })} min={new Date().toISOString().split('T')[0]} className="bg-[#0F1115] border border-white/10 text-white rounded-xl h-10 px-3 text-sm outline-none focus:border-[#FF6B00]/50" />
             <select value={String(searchFilters.passengers)} onChange={e => setSearchFilters({ ...searchFilters, passengers: Number(e.target.value) })} className="bg-[#0F1115] border border-white/10 text-white rounded-xl h-10 px-3 text-sm outline-none focus:border-[#FF6B00]/50 appearance-none">
               {[1,2,3,4,5,6].map(n => <option key={n} value={n}>{n} {t('search.pax')}</option>)}

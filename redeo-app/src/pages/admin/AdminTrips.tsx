@@ -3,6 +3,7 @@ import { useI18n } from '@/lib/i18n';
 import { useCity } from '@/lib/cities';
 import { resolveAvatar } from '@/lib/utils';
 import { AdminLayout } from '@/components/admin/AdminLayout';
+import { TripChangeRequests } from '@/components/admin/TripChangeRequests';
 import { supabase } from '@/lib/supabase';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -192,6 +193,8 @@ export function AdminTrips() {
           </Button>
         </div>
       </div>
+
+      <TripChangeRequests onChanged={loadTrips} />
 
       {/* Status filter tabs */}
       <div className="flex flex-wrap gap-2 mb-6">

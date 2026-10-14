@@ -8,6 +8,7 @@ import { useStore } from '@/store/useStore';
 import { useI18n } from '@/lib/i18n';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
+import { TripChangeSheet } from '@/components/TripChangeSheet';
 import type { Trip, User } from '@/types';
 import {
   ArrowLeft, Star, CheckCircle, MessageCircle,
@@ -30,12 +31,21 @@ export function TripDetailsPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user: _user } = useStore();
+  const [changeKind, setChangeKind] = useState<'time_change' | 'cancel' | null>(null);
+  const [pendingReq, setPendingReq] = useState<{ kind: string } | null>(null);
   const { lang, dir, t } = useI18n();
 
   const [trip, setTrip] = useState<Trip | null>(null);
   const [driver, setDriver] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [passengers] = useState<BookingPassenger[]>([]);
+
+  const loadPending = useCallback(async () => {
+    if (!id || !_user?.id) return;
+    const { data } = await supabase.from('trip_change_requests').select('kind').eq('trip_id', id).eq('status', 'pending').maybeSingle();
+    setPendingReq(data || null);
+  }, [id, _user?.id]);
+  useEffect(() => { loadPending(); }, [loadPending]);
 
   const getHeaders = useCallback(async () => {
     const { data: s } = await supabase.auth.getSession();
@@ -190,6 +200,8 @@ export function TripDetailsPage() {
 
   const co2Amount = Math.round((trip?.price || 0) * 12);
   const isFullyBooked = (trip?.available_seats || 0) <= 0;
+  const isOwner = !!trip && !!_user?.id && trip.driver_id === _user.id;
+  const tripOpen = !!trip && (trip.status === 'upcoming' || (trip.status as string) === 'active');
 
   if (isLoading) {
     return (
@@ -252,10 +264,10 @@ export function TripDetailsPage() {
               </div>
             )}
 
-            {/* Arrival */}
+            {/* Arrival (only when the driver gave a time) */}
             <div className="relative">
               <Circle className="absolute -left-[21px] top-0 w-5 h-5 text-[#FF6B00]" />
-              <p className="text-2xl font-bold text-white">{trip.arrival_time || '--:--'}</p>
+              {trip.arrival_time ? <p className="text-2xl font-bold text-white">{trip.arrival_time}</p> : null}
               <p className="text-sm text-white font-medium">{city(trip.to_location)}</p>
             </div>
           </div>
@@ -270,7 +282,29 @@ export function TripDetailsPage() {
           </motion.div>
         )}
 
-        {/* ─── PRICE & BOOK ─── */}
+        {/* ─── PRICE & BOOK (passengers) / MANAGE (the driver who published it) ─── */}
+        {isOwner ? (
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} className="bg-[#1B1F27] rounded-2xl border border-white/5 p-5">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Users className="w-5 h-5 text-[#A0A0A0]" />
+                <span className="text-sm text-white">{t('tc.seats_booked', { n: Math.max(0, (trip.total_seats || 0) - (trip.available_seats || 0)), m: trip.available_seats || 0 })}</span>
+              </div>
+              <p className="text-2xl font-bold text-white">{trip.price} <span className="text-sm font-normal text-[#A0A0A0]">{t('trip.price')}</span></p>
+            </div>
+            {pendingReq ? (
+              <div className="rounded-xl bg-yellow-500/10 border border-yellow-500/20 p-4">
+                <p className="text-sm font-semibold text-yellow-400">{t('tc.pending_title')}</p>
+                <p className="text-xs text-[#A0A0A0] mt-1">{t('tc.pending_sub')}</p>
+              </div>
+            ) : tripOpen ? (
+              <div className="grid grid-cols-2 gap-3">
+                <Button onClick={() => setChangeKind('time_change')} className="bg-[#FF6B00] hover:bg-[#E56000] text-white rounded-xl h-12 font-semibold">{t('tc.change_time')}</Button>
+                <Button onClick={() => setChangeKind('cancel')} variant="outline" className="border-red-500/40 text-red-400 hover:bg-red-500/10 rounded-xl h-12 font-semibold">{t('tc.cancel_trip')}</Button>
+              </div>
+            ) : null}
+          </motion.div>
+        ) : (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} className="bg-[#1B1F27] rounded-2xl border border-white/5 p-5">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
@@ -290,6 +324,7 @@ export function TripDetailsPage() {
             {isFullyBooked ? 'Fully Booked' : T.book_now}
           </Button>
         </motion.div>
+        )}
 
         {/* ─── DRIVER CARD ─── */}
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="bg-[#1B1F27] rounded-2xl border border-white/5 p-5">
@@ -392,7 +427,7 @@ export function TripDetailsPage() {
           </div>
 
           {/* Buttons */}
-          <div className="flex gap-2">
+          {!isOwner && <div className="flex gap-2">
             <Button
               onClick={handleContactDriver}
               variant="outline"
@@ -407,14 +442,14 @@ export function TripDetailsPage() {
             >
               {t('trip.view_profile')}
             </Button>
-          </div>
+          </div>}
         </motion.div>
 
         {/* ─── BOOKING INFO ─── */}
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="flex items-start gap-3 bg-[#1B1F27]/50 rounded-xl p-4 border border-white/5">
+        {!isOwner && <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="flex items-start gap-3 bg-[#1B1F27]/50 rounded-xl p-4 border border-white/5">
           <Phone className="w-5 h-5 text-[#A0A0A0] shrink-0 mt-0.5" />
           <p className="text-sm text-[#A0A0A0] leading-relaxed">{T.booking_note}</p>
-        </motion.div>
+        </motion.div>}
 
         {/* ─── PASSENGERS ─── */}
         {passengers.length > 0 && (
@@ -452,14 +487,18 @@ export function TripDetailsPage() {
             <Share2 className="w-5 h-5 text-[#4A9EFF]" />
             <span className="text-sm text-[#4A9EFF]">{T.share}</span>
           </button>
-          <button onClick={() => trip && navigate(`/support?report=${trip.id}&r=${encodeURIComponent(`${trip.from_location} → ${trip.to_location}`)}&d=${trip.departure_date}`)} className="w-full flex items-center gap-3 p-4 rounded-xl hover:bg-white/5 transition-colors text-left">
+          {!isOwner && <button onClick={() => trip && navigate(`/support?report=${trip.id}&r=${encodeURIComponent(`${trip.from_location} → ${trip.to_location}`)}&d=${trip.departure_date}`)} className="w-full flex items-center gap-3 p-4 rounded-xl hover:bg-white/5 transition-colors text-left">
             <AlertTriangle className="w-5 h-5 text-[#4A9EFF]" />
             <span className="text-sm text-[#4A9EFF]">{T.report}</span>
-          </button>
+          </button>}
         </motion.div>
 
         <div className="h-4" />
       </div>
+      {isOwner && changeKind && (
+        <TripChangeSheet open kind={changeKind} tripId={trip.id} date={trip.departure_date} time={trip.departure_time}
+          onClose={() => setChangeKind(null)} onSent={loadPending} />
+      )}
     </div>
   );
 }

@@ -541,6 +541,8 @@ export const EXTRA: Record<Lang, Record<string, string>> = {
     'share.tap_again': 'Tap again to stop',
     'share.tap_open': 'Tap to see the link',
     'avatar.err': 'Could not save your photo',
+    'notif.rate_title': 'How was your trip? ⭐',
+    'notif.rate_msg': 'Your trip {from} → {to} is over. Tap to rate the trip and the driver {driver}.',
   },
   fr: {
     'rating.none': 'Pas encore noté',
@@ -1081,6 +1083,8 @@ export const EXTRA: Record<Lang, Record<string, string>> = {
     'share.tap_again': 'Appuyez encore pour arrêter',
     'share.tap_open': 'Touchez pour voir le lien',
     'avatar.err': 'Impossible d enregistrer la photo',
+    'notif.rate_title': "Comment s'est passé votre trajet ? ⭐",
+    'notif.rate_msg': 'Votre trajet {from} → {to} est terminé. Appuyez pour noter le trajet et le conducteur {driver}.',
   },
   ar: {
     'rating.none': 'مازال ماعندو حتى تقييم',
@@ -1621,5 +1625,7 @@ export const EXTRA: Record<Lang, Record<string, string>> = {
     'share.tap_again': 'ضغط مرة أخرى للإيقاف',
     'share.tap_open': 'ضغط باش تشوف الرابط',
     'avatar.err': 'ما قدرناش نسجلو الصورة',
+    'notif.rate_title': 'كيفاش دازت الرحلة؟ ⭐',
+    'notif.rate_msg': 'الرحلة {from} → {to} سالات. ضغط باش تقيّم الرحلة والسائق {driver}.',
   },
 };

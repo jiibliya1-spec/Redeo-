@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useCity } from '@/lib/cities';
 import { resolveAvatar } from '@/lib/utils';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useStore } from '@/store/useStore';
 import { useI18n } from '@/lib/i18n';
@@ -56,6 +56,8 @@ export function MyTripsPage() {
   const [activeTab, setActiveTab] = useState<'upcoming' | 'cancelled'>('upcoming');
   const [ratedIds, setRatedIds] = useState<Set<string>>(new Set());
   const [rateTarget, setRateTarget] = useState<BookingItem | null>(null);
+  const [sp, setSp] = useSearchParams();
+  const rateParam = sp.get('rate');
   const [shareTarget, setShareTarget] = useState<BookingItem | null>(null);
   const activeShareTrip = useShare((s) => s.session?.tripId);
 
@@ -157,6 +159,14 @@ export function MyTripsPage() {
   }, [user?.id]);
 
   useEffect(() => { loadBookings(); }, [loadBookings]);
+
+  // Deep link from the "rate your trip" notification
+  useEffect(() => {
+    if (!rateParam || loading) return;
+    const b = bookings.find((x) => x.id === rateParam);
+    if (b && !ratedIds.has(b.id)) setRateTarget(b);
+    const n = new URLSearchParams(sp); n.delete('rate'); setSp(n, { replace: true });
+  }, [rateParam, loading, bookings, ratedIds]);
 
   useEffect(() => {
     const onUpdate = () => loadBookings();

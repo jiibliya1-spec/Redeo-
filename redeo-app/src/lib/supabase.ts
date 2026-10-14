@@ -23,10 +23,12 @@ async function getAuthHeaders() {
 }
 
 /** Generic GET from Supabase REST API */
-export async function apiGet(table: string, options?: { eq?: Record<string, any>; order?: string; ascending?: boolean }) {
+export async function apiGet(table: string, options?: { eq?: Record<string, any>; order?: string; ascending?: boolean; params?: Record<string, string>; limit?: number; select?: string }) {
   const headers = await getAuthHeaders();
   const url = new URL(`${REST_API}/${table}`);
-  url.searchParams.set('select', '*');
+  url.searchParams.set('select', options?.select || '*');
+  if (options?.limit) url.searchParams.set('limit', String(options.limit));
+  if (options?.params) Object.entries(options.params).forEach(([k, v]) => url.searchParams.append(k, v));
 
   if (options?.eq) {
     Object.entries(options.eq).forEach(([key, val]) => {

@@ -155,8 +155,8 @@ export function ProfilePage() {
   useEffect(() => {
     if (!user?.id) return;
     const interval = setInterval(() => {
-      fetchFreshProfile();
-    }, 8000);
+      if (document.visibilityState === 'visible') fetchFreshProfile();
+    }, 60000);
     return () => clearInterval(interval);
   }, [user?.id, fetchFreshProfile]);
 

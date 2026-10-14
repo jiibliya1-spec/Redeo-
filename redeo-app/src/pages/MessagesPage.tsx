@@ -193,7 +193,7 @@ export function MessagesPage() {
   useEffect(() => {
     if (!user?.id) return;
     const resync = () => { if (document.visibilityState === 'visible') loadRef.current(); };
-    const timer = setInterval(resync, 8000);
+    const timer = setInterval(resync, 20000);
     document.addEventListener('visibilitychange', resync);
     window.addEventListener('focus', resync);
     window.addEventListener('online', resync);

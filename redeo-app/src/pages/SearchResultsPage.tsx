@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { hasDeparted } from '@/lib/tripTime';
 import { useCity } from '@/lib/cities';
 import { RatingBadge } from '@/components/Rating';
@@ -178,7 +178,11 @@ export function SearchResultsPage() {
     let allTrips: Trip[] = [];
 
     try {
-      const data = await apiGet('trips');
+      // Filter on the server: only upcoming trips from yesterday on (timezone-safe), capped, never the whole table.
+      const y = new Date(Date.now() - 36 * 3600 * 1000).toISOString().slice(0, 10);
+      const params: Record<string, string> = { status: 'eq.upcoming', departure_date: searchFilters.date ? `eq.${searchFilters.date}` : `gte.${y}` };
+      if (searchFilters.passengers > 0) params.available_seats = `gte.${searchFilters.passengers}`;
+      const data = await apiGet('trips', { params, order: 'departure_date', limit: 300 });
       if (data && data.length > 0) {
         allTrips = data as Trip[];
       }
@@ -219,6 +223,7 @@ export function SearchResultsPage() {
     }
   }, [loadResults, lastUpdated, hasFilters]);
 
+  const refreshTimer = useRef<number | null>(null);
   // ─── Realtime: auto-refresh when a trip is added/updated/deleted ───
   useEffect(() => {
     const channel = supabase
@@ -226,10 +231,14 @@ export function SearchResultsPage() {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'trips' },
-        () => { setLastUpdated(Date.now()); }
+        () => {
+          // Throttle: at most one refresh every 20s, so a busy platform doesn't make every open search page re-query on each change.
+          if (refreshTimer.current) return;
+          refreshTimer.current = window.setTimeout(() => { refreshTimer.current = null; setLastUpdated(Date.now()); }, 20000);
+        }
       )
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    return () => { supabase.removeChannel(channel); if (refreshTimer.current) { clearTimeout(refreshTimer.current); refreshTimer.current = null; } };
   }, []);
 
   const sorted = [...results].sort((a, b) => {

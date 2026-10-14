@@ -486,7 +486,7 @@ export function MessagesPage() {
               <>
                 <div className="flex items-center gap-3 p-4 border-b border-white/5">
                   <button onClick={() => setActiveConv(null)} className="md:hidden p-2 -ml-2 rounded-xl hover:bg-white/5">
-                    <ArrowLeft className="w-5 h-5 text-[#A0A0A0]" />
+                    <ArrowLeft className="w-5 h-5 text-[#A0A0A0] rtl:rotate-180" />
                   </button>
                   <img src={activeConversation.avatar} alt="" className="w-10 h-10 rounded-full object-cover bg-[#1B1F27]" />
                   <div className="flex-1 min-w-0">

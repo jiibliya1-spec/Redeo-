@@ -122,7 +122,7 @@ export function NotificationsPage() {
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
             <button onClick={() => navigate(-1)} className="p-2 rounded-xl hover:bg-white/5 transition-colors">
-              <ArrowLeft className="w-5 h-5 text-[#A0A0A0]" />
+              <ArrowLeft className="w-5 h-5 text-[#A0A0A0] rtl:rotate-180" />
             </button>
             <h1 className="text-xl font-bold text-white" dir={dir}>{t('notifications.title')}</h1>
           </div>

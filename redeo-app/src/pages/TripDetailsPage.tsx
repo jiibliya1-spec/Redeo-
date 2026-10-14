@@ -215,7 +215,7 @@ export function TripDetailsPage() {
       {/* Top Nav */}
       <div className="sticky top-0 z-40 bg-[#0F1115]/95 backdrop-blur-md border-b border-white/5 px-4 py-3 flex items-center gap-3">
         <button onClick={() => navigate(-1)} className="p-2 rounded-full hover:bg-white/5 transition-colors">
-          <ArrowLeft className="w-5 h-5 text-white" />
+          <ArrowLeft className="w-5 h-5 text-white rtl:rotate-180" />
         </button>
         <div className="flex-1">
           <p className="text-xs text-[#A0A0A0]">{trip.departure_date}</p>

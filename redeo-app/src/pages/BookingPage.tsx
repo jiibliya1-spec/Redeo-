@@ -217,7 +217,7 @@ export function BookingPage() {
     <div className="min-h-screen bg-[#0F1115] pb-8" dir={dir}>
       <div className="sticky top-0 z-40 bg-[#0F1115]/95 backdrop-blur-md border-b border-white/5 px-4 py-3 flex items-center gap-3">
         <button onClick={() => navigate(-1)} className="p-2 rounded-full hover:bg-white/5">
-          <ArrowLeft className="w-5 h-5 text-white" />
+          <ArrowLeft className="w-5 h-5 text-white rtl:rotate-180" />
         </button>
         <h1 className="text-base font-semibold text-white">{t('book.title')}</h1>
       </div>

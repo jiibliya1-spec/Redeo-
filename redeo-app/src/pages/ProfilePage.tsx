@@ -7,13 +7,14 @@ import { useStore } from '@/store/useStore';
 import { useI18n } from '@/lib/i18n';
 import { apiPatch, supabase } from '@/lib/supabase';
 import { uploadAvatar } from '@/services/storageService';
+import { AvatarPickerSheet } from '@/components/AvatarPickerSheet';
 import { syncVerification } from '@/lib/verify';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { Camera, Edit, Check, Shield, Star, ChevronRight, Loader2, LogOut, Upload, Globe, Users, RefreshCw, Settings, Clock } from 'lucide-react';
+import { Camera, Edit, Check, Shield, Star, ChevronRight, Loader2, LogOut, Globe, Users, RefreshCw, Settings, Clock } from 'lucide-react';
 import { Car } from '@/components/icons/CarIcon';
 
 
@@ -250,6 +251,16 @@ export function ProfilePage() {
     }
   };
 
+  const pickAvatar = async (url: string) => {
+    if (!user?.id) return;
+    setShowUploadMenu(false);
+    setAvatarUrl(url);
+    try { await apiPatch('profiles', 'id', user.id, { avatar: url }); } catch { toast.error(t('avatar.err')); return; }
+    setUser({ ...user, avatar: url });
+    void syncVerification();
+    toast.success(t('avatar.saved'));
+  };
+
   const handleGalleryFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -356,6 +367,10 @@ export function ProfilePage() {
   return (
     <div className="min-h-screen bg-[#0F1115] pt-20 pb-8">
       <input ref={galleryInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleGalleryFile} />
+      <AvatarPickerSheet open={showUploadMenu} onClose={() => setShowUploadMenu(false)} current={avatarUrl} isPassenger={user.role !== 'driver' && user.role !== 'admin'}
+        onGallery={() => { galleryInputRef.current?.click(); setShowUploadMenu(false); }}
+        onCamera={() => { cameraInputRef.current?.click(); setShowUploadMenu(false); }}
+        onPick={pickAvatar} />
       <input ref={cameraInputRef} type="file" accept="image/*" capture="user" className="hidden" onChange={handleCameraFile} />
 
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -365,7 +380,7 @@ export function ProfilePage() {
             <div className="flex items-center gap-4">
               {/* Avatar */}
               <div className="relative">
-                <div className="cursor-pointer" onClick={() => setShowUploadMenu(!showUploadMenu)}>
+                <div className="cursor-pointer" onClick={() => setShowUploadMenu(true)}>
                   {isUploading ? (
                     <div className="w-20 h-20 rounded-full bg-[#FF6B00]/10 flex items-center justify-center">
                       <Loader2 className="w-8 h-8 text-[#FF6B00] animate-spin" />
@@ -384,21 +399,6 @@ export function ProfilePage() {
                   )}
                 </div>
 
-                {showUploadMenu && (
-                  <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-                    className="absolute top-full start-0 mt-2 bg-[#1B1F27] border border-white/10 rounded-xl shadow-xl overflow-hidden z-50 min-w-[160px] max-w-[calc(100vw-2rem)]">
-                    <button onClick={() => { galleryInputRef.current?.click(); setShowUploadMenu(false); }}
-                      className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition-colors text-left">
-                      <Upload className="w-4 h-4 text-[#FF6B00]" />
-                      <span className="text-sm text-white">{t('ui.gallery_5c93')}</span>
-                    </button>
-                    <button onClick={() => { cameraInputRef.current?.click(); setShowUploadMenu(false); }}
-                      className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition-colors text-left border-t border-white/5">
-                      <Camera className="w-4 h-4 text-[#FF6B00]" />
-                      <span className="text-sm text-white">{t('ui.camera_967d')}</span>
-                    </button>
-                  </motion.div>
-                )}
               </div>
 
               <div className="flex-1">

@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import {
-  Inbox, Search, Loader2, ChevronLeft, Clock, CheckCircle,
+  Inbox, Search, Loader2, ArrowLeft, Clock, CheckCircle,
   XCircle, AlertCircle, Mail, User, FileText, Image, Send,
   ArrowDownUp, RefreshCw, Eye,
 } from 'lucide-react';
@@ -232,7 +232,7 @@ export function AdminSupportTickets() {
           {/* Header */}
           <div className="flex items-center gap-3 mb-6">
             <button onClick={() => setSelected(null)} className="p-2 rounded-xl hover:bg-white/5 transition-colors">
-              <ChevronLeft className="w-5 h-5 text-[#A0A0A0]" />
+              <ArrowLeft className="w-5 h-5 text-[#A0A0A0] rtl:rotate-180" />
             </button>
             <div className="flex-1">
               <h2 className="text-lg font-bold text-white">{t('adm.ticket_details_ed7b')}</h2>

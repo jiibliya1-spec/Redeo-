@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Wallet, Loader2, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Wallet, Loader2, ArrowDownLeft, ArrowUpRight, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 import { useStore } from '@/store/useStore';
@@ -17,6 +18,7 @@ const METHODS = ['bank', 'Wafacash', 'Cash Plus', 'other'] as const;
 
 export function WalletPage() {
   const { t } = useI18n();
+  const navigate = useNavigate();
   const user = useStore((s) => s.user);
   const [balance, setBalance] = useState(0);
   const [txs, setTxs] = useState<Tx[]>([]);
@@ -93,7 +95,10 @@ export function WalletPage() {
   return (
     <div className="min-h-screen bg-[#0F1115] pt-20 pb-24">
       <div className="max-w-xl mx-auto px-4 space-y-5">
-        <h1 className="text-xl font-bold text-white">{t('wallet.title')}</h1>
+        <div className="flex items-center gap-3">
+          <button onClick={() => navigate(-1)} className="p-2 rounded-xl hover:bg-white/5 transition-colors" aria-label="back"><ArrowLeft className="w-5 h-5 text-[#A0A0A0] rtl:rotate-180" /></button>
+          <h1 className="text-xl font-bold text-white">{t('wallet.title')}</h1>
+        </div>
 
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="rounded-2xl p-5 bg-gradient-to-br from-[#FF6B00] to-[#E56000]">
           <div className="flex items-center gap-2 text-white/80 text-sm"><Wallet className="w-4 h-4" />{t('wallet.balance')}</div>

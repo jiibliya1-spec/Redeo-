@@ -75,24 +75,36 @@ export function ShareTripSheet({ open, onClose, tripId, from, to }: Props) {
               </>
             ) : (
               <>
-                <div className="flex items-center gap-2 mb-4">
-                  <span className="relative flex w-2.5 h-2.5"><span className="absolute inset-0 rounded-full bg-green-400 animate-ping" /><span className="relative w-2.5 h-2.5 rounded-full bg-green-400" /></span>
-                  <p className="text-sm font-semibold text-green-400">{t('share.live')}</p>
-                  <p className="text-xs text-[#A0A0A0] ms-auto">
+                <div className="rounded-2xl border border-green-500/20 bg-gradient-to-br from-green-500/10 to-transparent p-4 mb-4">
+                  <div className="flex items-center gap-2">
+                    <span className="relative flex w-2.5 h-2.5"><span className="absolute inset-0 rounded-full bg-green-400 animate-ping" /><span className="relative w-2.5 h-2.5 rounded-full bg-green-400" /></span>
+                    <p className="text-sm font-semibold text-green-400">{t('share.live')}</p>
+                  </div>
+                  <p className={`text-xs mt-1.5 ${error ? 'text-red-300' : 'text-[#A0A0A0]'}`}>
                     {error === 'denied' ? t('share.err_denied') : error === 'unavailable' ? t('share.err_unavailable')
                       : lastSentAt ? t('share.last_sent', { s: Math.max(0, Math.round((Date.now() - lastSentAt) / 1000)) }) : t('share.gps_wait')}
                   </p>
                 </div>
-                <div className="rounded-xl bg-black/30 border border-white/5 px-3 py-2.5 text-xs text-[#A0A0A0] break-all mb-3" dir="ltr">{link}</div>
-                <div className="grid grid-cols-2 gap-2.5 mb-2.5">
-                  <Button onClick={send} className="bg-[#FF6B00] hover:bg-[#E56000] text-white rounded-xl h-11"><Share2 className="w-4 h-4 me-2" />{t('share.send_link')}</Button>
-                  <Button onClick={whatsapp} variant="outline" className="border-green-500/40 text-green-400 hover:bg-green-500/10 rounded-xl h-11">WhatsApp</Button>
+
+                <button onClick={copy} className="w-full flex items-center gap-3 rounded-xl bg-black/30 border border-white/10 hover:border-white/20 px-3.5 py-3 mb-3 transition-colors" dir="ltr">
+                  <span className="flex-1 min-w-0 truncate text-start text-xs text-[#C9CCD2]">{link}</span>
+                  <Copy className="w-4 h-4 text-[#FF6B00] shrink-0" />
+                </button>
+
+                <div className="grid grid-cols-2 gap-2.5 mb-4">
+                  <Button onClick={send} className="bg-[#FF6B00] hover:bg-[#E56000] text-white rounded-xl h-12 font-semibold"><Share2 className="w-4 h-4 me-2" />{t('share.send_link')}</Button>
+                  <Button onClick={whatsapp} className="bg-[#25D366] hover:bg-[#1FB157] text-white rounded-xl h-12 font-semibold">WhatsApp</Button>
                 </div>
-                <Button onClick={copy} variant="outline" className="w-full border-white/10 text-white rounded-xl h-11 mb-2.5"><Copy className="w-4 h-4 me-2" />{t('share.copy')}</Button>
-                <p className="text-[11px] text-[#A0A0A0] leading-relaxed mb-4">{t('share.keep_open')}</p>
-                <Button onClick={async () => { await stopShare(); toast.success(t('share.stopped')); onClose(); }} variant="outline" className="w-full border-red-500/30 text-red-400 hover:bg-red-500/10 rounded-xl h-11">
-                  <Square className="w-3.5 h-3.5 me-2 fill-current" />{t('share.stop')}
-                </Button>
+
+                <div className="flex gap-2.5 mb-5 rounded-xl bg-white/[0.03] px-3 py-2.5">
+                  <Smartphone className="w-4 h-4 text-[#FF6B00] shrink-0 mt-0.5" />
+                  <p className="text-[11px] text-[#A0A0A0] leading-relaxed">{t('share.keep_open')}</p>
+                </div>
+
+                <button onClick={async () => { await stopShare(); toast.success(t('share.stopped')); onClose(); }}
+                  className="w-full flex items-center justify-center gap-2 rounded-xl border border-red-500/30 bg-red-500/5 hover:bg-red-500/10 text-red-400 h-12 text-sm font-semibold transition-colors">
+                  <Square className="w-3.5 h-3.5 fill-current" />{t('share.stop')}
+                </button>
               </>
             )}
           </motion.div>

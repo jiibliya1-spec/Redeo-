@@ -605,6 +605,8 @@ export const EXTRA: Record<Lang, Record<string, string>> = {
     'notif.trip_time_msg': 'The driver moved {from} → {to} from {old} to {new}. Reason: {reason}',
     'notif.trip_cancel_title': 'Trip cancelled',
     'notif.trip_cancel_msg': 'The trip {from} → {to} ({old}) was cancelled. Reason: {reason}',
+    'driver.arrival': 'Arrival time (optional)',
+    'driver.arrival_hint': 'Helps passengers plan their day.',
   },
   fr: {
     'rating.none': 'Pas encore noté',
@@ -1209,6 +1211,8 @@ export const EXTRA: Record<Lang, Record<string, string>> = {
     'notif.trip_time_msg': 'Le conducteur a déplacé {from} → {to} de {old} à {new}. Motif : {reason}',
     'notif.trip_cancel_title': 'Trajet annulé',
     'notif.trip_cancel_msg': 'Le trajet {from} → {to} ({old}) a été annulé. Motif : {reason}',
+    'driver.arrival': "Heure d'arrivée (facultatif)",
+    'driver.arrival_hint': "Aide les passagers à s'organiser.",
   },
   ar: {
     'rating.none': 'مازال ماعندو حتى تقييم',
@@ -1813,5 +1817,7 @@ export const EXTRA: Record<Lang, Record<string, string>> = {
     'notif.trip_time_msg': 'السائق بدّل {from} → {to} من {old} لـ {new}. السبب: {reason}',
     'notif.trip_cancel_title': 'الرحلة تلغات',
     'notif.trip_cancel_msg': 'الرحلة {from} → {to} ({old}) تلغات. السبب: {reason}',
+    'driver.arrival': 'وقت الوصول (اختياري)',
+    'driver.arrival_hint': 'كيعاون المسافرين باش ينظمو نهارهم.',
   },
 };

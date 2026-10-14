@@ -164,6 +164,7 @@ export function DriverDashboard() {
   const [to, setTo] = useState('');
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
+  const [arrival, setArrival] = useState('');
   const [price, setPrice] = useState('');
   const [seats, setSeats] = useState('3');
   const [distance, setDistance] = useState('');
@@ -486,7 +487,7 @@ export function DriverDashboard() {
         to_location: to,
         departure_date: date,
         departure_time: time,
-        arrival_time: '',
+        arrival_time: arrival || '',
         price: parseFloat(price),
         available_seats: parseInt(seats),
         total_seats: parseInt(seats),
@@ -510,7 +511,7 @@ export function DriverDashboard() {
 
       toast.success(t('ui.trip_published_successfully_835e'));
       setShowPublish(false);
-      setFrom(''); setTo(''); setDate(''); setTime(''); setPrice(''); setSeats('3'); setDistance(''); setDuration('');
+      setFrom(''); setTo(''); setDate(''); setTime(''); setArrival(''); setPrice(''); setSeats('3'); setDistance(''); setDuration('');
     } catch (err: any) {
       toast.error(err.message || 'Failed to publish trip');
     }
@@ -629,6 +630,15 @@ export function DriverDashboard() {
                     <input type="time" value={time} onChange={e => setTime(e.target.value)} className="w-full h-11 px-3 bg-[#0F1115] border border-white/10 text-white rounded-xl text-sm outline-none" required />
                   </div>
                 </div>
+                <div>
+              <Label className="text-sm text-[#A0A0A0] mb-1.5 flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5 text-[#FF6B00]" /> {t('driver.arrival')}
+              </Label>
+              <input type="time" value={arrival} onChange={e => setArrival(e.target.value)} className="w-full h-11 px-3 bg-[#0F1115] border border-white/10 text-white rounded-xl text-sm outline-none" />
+              <p className="text-[11px] text-[#6B7280] mt-1">{t('driver.arrival_hint')}</p>
+            </div>
+
+
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <Label className="text-sm text-[#A0A0A0] mb-1.5 block">{t('driver.price')}</Label>

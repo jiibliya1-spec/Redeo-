@@ -75,3 +75,17 @@ export function localizeNotification(n: { type?: string; title?: string; message
     message: stripEmoji((message ?? n.message ?? '').replace(/\|\|TRIP:[^|]+\|\|/, '').trim()),
   };
 }
+
+/** Where a notification should take the user when tapped (null = nowhere special). */
+export function notificationDest(
+  n: { type?: string; message?: string; link?: string | null },
+  ctx: { isDriver: boolean },
+): string | null {
+  if (n.link && n.link.startsWith('/')) return n.link;
+  const tripId = /\|\|TRIP:([^|]+)\|\|/.exec(n.message || '')?.[1];
+  if (tripId) return ctx.isDriver ? '/driver' : '/my-trips';
+  if (n.type === 'message') return '/messages';
+  if (n.type === 'support') return '/support';
+  if (n.type === 'verification_approved' || n.type === 'verification_rejected') return '/verification';
+  return null;
+}

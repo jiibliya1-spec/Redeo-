@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { localizeNotification } from '@/lib/notifText';
+import { localizeNotification, notificationDest } from '@/lib/notifText';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useStore } from '@/store/useStore';
@@ -220,8 +220,7 @@ export function NotificationsPage() {
       <AnimatePresence>
         {open && (() => {
           const loc = localizeNotification(open, lang);
-          const tripId = /\|\|TRIP:([^|]+)\|\|/.exec(open.message || '')?.[1];
-          const dest = tripId ? (user?.role === 'driver' || useStore.getState().mode === 'driver' ? '/driver' : '/my-trips') : open.type === 'message' ? '/messages' : open.type === 'support' ? '/support' : (open.link && open.link.startsWith('/') ? open.link : null);
+          const dest = notificationDest(open, { isDriver: user?.role === 'driver' || useStore.getState().mode === 'driver' });
           return (
             <motion.div key="sheet" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               className="fixed inset-0 z-[70] bg-black/60 flex items-end sm:items-center justify-center" onClick={() => setOpen(null)} dir={dir}>

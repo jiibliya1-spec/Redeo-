@@ -2,9 +2,10 @@ import { useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useStore } from '@/store/useStore';
 import { toast } from 'sonner';
-import { localizeNotification } from '@/lib/notifText';
+import { useNavigate } from 'react-router-dom';
+import { localizeNotification, notificationDest } from '@/lib/notifText';
 import { getTranslation } from '@/lib/i18n';
-import { CheckCircle, XCircle, Bell } from 'lucide-react';
+import { CheckCircle, XCircle, Bell, AlertTriangle, ChevronRight, X } from 'lucide-react';
 
 const LS_NOTIFS = 'wansniauto_notifications';
 const LS_BOOKINGS = 'wansniauto_bookings';
@@ -57,6 +58,9 @@ export function NotificationListener() {
   const { user, isAuthenticated, refreshProfile, setUser, setUnreadCount } = useStore();
   const userId = user?.id;
   const shownRef = useRef<Set<string>>(new Set());
+  const navigate = useNavigate();
+  const navRef = useRef(navigate);
+  navRef.current = navigate;
 
   const showToast = useCallback((notif: any) => {
     if (shownRef.current.has(notif.id)) return;
@@ -66,22 +70,33 @@ export function NotificationListener() {
     const lang = useStore.getState().language;
     const { title, message } = localizeNotification(notif, lang);
 
-    switch (notif.type) {
-      case 'verification_approved':
-        toast.success(message || title, { icon: <CheckCircle className="w-5 h-5 text-green-500" />, duration: 8000 });
-        break;
-      case 'verification_rejected':
-        toast.error(message || title, { icon: <XCircle className="w-5 h-5 text-red-500" />, duration: 8000 });
-        break;
-      case 'success':
-        toast.success(title || message, { icon: <CheckCircle className="w-5 h-5 text-green-500" />, duration: 8000, description: title ? message : undefined });
-        break;
-      case 'warning':
-        toast.warning(title || message, { duration: 8000, description: title ? message : undefined });
-        break;
-      default:
-        toast.info(title || message, { icon: <Bell className="w-5 h-5 text-[#FF6B00]" />, duration: 5000, description: title ? message : undefined });
-    }
+    const isDriver = useStore.getState().user?.role === 'driver' || useStore.getState().mode === 'driver';
+    const dest = notificationDest(notif, { isDriver }) || '/notifications';
+    const good = notif.type === 'success' || notif.type === 'verification_approved';
+    const bad = notif.type === 'verification_rejected' || notif.type === 'warning';
+    const Icon = good ? CheckCircle : bad ? (notif.type === 'warning' ? AlertTriangle : XCircle) : Bell;
+    const color = good ? 'text-green-500' : notif.type === 'verification_rejected' ? 'text-red-500' : notif.type === 'warning' ? 'text-yellow-400' : 'text-[#FF6B00]';
+    const head = title || message;
+    const body = title ? message : undefined;
+
+    // The whole banner is tappable and goes straight to the relevant page.
+    toast.custom((tid) => (
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={() => { toast.dismiss(tid); navRef.current(dest); }}
+        onKeyDown={(e) => { if (e.key === 'Enter') { toast.dismiss(tid); navRef.current(dest); } }}
+        className="w-full max-w-[calc(100vw-24px)] sm:w-[356px] flex items-start gap-3 rounded-2xl border border-white/10 bg-[#1B1F27] p-4 shadow-xl cursor-pointer active:scale-[0.99] transition-transform"
+      >
+        <Icon className={`w-5 h-5 shrink-0 mt-0.5 ${color}`} />
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold text-white break-words">{head}</p>
+          {body && <p className="text-xs text-[#A0A0A0] mt-0.5 break-words line-clamp-3">{body}</p>}
+        </div>
+        <ChevronRight className="w-4 h-4 text-[#6B7280] shrink-0 mt-1 rtl:rotate-180" />
+        <button aria-label="close" onClick={(e) => { e.stopPropagation(); toast.dismiss(tid); }} className="text-[#6B7280] shrink-0 -me-1 -mt-1 p-1"><X className="w-4 h-4" /></button>
+      </div>
+    ), { duration: notif.type === 'info' ? 6000 : 9000 });
   }, []);
 
   // Keep the latest user/actions in refs so realtime channels are NOT torn down and

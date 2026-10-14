@@ -41,6 +41,7 @@ import { BottomNav } from '@/components/BottomNav';
 import { AdminRouteGuard } from '@/components/admin/AdminRouteGuard';
 import { SplashScreen } from '@/components/SplashScreen';
 import { LandingPage } from '@/pages/LandingPage';
+const TrackPage = lazy(() => import('@/pages/TrackPage').then((m) => ({ default: m.TrackPage })));
 const SearchResultsPage = lazy(() => import('@/pages/SearchResultsPage').then((m) => ({ default: m.SearchResultsPage })));
 const TripDetailsPage = lazy(() => import('@/pages/TripDetailsPage').then((m) => ({ default: m.TripDetailsPage })));
 const BookingPage = lazy(() => import('@/pages/BookingPage').then((m) => ({ default: m.BookingPage })));
@@ -76,6 +77,7 @@ const FAQPage = lazy(() => import('@/pages/FAQPage'));
 const LegalPage = lazy(() => import('@/pages/LegalPage'));
 import { NotificationListener } from '@/components/NotificationListener';
 import { loadAdminSettings } from '@/lib/adminSettings';
+import { ShareBroadcaster } from '@/components/ShareBroadcaster';
 import { Wrench } from 'lucide-react';
 import { Toaster } from '@/components/ui/sonner';
 import { Spinner } from '@/components/ui/spinner';
@@ -155,6 +157,8 @@ function AppContent() {
     try { return !sessionStorage.getItem('wa_splash_seen'); } catch { return true; }
   });
   const navigate = useNavigate();
+  const { pathname: curPath } = useLocation();
+  const isTrack = curPath.startsWith('/track/');
   const language = useStore((s) => s.language);
 
   // Apply the chosen language to the whole document (text direction + lang attribute)
@@ -266,13 +270,14 @@ function AppContent() {
     <div className="min-h-screen bg-[#0F1115] text-white font-sans">
       {/* Show navbar only for non-admin users */}
       <ScrollToTop />
-      {!isAdmin && <Navbar />}
+      {!isAdmin && !isTrack && <Navbar />}
 
-      <main className={isAdmin ? '' : 'pb-20 md:pb-0'}>
+      <main className={isAdmin || isTrack ? '' : 'pb-20 md:pb-0'}>
         <Suspense fallback={<div className="min-h-[60vh] flex items-center justify-center"><Spinner /></div>}>
         <Routes>
           {/* Admin routes - NO navbar, NO bottomnav */}
           <Route path="/admin/*" element={<AdminRoutes />} />
+          <Route path="/track/:token" element={<TrackPage />} />
 
           {/* Normal user routes */}
           <Route path="/" element={isAdmin ? <Navigate to="/admin" replace /> : (isAuthenticated ? <AppHome /> : <LandingPage />)} />
@@ -313,8 +318,9 @@ function AppContent() {
       </main>
 
       {/* Show bottomnav only for non-admin users */}
-      {!isAdmin && <BottomNav />}
+      {!isAdmin && !isTrack && <BottomNav />}
 
+      {!isAdmin && !isTrack && <ShareBroadcaster />}
       <NotificationListener />
       <Toaster
         position="top-right"

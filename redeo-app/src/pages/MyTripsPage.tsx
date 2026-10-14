@@ -12,9 +12,11 @@ import { RateUserSheet } from '@/components/RateUserSheet';
 import { CancelBookingSheet } from '@/components/CancelBookingSheet';
 import { cancelBooking } from '@/services/bookingService';
 import { hasDeparted } from '@/lib/tripTime';
+import { ShareTripSheet } from '@/components/ShareTripSheet';
+import { useShare } from '@/lib/tripShare';
 import {
   ArrowLeft, Loader2, Calendar, Clock, Users,
-  CheckCircle, XCircle, Clock3, Inbox, Banknote, Star,
+  CheckCircle, XCircle, Clock3, Inbox, Banknote, Star, MapPinned,
 } from 'lucide-react';
 
 interface BookingItem {
@@ -37,6 +39,13 @@ interface BookingItem {
   driver?: { name: string; avatar: string };
 }
 
+/** Live sharing is offered from the day before departure until the day after. */
+function canShare(date: string) {
+  const d = Date.parse(date + 'T00:00:00');
+  const day = 86400000, today = new Date(new Date().toDateString()).getTime();
+  return !isNaN(d) && d >= today - day && d <= today + day;
+}
+
 export function MyTripsPage() {
   const city = useCity();
   const navigate = useNavigate();
@@ -47,6 +56,8 @@ export function MyTripsPage() {
   const [activeTab, setActiveTab] = useState<'upcoming' | 'cancelled'>('upcoming');
   const [ratedIds, setRatedIds] = useState<Set<string>>(new Set());
   const [rateTarget, setRateTarget] = useState<BookingItem | null>(null);
+  const [shareTarget, setShareTarget] = useState<BookingItem | null>(null);
+  const activeShareTrip = useShare((s) => s.session?.tripId);
 
   const loadBookings = useCallback(async () => {
     if (!user?.id) { setLoading(false); return; }
@@ -268,6 +279,15 @@ export function MyTripsPage() {
                         <Banknote className="w-3 h-3" />{b.total_price} {t('trip.price')}
                       </span>
                     </div>
+                    <div className="flex items-center gap-2 flex-wrap justify-end">
+                    {b.status === 'confirmed' && b.trip?.departure_date && canShare(b.trip.departure_date) && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setShareTarget(b); }}
+                        className={`flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${activeShareTrip === b.trip_id ? 'text-green-400 bg-green-500/10' : 'text-[#FF6B00] bg-[#FF6B00]/10 hover:bg-[#FF6B00]/20'}`}
+                      >
+                        <MapPinned className="w-3 h-3" />{activeShareTrip === b.trip_id ? t('share.live') : t('share.btn')}
+                      </button>
+                    )}
                     {b.status === 'confirmed' && b.trip?.departure_date && b.trip.departure_date <= new Date().toISOString().split('T')[0] && (b.trip.driver_id || (b as any).driver_id) && (
                       ratedIds.has(b.id) ? (
                         <span className="flex items-center gap-1 text-xs text-[#A0A0A0]"><Star className="w-3 h-3 text-[#FF6B00] fill-[#FF6B00]" />{t('rating.rated')}</span>
@@ -288,6 +308,7 @@ export function MyTripsPage() {
                         {t('mytrips.cancel_btn')}
                       </button>
                     )}
+                    </div>
                   </div>
                 </motion.div>
               );
@@ -306,6 +327,9 @@ export function MyTripsPage() {
           bookingId={rateTarget.id}
           name={rateTarget.driver?.name}
         />
+      )}
+      {shareTarget?.trip && (
+        <ShareTripSheet open onClose={() => setShareTarget(null)} tripId={shareTarget.trip_id} from={shareTarget.trip.from_location} to={shareTarget.trip.to_location} />
       )}
       <CancelBookingSheet open={!!cancelTarget} busy={cancelling} route={cancelTarget?.trip ? `${city(cancelTarget.trip.from_location)} → ${city(cancelTarget.trip.to_location)}` : undefined} onClose={() => setCancelTarget(null)} onConfirm={handleCancel} />
     </div>

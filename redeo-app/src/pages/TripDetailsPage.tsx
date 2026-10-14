@@ -452,7 +452,7 @@ export function TripDetailsPage() {
             <Share2 className="w-5 h-5 text-[#4A9EFF]" />
             <span className="text-sm text-[#4A9EFF]">{T.share}</span>
           </button>
-          <button onClick={() => {}} className="w-full flex items-center gap-3 p-4 rounded-xl hover:bg-white/5 transition-colors text-left">
+          <button onClick={() => trip && navigate(`/support?report=${trip.id}&r=${encodeURIComponent(`${trip.from_location} → ${trip.to_location}`)}&d=${trip.departure_date}`)} className="w-full flex items-center gap-3 p-4 rounded-xl hover:bg-white/5 transition-colors text-left">
             <AlertTriangle className="w-5 h-5 text-[#4A9EFF]" />
             <span className="text-sm text-[#4A9EFF]">{T.report}</span>
           </button>

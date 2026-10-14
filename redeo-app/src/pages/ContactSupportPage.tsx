@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useStore } from '@/store/useStore';
 import { useI18n } from '@/lib/i18n';
@@ -88,8 +88,14 @@ export function ContactSupportPage() {
   /* ─── Form state ─── */
   const [name, setName] = useState(user?.name || '');
   const [email, setEmail] = useState(user?.email || '');
-  const [subject, setSubject] = useState('');
-  const [message, setMessage] = useState('');
+  const [sp] = useSearchParams();
+  const reportId = sp.get('report');
+  const reportRoute = sp.get('r') || '';
+  const reportDate = sp.get('d') || '';
+  const reportSubject = lang === 'ar' ? 'تبليغ عن رحلة' : lang === 'fr' ? 'Signalement d\'un trajet' : 'Trip report';
+  const reportLabel = lang === 'ar' ? 'الرحلة' : lang === 'fr' ? 'Trajet' : 'Trip';
+  const [subject, setSubject] = useState(reportId ? reportSubject : '');
+  const [message, setMessage] = useState(reportId ? `${reportLabel}: ${reportRoute} (${reportDate})\nID: ${reportId}\n\n` : '');
   const [honeypot, setHoneypot] = useState('');
   const [screenshot, setScreenshot] = useState<ScreenshotFile | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);

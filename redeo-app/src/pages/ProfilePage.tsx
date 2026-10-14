@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { Camera, Edit, Check, Shield, Star, ChevronRight, Loader2, LogOut, Globe, Users, RefreshCw, Settings, Clock } from 'lucide-react';
+import { Camera, Edit, Check, Shield, Star, ChevronRight, Loader2, LogOut, Globe, Users, RefreshCw, Settings, Clock, Wallet } from 'lucide-react';
 import { Car } from '@/components/icons/CarIcon';
 
 
@@ -24,6 +24,7 @@ export function ProfilePage() {
   const { user, signOut, setUser } = useStore();
   const { lang, setLang, t } = useI18n();
 
+  const [walletBal, setWalletBal] = useState<number | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState('');
   const [bio, setBio] = useState('');
@@ -352,6 +353,11 @@ export function ProfilePage() {
 
   // ─── (debug removed) ───
 
+  useEffect(() => {
+    if (!user?.id || profileRole !== 'driver') return;
+    supabase.from('driver_wallets').select('balance').eq('driver_id', user.id).maybeSingle().then(({ data }) => setWalletBal(Number(data?.balance ?? 0)));
+  }, [user?.id, profileRole]);
+
   const menuItems = profileRole === 'admin' ? [
     { icon: Shield, label: t('admin.panel'), desc: t('ui.manage_platform_0809'), action: () => navigate('/admin') },
     { icon: Users, label: t('admin.users'), desc: t('ui.view_all_users_23d6'), action: () => navigate('/admin/users') },
@@ -359,6 +365,7 @@ export function ProfilePage() {
     { icon: Car, label: t('ui.all_trips_50cd'), desc: t('ui.manage_trips_aee7'), action: () => navigate('/admin/trips') },
   ] : [
     { icon: Shield, label: t('verify.title'), desc: t('verify.subtitle'), action: () => navigate('/verification') },
+    ...(profileRole === 'driver' ? [{ icon: Wallet, label: `${t('wallet.profile_balance')}: ${(walletBal ?? 0).toFixed(2)} MAD`, desc: t('wallet.profile_desc'), action: () => navigate('/wallet') }] : []),
     { icon: Car, label: t('passenger.title'), desc: t('profile.rides_desc'), action: () => navigate('/dashboard') },
     { icon: Star, label: t('profile.my_reviews'), desc: t('reviews.desc'), action: () => navigate('/reviews') },
     { icon: Settings, label: t('nav.settings'), desc: t('ui.account_preferences_e8f6'), action: () => navigate('/settings') },

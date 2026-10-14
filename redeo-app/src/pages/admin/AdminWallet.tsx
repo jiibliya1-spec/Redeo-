@@ -24,6 +24,29 @@ export function AdminWallet() {
   const [minWd, setMinWd] = useState('50');
   const [wds, setWds] = useState<Wd[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
+  const [q, setQ] = useState('');
+  const [drivers, setDrivers] = useState<{ id: string; name: string; phone: string; balance: number }[]>([]);
+  const [pick, setPick] = useState<string | null>(null);
+  const [amt, setAmt] = useState('');
+  const [cnote, setCnote] = useState('');
+
+  const loadDrivers = useCallback(async (term: string) => {
+    const { data } = await supabase.rpc('admin_wallet_drivers', { p_q: term });
+    setDrivers((data as any[]) || []);
+  }, []);
+  useEffect(() => { const id = setTimeout(() => loadDrivers(q.trim()), 250); return () => clearTimeout(id); }, [q, loadDrivers]);
+
+  const credit = async () => {
+    const n = Number(amt.replace(',', '.'));
+    if (!pick || !n) return;
+    setBusy('credit');
+    const { error } = await supabase.rpc('admin_credit_driver', { p_driver: pick, p_amount: n, p_note: cnote.trim() || null });
+    setBusy(null);
+    if (error) { toast.error(t('err.generic')); return; }
+    toast.success(t('adm.credit_done'));
+    setAmt(''); setCnote(''); setPick(null);
+    loadDrivers(q.trim()); load();
+  };
 
   const load = useCallback(async () => {
     const [{ data: rq }, { data: st }] = await Promise.all([
@@ -99,6 +122,25 @@ export function AdminWallet() {
             ))}
           </div>
         )}
+
+        <div className="bg-[#111318] rounded-2xl border border-[#FF6B00]/30 p-5 space-y-3">
+          <h3 className="text-sm font-semibold text-white">{t('adm.credit_title')}</h3>
+          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('adm.credit_search')} className="bg-[#0F1115] border-white/10 text-white" />
+          <div className="max-h-56 overflow-y-auto rounded-xl border border-white/5 divide-y divide-white/5">
+            {drivers.length === 0 ? <p className="text-xs text-[#A0A0A0] p-3">{t('adm.credit_none')}</p> : drivers.map((d) => (
+              <button key={d.id} onClick={() => setPick(d.id)} className={`w-full flex items-center justify-between gap-3 p-3 text-start ${pick === d.id ? 'bg-[#FF6B00]/15' : 'hover:bg-white/5'}`}>
+                <span className="min-w-0"><span className="block text-sm text-white truncate">{d.name || t('adm.unknown')}</span><span className="block text-[11px] text-[#A0A0A0]" dir="ltr">{d.phone}</span></span>
+                <span className="text-sm font-semibold text-white shrink-0" dir="ltr">{Number(d.balance).toFixed(2)} MAD</span>
+              </button>
+            ))}
+          </div>
+          <Input value={amt} onChange={(e) => setAmt(e.target.value)} inputMode="decimal" dir="ltr" placeholder={t('adm.credit_amount')} className="bg-[#0F1115] border-white/10 text-white" />
+          <Input value={cnote} onChange={(e) => setCnote(e.target.value)} placeholder={t('adm.credit_note')} className="bg-[#0F1115] border-white/10 text-white" />
+          <p className="text-[11px] text-[#A0A0A0]">{t('adm.credit_hint')}</p>
+          <Button onClick={credit} disabled={!pick || !Number(amt.replace(',', '.')) || busy === 'credit'} className="bg-[#FF6B00] hover:bg-[#E56000] text-white rounded-xl w-full">
+            {busy === 'credit' ? <Loader2 className="w-4 h-4 animate-spin" /> : pick ? t('adm.credit_btn') : t('adm.credit_pick')}
+          </Button>
+        </div>
 
         <div className="bg-[#111318] rounded-2xl border border-white/5 p-5 space-y-4">
           <h3 className="text-sm font-semibold text-white">{t('adm.commission_title')}</h3>

@@ -21,6 +21,7 @@ export function AdminWallet() {
   const [pct, setPct] = useState('0');
   const [note, setNote] = useState('');
   const [minBal, setMinBal] = useState('0');
+  const [lowBal, setLowBal] = useState('50');
   const [wdOn, setWdOn] = useState(true);
   const [minWd, setMinWd] = useState('50');
   const [wds, setWds] = useState<Wd[]>([]);
@@ -58,7 +59,7 @@ export function AdminWallet() {
     const { data: sj } = await supabase.rpc('admin_wallet_stats');
     if (sj) setStats(sj as Stats);
     for (const r of (st as { key: string; value: any }[]) || []) {
-      if (r.key === 'commission') { setEnabled(!!r.value?.enabled); setPct(String(r.value?.pct ?? 0)); setMinBal(String(r.value?.min_balance ?? 0)); setWdOn(r.value?.withdrawals !== false); setMinWd(String(r.value?.min_withdraw ?? 0)); }
+      if (r.key === 'commission') { setEnabled(!!r.value?.enabled); setPct(String(r.value?.pct ?? 0)); setMinBal(String(r.value?.min_balance ?? 0)); setLowBal(String(r.value?.low_balance ?? 50)); setWdOn(r.value?.withdrawals !== false); setMinWd(String(r.value?.min_withdraw ?? 0)); }
       if (r.key === 'wallet_topup_info') setNote(String(r.value?.note || ''));
     }
     setLoading(false);
@@ -83,7 +84,7 @@ export function AdminWallet() {
 
   const save = async () => {
     const n = Math.min(30, Math.max(0, Number(pct.replace(',', '.')) || 0));
-    const a = await supabase.from('platform_settings').upsert({ key: 'commission', value: { enabled, pct: n, min_balance: Math.max(0, Number(minBal.replace(',', '.')) || 0), withdrawals: wdOn, min_withdraw: Math.max(0, Number(minWd.replace(',', '.')) || 0) }, updated_at: new Date().toISOString() });
+    const a = await supabase.from('platform_settings').upsert({ key: 'commission', value: { enabled, pct: n, min_balance: Math.max(0, Number(minBal.replace(',', '.')) || 0), low_balance: Math.max(0, Number(lowBal.replace(',', '.')) || 0), withdrawals: wdOn, min_withdraw: Math.max(0, Number(minWd.replace(',', '.')) || 0) }, updated_at: new Date().toISOString() });
     const b = await supabase.from('platform_settings').upsert({ key: 'wallet_topup_info', value: { methods: [], note: note.trim() }, updated_at: new Date().toISOString() });
     if (a.error || b.error) toast.error(t('err.generic')); else { setPct(String(n)); toast.success(t('adm.saved')); }
   };
@@ -137,6 +138,10 @@ export function AdminWallet() {
           <div>
             <p className="text-xs text-[#A0A0A0] mb-1">{t('adm.min_balance')}</p>
             <Input value={minBal} onChange={(e) => setMinBal(e.target.value)} inputMode="decimal" dir="ltr" className="bg-[#0F1115] border-white/10 text-white w-32" />
+          </div>
+          <div>
+            <p className="text-xs text-[#A0A0A0] mb-1">{t('adm.low_balance')}</p>
+            <Input value={lowBal} onChange={(e) => setLowBal(e.target.value)} inputMode="decimal" dir="ltr" className="bg-[#0F1115] border-white/10 text-white w-32" />
           </div>
           <label className="flex items-center justify-between text-sm text-[#A0A0A0]">
             {t('adm.wd_enable')}

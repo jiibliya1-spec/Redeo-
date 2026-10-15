@@ -72,6 +72,9 @@ export function LoginPage() {
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
+            <div className="mt-2 text-right rtl:text-left">
+              <Link to="/forgot-password" className="text-sm text-[#FF6B00] hover:underline">{t('auth.forgot_password')}</Link>
+            </div>
           </div>
           <Button type="submit" disabled={isLoading} className="w-full bg-[#FF6B00] text-white hover:bg-[#E56000] rounded-xl h-12 text-base font-semibold disabled:opacity-50">
             {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : t('auth.login_btn')}

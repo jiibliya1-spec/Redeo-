@@ -41,6 +41,8 @@ import { BottomNav } from '@/components/BottomNav';
 import { AdminRouteGuard } from '@/components/admin/AdminRouteGuard';
 import { SplashScreen } from '@/components/SplashScreen';
 import { LandingPage } from '@/pages/LandingPage';
+const ForgotPasswordPage = lazy(() => import('@/pages/ForgotPasswordPage').then((m) => ({ default: m.ForgotPasswordPage })));
+const ResetPasswordPage = lazy(() => import('@/pages/ResetPasswordPage').then((m) => ({ default: m.ResetPasswordPage })));
 const TrackPage = lazy(() => import('@/pages/TrackPage').then((m) => ({ default: m.TrackPage })));
 const SearchResultsPage = lazy(() => import('@/pages/SearchResultsPage').then((m) => ({ default: m.SearchResultsPage })));
 const TripDetailsPage = lazy(() => import('@/pages/TripDetailsPage').then((m) => ({ default: m.TripDetailsPage })));
@@ -190,6 +192,7 @@ function AppContent() {
         // sign-in coming from the login/register screens or an email-confirmation link.
         const path = window.location.pathname;
         const fromEmailLink = /access_token|type=signup|type=magiclink/.test(window.location.hash + window.location.search);
+        if (path === '/reset-password') return;
         if (path !== '/login' && path !== '/register' && !fromEmailLink) return;
         setTimeout(async () => {
           await refreshProfile();
@@ -286,6 +289,8 @@ function AppContent() {
           <Route path="/booking/:id" element={isAdmin ? <Navigate to="/admin" replace /> : (<BookingPage />)} />
           <Route path="/my-trips" element={isAdmin ? <Navigate to="/admin" replace /> : (isAuthenticated ? <MyTripsPage /> : <Navigate to="/login" />)} />
           <Route path="/login" element={<ProtectedLogin />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/register" element={<ProtectedRegister />} />
           <Route path="/dashboard" element={<DashboardRouter />} />
           <Route path="/driver" element={isAdmin ? <Navigate to="/admin" replace /> : (isAuthenticated && (mode === 'driver' || user?.role === 'admin') ? <DriverDashboard /> : <Navigate to="/dashboard" />)} />

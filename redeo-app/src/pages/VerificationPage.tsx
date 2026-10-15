@@ -47,7 +47,7 @@ import { Car } from '@/components/icons/CarIcon';
     },
     {
       id: 'selfie', label: 'Selfie with ID', labelAr: 'صورة شخصية مع البطاقة', labelFr: 'Selfie avec CIN',
-      desc: 'Photo of yourself holding your ID next to your face', descAr: 'صورة شخصية وانت كاتمسك البطاقة بجانب وجهك', descFr: 'Photo de vous tenant votre CIN',
+      desc: 'Photo of yourself holding your ID next to your face', descAr: 'صورة شخصية وأنت تمسك البطاقة بجانب وجهك', descFr: 'Photo de vous tenant votre CIN',
       icon: User, status: 'not_uploaded',
     },
     {
@@ -67,7 +67,7 @@ import { Car } from '@/components/icons/CarIcon';
     },
     {
       id: 'car_photo_front', label: 'Car Photo (Front)', labelAr: 'صورة السيارة (أمام)', labelFr: 'Photo voiture (Avant)',
-      desc: 'Front view of your vehicle', descAr: 'صورة السيارة من القدام', descFr: 'Vue de face de votre véhicule',
+      desc: 'Front view of your vehicle', descAr: 'صورة السيارة من الأمام', descFr: 'Vue de face de votre véhicule',
       icon: Car, status: 'not_uploaded',
     },
     {
@@ -282,23 +282,23 @@ import { Car } from '@/components/icons/CarIcon';
       }
       const toRetake = steps.filter((s) => s.status === 'uploaded' && s.ai?.state === 'retake');
       if (toRetake.length) {
-        toast.error((lang === 'ar' ? 'عاود صور: ' : lang === 'fr' ? 'À reprendre : ' : 'Please retake: ') + toRetake.map(getLabel).join(', '));
+        toast.error((lang === 'ar' ? 'أعد التصوير: ' : lang === 'fr' ? 'À reprendre : ' : 'Please retake: ') + toRetake.map(getLabel).join(', '));
         return;
       }
       const required = ALL_DOCS.map((d) => d.id);
       const have = new Set(steps.filter((s) => ['uploaded', 'pending', 'approved'].includes(s.status)).map((s) => s.id));
       const missing = steps.filter((s) => required.includes(s.id) && !have.has(s.id));
       if (missing.length && !window.confirm(
-        (lang === 'ar' ? 'مازال ناقصين هاد الوثائق:\n' : lang === 'fr' ? 'Documents manquants :\n' : 'Missing documents:\n')
+        (lang === 'ar' ? 'الوثائق التالية ناقصة:\n' : lang === 'fr' ? 'Documents manquants :\n' : 'Missing documents:\n')
         + missing.map(getLabel).join('\n')
-        + (lang === 'ar' ? '\n\nواش بغيتي تبعت بلا بيهم؟' : lang === 'fr' ? '\n\nEnvoyer quand même ?' : '\n\nSubmit anyway?')
+        + (lang === 'ar' ? '\n\nهل تريد الإرسال بدونها؟' : lang === 'fr' ? '\n\nEnvoyer quand même ?' : '\n\nSubmit anyway?')
       )) return;
 
       setSubmitting(true);
       try {
         const result = await submitVerification();
         if (!result.ok && result.error === 'needs_retake') {
-          toast.error(lang === 'ar' ? 'بعض الوثائق خاصها تتصور من جديد' : 'Some documents need to be retaken');
+          toast.error(lang === 'ar' ? 'يجب إعادة تصوير بعض الوثائق' : 'Some documents need to be retaken');
           await loadDocuments();
           setSubmitting(false);
           return;
@@ -390,7 +390,7 @@ import { Car } from '@/components/icons/CarIcon';
               <CheckCircle className="w-6 h-6 text-green-500 shrink-0" />
               <div>
                 <p className="text-sm font-semibold text-green-400">{lang === 'ar' ? 'الحساب موثق' : 'Account Verified'}</p>
-                <p className="text-xs text-[#A0A0A0]">{lang === 'ar' ? 'تمت الموافقة على وثائقك من طرف الإدارة' : 'Your documents were approved by admin'}</p>
+                <p className="text-xs text-[#A0A0A0]">{lang === 'ar' ? 'تمت موافقة الإدارة على وثائقك' : 'Your documents were approved by admin'}</p>
               </div>
             </motion.div>
           )}
@@ -614,7 +614,7 @@ import { Car } from '@/components/icons/CarIcon';
               </button>
               <p className="text-[11px] text-[#A0A0A0]/70 text-center mt-3 leading-relaxed">
                 {lang === 'ar'
-                  ? 'كيتم فحص الوثائق بالذكاء الاصطناعي قبل المراجعة اليدوية، وما كيتم استعمالها لأي غرض آخر.'
+                  ? 'تُفحص الوثائق بالذكاء الاصطناعي قبل المراجعة اليدوية، ولا تُستخدم لأي غرض آخر.'
                   : lang === 'fr'
                   ? "Vos documents sont analysés par une IA avant la revue manuelle et ne servent à aucun autre usage."
                   : 'Your documents are checked by AI before the manual review and are not used for anything else.'}

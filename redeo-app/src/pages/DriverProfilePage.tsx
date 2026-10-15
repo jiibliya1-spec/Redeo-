@@ -102,7 +102,7 @@ export function DriverProfilePage() {
   const T = {
     en: { verified: 'Verified Driver', trips: 'Trips', reviews: 'Reviews', member: 'Member', contact: 'Message', book: 'Book', noTrips: 'No upcoming trips', noReviews: 'No reviews yet', seats: 'seats', price: 'MAD' },
     fr: { verified: 'Chauffeur Verifie', trips: 'Trajets', reviews: 'Avis', member: 'Membre', contact: 'Message', book: 'Reserver', noTrips: 'Aucun trajet a venir', noReviews: 'Pas encore d\'avis', seats: 'places', price: 'MAD' },
-    ar: { verified: 'سائق مفحوص', trips: 'الرحلات', reviews: 'التقييمات', member: 'عضو', contact: 'مراسلة', book: 'احجز', noTrips: 'مافيه حتى رحلة', noReviews: 'مافيه حتى تقييم', seats: 'مقاعد', price: 'درهم' },
+    ar: { verified: 'سائق موثَّق', trips: 'الرحلات', reviews: 'التقييمات', member: 'عضو', contact: 'مراسلة', book: 'احجز', noTrips: 'لا توجد أي رحلة', noReviews: 'لا يوجد أي تقييم', seats: 'مقاعد', price: 'درهم' },
   }[lang];
 
   if (loading) {

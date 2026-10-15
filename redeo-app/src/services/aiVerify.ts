@@ -105,10 +105,10 @@ export async function submitVerification(): Promise<SubmitResult> {
 
 export const AI_MESSAGES: Record<string, Record<AiVerdict | 'scanning', string>> = {
   ar: {
-    scanning: 'جاري الفحص الذكي للوثيقة...',
-    accept: 'الوثيقة مقبولة مبدئيا',
-    retake: 'الوثيقة غير واضحة أو غير مطابقة. عاود صورها من جديد.',
-    review: 'تم استلام الوثيقة، وغادي تدوز لمراجعة يدوية من الإدارة.',
+    scanning: 'جارٍ الفحص الذكي للوثيقة...',
+    accept: 'الوثيقة مقبولة مبدئياً',
+    retake: 'الوثيقة غير واضحة أو غير مطابقة. أعد تصويرها من جديد.',
+    review: 'تم استلام الوثيقة، وستخضع لمراجعة يدوية من الإدارة.',
   },
   fr: {
     scanning: 'Analyse intelligente du document...',

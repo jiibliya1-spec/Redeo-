@@ -1,3 +1,4 @@
+import { ZoomableImage } from '@/components/ZoomableImage';
 import { useState, useRef, useEffect } from 'react';
 import { uploadChatImage } from '@/services/storageService';
 import { decodeText } from '@/lib/notifText';
@@ -579,7 +580,7 @@ export function MessagesPage() {
               className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/10 flex items-center justify-center" style={{ marginTop: 'env(safe-area-inset-top)' }}>
               <X className="w-5 h-5 text-white" />
             </button>
-            <img src={viewerImage} alt="" className="max-w-full max-h-full object-contain rounded-lg" onClick={e => e.stopPropagation()} />
+            <div onClick={e => e.stopPropagation()}><ZoomableImage src={viewerImage} className="max-w-full max-h-[90vh] object-contain rounded-lg" /></div>
           </motion.div>
         )}
       </AnimatePresence>

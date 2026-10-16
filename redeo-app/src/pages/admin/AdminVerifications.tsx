@@ -1,3 +1,4 @@
+import { ZoomableImage } from '@/components/ZoomableImage';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useI18n } from '@/lib/i18n';
 import { encodeText } from '@/lib/notifText';
@@ -891,7 +892,7 @@ export function AdminVerifications() {
               >
                 <X className="w-5 h-5" />
               </button>
-              <img
+              <ZoomableImage
                 src={previewUrl}
                 alt={t('adm.document_0945')}
                 className="max-w-full max-h-[85vh] rounded-2xl border border-white/10 object-contain"

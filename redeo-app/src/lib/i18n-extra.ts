@@ -657,6 +657,7 @@ export const EXTRA: Record<Lang, Record<string, string>> = {
     'a2hs.i1': 'Open this page in Safari (not inside Instagram or Facebook).',
     'a2hs.i2': 'Tap the Share button (the square with an arrow).',
     'a2hs.i3': 'Scroll and choose “Add to Home Screen”, then tap Add.',
+    'search.edit': 'Edit search',
   },
   fr: {
     'rating.none': 'Pas encore noté',
@@ -1313,6 +1314,7 @@ export const EXTRA: Record<Lang, Record<string, string>> = {
     'a2hs.i1': 'Ouvrez cette page dans Safari (pas dans Instagram ou Facebook).',
     'a2hs.i2': 'Touchez le bouton Partager (le carré avec une flèche).',
     'a2hs.i3': "Faites défiler, choisissez « Sur l'écran d'accueil », puis Ajouter.",
+    'search.edit': 'Modifier',
   },
   ar: {
     'rating.none': 'لا يملك أي تقييم بعد',
@@ -1969,5 +1971,6 @@ export const EXTRA: Record<Lang, Record<string, string>> = {
     'a2hs.i1': 'افتح هذه الصفحة في Safari (وليس من داخل Instagram أو Facebook).',
     'a2hs.i2': 'اضغط على زر المشاركة (المربع الذي فيه سهم).',
     'a2hs.i3': 'مرّر للأسفل واختر «إضافة إلى الشاشة الرئيسية» ثم اضغط إضافة.',
+    'search.edit': 'تعديل البحث',
   },
 };

@@ -32,6 +32,10 @@ export interface Vehicle {
 }
 
 export interface Trip {
+  vehicle_info?: string | null;
+  women_only?: boolean;
+  meeting_point?: string | null;
+  car_plate?: string | null;
   id: string;
   driver_id: string;
   driver?: User;

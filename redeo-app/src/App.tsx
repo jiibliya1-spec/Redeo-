@@ -1,3 +1,4 @@
+import { takeReturnTo } from '@/lib/returnTo';
 import { AddToHomeScreen } from '@/components/AddToHomeScreen';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { reportError } from '@/lib/errorLog';
@@ -108,6 +109,8 @@ function ProtectedLogin() {
   const { isAuthenticated, user } = useStore();
   if (isAuthenticated) {
     if (user?.role === 'admin') return <Navigate to="/admin" replace />;
+    const back = takeReturnTo();
+    if (back) return <Navigate to={back} replace />;
     return <Navigate to="/dashboard" replace />;
   }
   return <LoginPage />;
@@ -118,6 +121,8 @@ function ProtectedRegister() {
   const { isAuthenticated, user } = useStore();
   if (isAuthenticated) {
     if (user?.role === 'admin') return <Navigate to="/admin" replace />;
+    const back = takeReturnTo();
+    if (back) return <Navigate to={back} replace />;
     return <Navigate to="/dashboard" replace />;
   }
   return <RegisterPage />;

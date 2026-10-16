@@ -87,7 +87,7 @@ function OfferRow({ trip, selected, onSelect }: { trip: Trip; selected: boolean;
           <span className="truncate">{d?.name || 'Driver'}</span>
           <RatingBadge rating={d?.rating} count={(d as any)?.rating_count} />
         </div>
-        <p className="text-xs text-[#A0A0A0] mt-0.5">{trip.available_seats} {t('trip.seats_left')}{trip.duration ? ` · ${trip.duration}` : ''}</p>
+        <p className="text-xs text-[#A0A0A0] mt-0.5">{trip.available_seats} {t('trip.seats_left')}{trip.duration ? ` · ${trip.duration}` : ''}{trip.women_only ? <span className="ms-1.5 px-1.5 py-0.5 rounded-full bg-pink-500/15 text-pink-300 text-[10px] font-semibold">{t('trip.women_only')}</span> : null}</p>
       </div>
       <p className="text-lg font-bold text-[#FF6B00] shrink-0 text-end leading-tight">{trip.price}<span className="block text-[11px] font-normal text-[#A0A0A0]">{t('trip.price')}</span></p>
     </button>
@@ -111,6 +111,7 @@ export function SearchResultsPage() {
   const { t, dir } = useI18n();
   const [results, setResults] = useState<Trip[]>([]);
   const [sortBy, setSortBy] = useState('price');
+  const [womenOnly, setWomenOnly] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(0);
   const hasFilters = !!(searchFilters.from || searchFilters.to || searchFilters.date);
@@ -208,6 +209,11 @@ export function SearchResultsPage() {
     }
 
     const enriched = await enrichTripsWithDrivers(filtered);
+    // Search-success metric (fire and forget; table may not exist yet)
+    try {
+      const { data: sess } = await supabase.auth.getSession();
+      void supabase.from('search_logs').insert({ user_id: sess.session?.user.id ?? null, from_location: searchFilters.from || null, to_location: searchFilters.to || null, results_count: enriched.length }).then(() => {}, () => {});
+    } catch { /* ignore */ }
     setResults(enriched);
     setIsLoading(false);
   }, [searchFilters, enrichTripsWithDrivers]);
@@ -239,7 +245,7 @@ export function SearchResultsPage() {
     return () => { supabase.removeChannel(channel); if (refreshTimer.current) { clearTimeout(refreshTimer.current); refreshTimer.current = null; } };
   }, []);
 
-  const sorted = [...results].sort((a, b) => {
+  const sorted = [...results].filter((x) => !womenOnly || x.women_only).sort((a, b) => {
     if (sortBy === 'price') return a.price - b.price;
     if (sortBy === 'time') return a.departure_time.localeCompare(b.departure_time);
     if (sortBy === 'rating') return (b.driver?.rating || 0) - (a.driver?.rating || 0);
@@ -390,6 +396,10 @@ export function SearchResultsPage() {
                   {[1, 2, 3, 4, 5, 6].map((n) => <option key={n} value={n}>{n} {t('search.pax')}</option>)}
                 </select>
               </div>
+              <label className="flex items-center gap-2 mt-3 text-sm text-[#A0A0A0] cursor-pointer" dir={dir}>
+                <input type="checkbox" checked={womenOnly} onChange={(e) => setWomenOnly(e.target.checked)} className="accent-[#FF6B00]" />
+                {t('search.women_only')}
+              </label>
               <div className="flex items-center justify-between mt-3" dir={dir}>
                 <span className="text-sm text-[#A0A0A0]">{t('search.sort')}</span>
                 <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="bg-[#0F1115] border border-white/10 text-white rounded-xl h-9 px-3 text-sm outline-none appearance-none">

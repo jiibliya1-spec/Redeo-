@@ -68,6 +68,11 @@ export function PublishTripPage() {
   const [seats, setSeats] = useState('3');
   const [distance, setDistance] = useState('');
   const [duration, setDuration] = useState('');
+  const [meetingPoint, setMeetingPoint] = useState('');
+  const [womenOnly, setWomenOnly] = useState(false);
+  const [vehicles, setVehicles] = useState<{ id: string; make: string; model: string; color: string; plate: string }[]>([]);
+  const [vehicleId, setVehicleId] = useState('');
+  const [staged, setStaged] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [recentTrips, setRecentTrips] = useState<Trip[]>([]);
   const [priceSuggestion, setPriceSuggestion] = useState<{ km: number; min: number; suggested: number; max: number } | null>(null);
@@ -152,8 +157,13 @@ export function PublishTripPage() {
         setCanPublish(true);
         setVerifMessage('');
       } else if (status === 'pending' || status === 'submitted') {
-        setCanPublish(false);
-        setVerifMessage('publish.msg_review');
+        // Staged verification: licence + a car photo already sent -> publishing allowed while the rest is reviewed
+        const { data: docs } = await supabase.from('verifications').select('doc_type,status').eq('user_id', user.id);
+        const sent = (docs || []).filter((d: any) => d.status !== 'rejected').map((d: any) => d.doc_type);
+        const stagedOk = sent.includes('driver_license') && (sent.includes('car_photo_front') || sent.includes('car_photo_back'));
+        setStaged(stagedOk);
+        setCanPublish(stagedOk);
+        setVerifMessage(stagedOk ? '' : 'publish.msg_review');
       } else if (status === 'rejected') {
         setCanPublish(false);
         setVerifMessage('publish.msg_rejected');
@@ -177,6 +187,17 @@ export function PublishTripPage() {
   useEffect(() => {
     checkVerification();
   }, [checkVerification]);
+
+  // Driver's saved vehicles (shown to passengers before booking)
+  useEffect(() => {
+    if (!user?.id) return;
+    supabase.from('driver_vehicles').select('id,make,model,color,plate').eq('user_id', user.id).order('created_at')
+      .then(({ data }) => {
+        const list = (data || []) as any[];
+        setVehicles(list);
+        if (list.length === 1) setVehicleId(list[0].id);
+      });
+  }, [user?.id]);
 
   // Load recent trips from Supabase
   useEffect(() => {
@@ -229,6 +250,12 @@ export function PublishTripPage() {
         status: 'upcoming',
       };
 
+      // New optional fields are only sent when used (keeps old rows/DB compatible)
+      const veh = vehicles.find(v => v.id === vehicleId);
+      if (veh) { tripData.vehicle_info = [veh.make, veh.model, veh.color].filter(Boolean).join(' '); if (veh.plate) tripData.car_plate = veh.plate; }
+      if (meetingPoint.trim()) tripData.meeting_point = meetingPoint.trim();
+      if (womenOnly) tripData.women_only = true;
+
       // Save to Supabase via REST API with JWT
       const result = await apiPost('trips', tripData);
       if (!result || !result[0]?.id) {
@@ -236,7 +263,7 @@ export function PublishTripPage() {
       }
 
       toast.success(t('ui.trip_published_13be'));
-      setFrom(''); setTo(''); setDate(''); setTime(''); setArrival(''); setPrice(''); setSeats('3'); setDistance(''); setDuration('');
+      setFrom(''); setTo(''); setDate(''); setTime(''); setArrival(''); setPrice(''); setSeats('3'); setDistance(''); setDuration(''); setMeetingPoint(''); setWomenOnly(false);
     } catch (err: any) {
       if (String(err?.message).includes('wallet_low')) { toast.error(t('wallet.low_publish')); navigate('/wallet'); }
       else toast.error(err.message || t('publish.failed'));
@@ -468,6 +495,37 @@ export function PublishTripPage() {
                 <Input type="text" value={duration} onChange={e => setDuration(e.target.value)} placeholder={t('publish.duration_ph')} className="bg-[#0F1115] border-white/10 text-white rounded-xl" />
               </div>
             </div>
+
+            {/* Vehicle (plate shown to passengers) */}
+            {vehicles.length > 0 && (
+              <div>
+                <Label className="text-sm text-[#A0A0A0] mb-1.5 block">{t('publish.vehicle_pick')}</Label>
+                <select value={vehicleId} onChange={e => setVehicleId(e.target.value)} className="w-full bg-[#0F1115] border border-white/10 text-white rounded-xl h-11 px-3 text-sm outline-none">
+                  <option value="">{t('publish.vehicle_none')}</option>
+                  {vehicles.map(v => <option key={v.id} value={v.id}>{[v.make, v.model, v.color].filter(Boolean).join(' ')}{v.plate ? ` · ${v.plate}` : ''}</option>)}
+                </select>
+              </div>
+            )}
+
+            {/* Meeting point */}
+            <div>
+              <Label className="text-sm text-[#A0A0A0] mb-1.5 flex items-center gap-1.5">
+                <MapPin className="w-3.5 h-3.5 text-[#FF6B00]" /> {t('publish.meeting_point')}
+              </Label>
+              <Input type="text" maxLength={120} value={meetingPoint} onChange={e => setMeetingPoint(e.target.value)} placeholder={t('publish.meeting_ph')} className="bg-[#0F1115] border-white/10 text-white rounded-xl" />
+              <p className="text-[11px] text-[#6B7280] mt-1">{t('publish.meeting_hint')}</p>
+            </div>
+
+            {/* Women only */}
+            <label className="flex items-start gap-3 rounded-xl border border-white/10 p-3 cursor-pointer">
+              <input type="checkbox" checked={womenOnly} onChange={e => setWomenOnly(e.target.checked)} className="mt-1 accent-[#FF6B00]" />
+              <span>
+                <span className="block text-sm text-white font-medium">{t('publish.women_only')}</span>
+                <span className="block text-[11px] text-[#6B7280]">{t('publish.women_only_hint')}</span>
+              </span>
+            </label>
+
+            {staged && <p className="text-xs text-yellow-400 bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-3">{t('publish.staged_note')}</p>}
 
             {/* Publish Button */}
             <Button type="submit" disabled={isPublishing} className="w-full bg-[#FF6B00] text-white hover:bg-[#E56000] rounded-xl h-13 text-base font-semibold disabled:opacity-50 mt-2 shadow-lg shadow-[#FF6B00]/20">

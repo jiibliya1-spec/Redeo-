@@ -1,3 +1,4 @@
+import { takeReturnTo } from '@/lib/returnTo';
 import { useState } from 'react';
 import { authErrorKey } from '@/lib/errors';
 import { Logo } from '@/components/Logo';
@@ -59,7 +60,9 @@ export function RegisterPage() {
       } else {
         // Auto-confirmed — go to dashboard directly
         toast.success(t('ui.account_created_welcome_a49a'));
-        if (role === 'driver') navigate('/driver');
+        const back = takeReturnTo();
+        if (back && role !== 'driver') navigate(back);
+        else if (role === 'driver') navigate('/driver');
         else navigate('/dashboard');
       }
     } else {

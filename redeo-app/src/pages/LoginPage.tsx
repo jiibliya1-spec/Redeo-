@@ -1,3 +1,4 @@
+import { takeReturnTo } from '@/lib/returnTo';
 import { useState } from 'react';
 import { authErrorKey } from '@/lib/errors';
 import { Logo } from '@/components/Logo';
@@ -38,7 +39,7 @@ export function LoginPage() {
       if (freshUser?.role === 'admin') {
         navigate('/admin', { replace: true });
       } else {
-        navigate('/dashboard', { replace: true });
+        navigate(takeReturnTo() || '/dashboard', { replace: true });
       }
     } else {
       toast.error(t(authErrorKey(result.error)));

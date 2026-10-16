@@ -1,3 +1,4 @@
+import { setReturnTo } from '@/lib/returnTo';
 import { useState, useEffect } from 'react';
 import { hasDeparted } from '@/lib/tripTime';
 import { useCity } from '@/lib/cities';
@@ -61,7 +62,8 @@ export function BookingPage() {
   }, [id]);
 
   const handleBook = async () => {
-    if (!trip || !user?.id) return;
+    if (!trip) return;
+    if (!user?.id) { setReturnTo(`/booking/${trip.id}`); toast.info(t('auth.login_to_book')); navigate('/login'); return; }
     setIsBooking(true);
     try {
       const now = new Date().toISOString();

@@ -6,6 +6,7 @@ import { Link } from 'react-router-dom';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { supabase } from '@/lib/supabase';
 import { Users, ShieldCheck, MessageSquare, UserCheck, UserX, Clock, ChevronRight } from 'lucide-react';
+import { AdminMetrics } from '@/components/admin/AdminMetrics';
 import { Car } from '@/components/icons/CarIcon';
 
 
@@ -191,6 +192,7 @@ export function AdminDashboard() {
 
   return (
     <AdminLayout>
+      <AdminMetrics />
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {statCards.map((card, i) => (
           <motion.div key={card.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>

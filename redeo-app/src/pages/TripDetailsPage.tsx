@@ -1,3 +1,5 @@
+import { setReturnTo } from '@/lib/returnTo';
+import { toast } from 'sonner';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useCity } from '@/lib/cities';
 import { RatingBadge, hasRating } from '@/components/Rating';
@@ -8,6 +10,7 @@ import { useStore } from '@/store/useStore';
 import { useI18n } from '@/lib/i18n';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
+import { SosButton } from '@/components/SosSheet';
 import { TripChangeSheet } from '@/components/TripChangeSheet';
 import type { Trip, User } from '@/types';
 import {
@@ -15,7 +18,7 @@ import {
   Shield, Users, Loader2, Leaf, AlertTriangle,
   Share2, Ban, Calendar, ChevronRight, Phone,
   Circle, CircleDot, Clock,
-  Check } from 'lucide-react';
+  Check, MapPin, CarFront } from 'lucide-react';
 
 
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '@/lib/supabase';
@@ -110,6 +113,7 @@ export function TripDetailsPage() {
 
   const handleBook = () => {
     if (!trip) return;
+    if (!_user?.id) { setReturnTo(`/booking/${trip.id}`); toast.info(t('auth.login_to_book')); navigate('/login'); return; }
     navigate(`/booking/${trip.id}`);
   };
 
@@ -127,6 +131,12 @@ export function TripDetailsPage() {
   const handleViewDriver = () => {
     if (!trip?.driver_id) return;
     navigate(`/profile/${trip.driver_id}`);
+  };
+
+  const handleWhatsApp = () => {
+    if (!trip) return;
+    const msg = t('share.wa_msg', { from: city(trip.from_location), to: city(trip.to_location), date: trip.departure_date, time: trip.departure_time, url: window.location.href });
+    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank', 'noopener');
   };
 
   const handleShare = () => {
@@ -279,6 +289,33 @@ export function TripDetailsPage() {
             <p className="text-sm text-[#FF6B00] font-medium">
               Only {trip.available_seats} {T.seats_left}!
             </p>
+          </motion.div>
+        )}
+
+        {/* ─── SAFETY / MEETING INFO ─── */}
+        {(trip.women_only || trip.meeting_point || trip.car_plate || trip.vehicle_info) && (
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-[#1B1F27] rounded-2xl border border-white/5 p-5 space-y-3">
+            {trip.women_only && (
+              <span className="inline-block text-xs font-semibold px-2.5 py-1 rounded-full bg-pink-500/15 text-pink-300 border border-pink-500/30">{t('trip.women_only')}</span>
+            )}
+            {(trip.vehicle_info || trip.car_plate) && (
+              <div className="flex items-center gap-3 text-sm">
+                <CarFront className="w-5 h-5 text-[#FF6B00] shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-[#A0A0A0] text-xs">{t('trip.car')}</p>
+                  <p className="text-white font-medium">{trip.vehicle_info}{trip.car_plate ? <span className="ms-2 px-2 py-0.5 rounded bg-white/10 text-xs font-mono" dir="ltr">{trip.car_plate}</span> : null}</p>
+                </div>
+              </div>
+            )}
+            {trip.meeting_point && (
+              <div className="flex items-center gap-3 text-sm">
+                <MapPin className="w-5 h-5 text-[#FF6B00] shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-[#A0A0A0] text-xs">{t('trip.meeting_point')}</p>
+                  <p className="text-white font-medium">{trip.meeting_point}</p>
+                </div>
+              </div>
+            )}
           </motion.div>
         )}
 
@@ -487,6 +524,11 @@ export function TripDetailsPage() {
             <Share2 className="w-5 h-5 text-[#4A9EFF]" />
             <span className="text-sm text-[#4A9EFF]">{T.share}</span>
           </button>
+          <button onClick={handleWhatsApp} className="w-full flex items-center gap-3 p-4 rounded-xl hover:bg-white/5 transition-colors text-left">
+            <Share2 className="w-5 h-5 text-green-400" />
+            <span className="text-sm text-green-400">{t('share.whatsapp')}</span>
+          </button>
+          <div className="p-2"><SosButton /></div>
           {!isOwner && <button onClick={() => trip && navigate(`/support?report=${trip.id}&r=${encodeURIComponent(`${trip.from_location} → ${trip.to_location}`)}&d=${trip.departure_date}`)} className="w-full flex items-center gap-3 p-4 rounded-xl hover:bg-white/5 transition-colors text-left">
             <AlertTriangle className="w-5 h-5 text-[#4A9EFF]" />
             <span className="text-sm text-[#4A9EFF]">{T.report}</span>

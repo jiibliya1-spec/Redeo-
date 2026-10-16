@@ -1,3 +1,4 @@
+import { AddToHomeScreen } from '@/components/AddToHomeScreen';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { reportError } from '@/lib/errorLog';
 import { useEffect, useState, Component, lazy, Suspense, type ReactNode, type ErrorInfo } from 'react';
@@ -326,6 +327,7 @@ function AppContent() {
       {!isAdmin && !isTrack && <BottomNav />}
 
       {!isAdmin && !isTrack && <ShareBroadcaster />}
+      {!isAdmin && !isTrack && curPath !== '/reset-password' && <AddToHomeScreen />}
       <NotificationListener />
       <Toaster
         position="top-right"

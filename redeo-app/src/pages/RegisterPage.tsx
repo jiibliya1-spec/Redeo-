@@ -12,7 +12,6 @@ import { toast } from 'sonner';
 import { Eye, EyeOff, Loader2, Mail, RefreshCw, CheckCircle2, Users } from 'lucide-react';
 import { Car } from '@/components/icons/CarIcon';
 import { supabase } from '@/lib/supabase';
-import { AddToHomeScreen } from '@/components/AddToHomeScreen';
 
 export function RegisterPage() {
   const navigate = useNavigate();
@@ -89,7 +88,6 @@ export function RegisterPage() {
 
   return (
     <div className="min-h-screen bg-[#0F1115] flex items-center justify-center px-4 pt-16 pb-8">
-      <AddToHomeScreen />
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}

@@ -31,8 +31,10 @@ export function AddToHomeScreen() {
     if (isStandalone() || !isMobile()) return;
     const onPrompt = (e: Event) => { e.preventDefault(); setDeferred(e as InstallEvent); };
     window.addEventListener('beforeinstallprompt', onPrompt);
-    const timer = window.setTimeout(() => setOpen(true), 1200);
-    return () => { window.removeEventListener('beforeinstallprompt', onPrompt); clearTimeout(timer); };
+    const onInstalled = () => { setOpen(false); try { localStorage.setItem(DISMISS_KEY, '1'); } catch { /* ignore */ } };
+    window.addEventListener('appinstalled', onInstalled);
+    const timer = window.setTimeout(() => setOpen(true), 1500);
+    return () => { window.removeEventListener('beforeinstallprompt', onPrompt); window.removeEventListener('appinstalled', onInstalled); clearTimeout(timer); };
   }, []);
 
   const close = () => {

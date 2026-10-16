@@ -135,7 +135,7 @@ export function TripDetailsPage() {
 
   const handleWhatsApp = () => {
     if (!trip) return;
-    const msg = t('share.wa_msg', { from: city(trip.from_location), to: city(trip.to_location), date: trip.departure_date, time: trip.departure_time, url: window.location.href });
+    const msg = t(isOwner ? 'share.wa_driver_msg' : 'share.wa_msg', { from: city(trip.from_location), to: city(trip.to_location), date: trip.departure_date, time: trip.departure_time, seats: trip.available_seats, price: trip.price, url: window.location.href });
     window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank', 'noopener');
   };
 

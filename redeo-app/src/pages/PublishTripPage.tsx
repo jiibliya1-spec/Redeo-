@@ -73,6 +73,8 @@ export function PublishTripPage() {
   const [vehicles, setVehicles] = useState<{ id: string; make: string; model: string; color: string; plate: string }[]>([]);
   const [vehicleId, setVehicleId] = useState('');
   const [staged, setStaged] = useState(false);
+  const [repeatWeeks, setRepeatWeeks] = useState('0');
+  const [published, setPublished] = useState<{ id: string; from: string; to: string; date: string; time: string; seats: number; price: number; count: number } | null>(null);
   const [isPublishing, setIsPublishing] = useState(false);
   const [recentTrips, setRecentTrips] = useState<Trip[]>([]);
   const [priceSuggestion, setPriceSuggestion] = useState<{ km: number; min: number; suggested: number; max: number } | null>(null);
@@ -261,8 +263,19 @@ export function PublishTripPage() {
       if (!result || !result[0]?.id) {
         throw new Error(t('publish.failed_save'));
       }
+      let count = 1;
+      // Weekly repeat: one separate trip per week (max 8), each can be cancelled on its own
+      const extra = Math.min(8, Math.max(0, parseInt(repeatWeeks) || 0)) - 1;
+      for (let i = 1; i <= extra; i++) {
+        const d = new Date(date + 'T00:00:00');
+        d.setDate(d.getDate() + 7 * i);
+        const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        try { await apiPost('trips', { ...tripData, departure_date: iso }); count++; } catch { break; }
+      }
 
-      toast.success(t('ui.trip_published_13be'));
+      setPublished({ id: result[0].id, from, to, date, time, seats: parseInt(seats), price: parseFloat(price), count });
+      toast.success(count > 1 ? t('publish.published_n', { n: count }) : t('ui.trip_published_13be'));
+      setRepeatWeeks('0');
       setFrom(''); setTo(''); setDate(''); setTime(''); setArrival(''); setPrice(''); setSeats('3'); setDistance(''); setDuration(''); setMeetingPoint(''); setWomenOnly(false);
     } catch (err: any) {
       if (String(err?.message).includes('wallet_low')) { toast.error(t('wallet.low_publish')); navigate('/wallet'); }
@@ -394,6 +407,21 @@ export function PublishTripPage() {
 
         {/* Publish Form */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-[#1B1F27] rounded-2xl border border-white/5 p-6">
+          {published && (
+            <div className="mb-4 rounded-2xl border border-green-500/30 bg-green-500/10 p-4">
+              <p className="text-sm font-semibold text-green-400 mb-1">{t('publish.share_title')}</p>
+              <p className="text-xs text-[#A0A0A0] mb-3">{t('publish.share_hint')}</p>
+              <div className="flex gap-2">
+                <button type="button" onClick={() => {
+                  const url = `${window.location.origin}/trip/${published.id}`;
+                  const msg = t('share.wa_driver_msg', { from: city(published.from), to: city(published.to), date: published.date, time: published.time, seats: published.seats, price: published.price, url });
+                  window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank', 'noopener');
+                }} className="flex-1 h-10 rounded-xl bg-green-600 text-white text-sm font-semibold">WhatsApp</button>
+                <button type="button" onClick={() => { navigator.clipboard?.writeText(`${window.location.origin}/trip/${published.id}`).then(() => toast.success(t('publish.copied'))).catch(() => {}); }}
+                  className="h-10 px-4 rounded-xl border border-white/15 text-white text-sm">{t('publish.copy_link')}</button>
+              </div>
+            </div>
+          )}
           <form onSubmit={handlePublish} className="space-y-4">
             {/* Route */}
             <div className="grid grid-cols-2 gap-3">
@@ -524,6 +552,18 @@ export function PublishTripPage() {
                 <span className="block text-[11px] text-[#6B7280]">{t('publish.women_only_hint')}</span>
               </span>
             </label>
+
+            {/* Weekly repeat */}
+            <div>
+              <Label className="text-sm text-[#A0A0A0] mb-1.5 flex items-center gap-1.5">
+                <Calendar className="w-3.5 h-3.5 text-[#FF6B00]" /> {t('publish.repeat')}
+              </Label>
+              <select value={repeatWeeks} onChange={e => setRepeatWeeks(e.target.value)} className="w-full bg-[#0F1115] border border-white/10 text-white rounded-xl h-11 px-3 text-sm outline-none">
+                <option value="0">{t('publish.repeat_none')}</option>
+                {[4, 8].map(n => <option key={n} value={n}>{t('publish.repeat_n', { n })}</option>)}
+              </select>
+              <p className="text-[11px] text-[#6B7280] mt-1">{t('publish.repeat_hint')}</p>
+            </div>
 
             {staged && <p className="text-xs text-yellow-400 bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-3">{t('publish.staged_note')}</p>}
 

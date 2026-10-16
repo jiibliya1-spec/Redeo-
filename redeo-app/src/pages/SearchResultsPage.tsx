@@ -9,6 +9,7 @@ import { resolveAvatar } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '@/store/useStore';
 import { useI18n } from '@/lib/i18n';
+import { TripAlertForm } from '@/components/TripAlertForm';
 import { apiGet, supabase } from '@/lib/supabase';
 import { CityPicker } from '@/components/CityPicker';
 import type { Trip, User } from '@/types';
@@ -434,6 +435,7 @@ export function SearchResultsPage() {
               <h3 className="text-base font-medium text-white mb-1" dir={dir}>{t('search.no_rides')}</h3>
               <p className="text-sm text-[#A0A0A0] mb-4" dir={dir}>{t('search.try_adjust')}</p>
               <Button onClick={() => setSearchFilters({ from: '', to: '', date: '', passengers: 1 })} variant="outline" className="border-[#FF6B00]/30 text-[#FF6B00] hover:bg-[#FF6B00]/10 rounded-xl">{t('search.clear_filters')}</Button>
+              {searchFilters.from && searchFilters.to && <TripAlertForm from={searchFilters.from} to={searchFilters.to} />}
             </div>
           )}
         </div>

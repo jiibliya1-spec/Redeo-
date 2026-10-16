@@ -64,6 +64,7 @@ const AdminMessages = lazy(() => import('@/pages/admin/AdminMessages').then((m) 
 const AdminSettings = lazy(() => import('@/pages/admin/AdminSettings').then((m) => ({ default: m.AdminSettings })));
 const AdminWallet = lazy(() => import('@/pages/admin/AdminWallet').then((m) => ({ default: m.AdminWallet })));
 const WalletPage = lazy(() => import('@/pages/WalletPage').then((m) => ({ default: m.WalletPage })));
+const AdminAlerts = lazy(() => import('@/pages/admin/AdminAlerts').then((m) => ({ default: m.AdminAlerts })));
 const AdminSupportTickets = lazy(() => import('@/pages/admin/AdminSupportTickets').then((m) => ({ default: m.AdminSupportTickets })));
 const ProfilePage = lazy(() => import('@/pages/ProfilePage').then((m) => ({ default: m.ProfilePage })));
 const VerificationPage = lazy(() => import('@/pages/VerificationPage'));
@@ -150,6 +151,7 @@ function AdminRoutes() {
         <Route path="/messages" element={<AdminMessages />} />
         <Route path="/settings" element={<AdminSettings />} />
         <Route path="/support" element={<AdminSupportTickets />} />
+        <Route path="/alerts" element={<AdminAlerts />} />
         <Route path="/wallet" element={<AdminWallet />} />
         <Route path="*" element={<Navigate to="/admin" replace />} />
       </Routes>

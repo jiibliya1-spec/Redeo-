@@ -47,3 +47,19 @@ begin
 end $$;
 revoke all on function public.admin_metrics() from public, anon;
 grant execute on function public.admin_metrics() to authenticated;
+
+-- ── Trip alerts ("notify me when a trip appears") — already applied to the live project ──
+create table if not exists public.trip_alerts (
+  id uuid primary key default gen_random_uuid(),
+  created_at timestamptz not null default now(),
+  user_id uuid default auth.uid(),
+  phone text not null check (phone ~ '^\+?[0-9]{8,15}$'),
+  from_location text not null check (char_length(from_location) between 2 and 60),
+  to_location text not null check (char_length(to_location) between 2 and 60),
+  active boolean not null default true,
+  matched_trip_id uuid,
+  matched_at timestamptz,
+  wa_sent_at timestamptz
+);
+-- + RLS policies (insert anon/auth, select own/admin, update admin, delete own/admin)
+-- + trigger trg_trips_match_alerts -> match_trip_alerts(): marks matching alerts and creates in-app notifications

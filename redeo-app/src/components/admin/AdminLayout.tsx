@@ -15,6 +15,7 @@ const navItems = [
   { path: '/admin/trips', label: 'adm.trips_4473', icon: Car },
   { path: '/admin/messages', label: 'adm.messages_41de', icon: MessageSquare },
   { path: '/admin/support', label: 'adm.support_tickets_fdca', icon: Ticket },
+  { path: '/admin/alerts', label: 'adm.alerts', icon: Bell },
   { path: '/admin/wallet', label: 'adm.wallet', icon: Wallet },
   { path: '/admin/settings', label: 'adm.settings_f4f7', icon: Settings },
 ];

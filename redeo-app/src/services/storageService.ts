@@ -22,14 +22,43 @@ function generateFileName(userId: string, prefix: string, ext: string) {
 }
 
 // ─── Avatars ───
+/** Decode any image the browser can read (incl. iPhone HEIC on Safari), shrink it and re-encode as a small JPEG. */
+export async function prepareAvatar(file: File, maxSide = 640): Promise<File> {
+  if (file.size > 30 * 1024 * 1024) throw new Error('File too large');
+  let bmp: ImageBitmap | HTMLImageElement;
+  try {
+    bmp = await createImageBitmap(file);
+  } catch {
+    bmp = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Unsupported image')); };
+      img.src = url;
+    });
+  }
+  const w = (bmp as ImageBitmap).width, h = (bmp as ImageBitmap).height;
+  const scale = Math.min(1, maxSide / Math.max(w, h));
+  const cw = Math.max(1, Math.round(w * scale)), ch = Math.max(1, Math.round(h * scale));
+  const canvas = document.createElement('canvas');
+  canvas.width = cw; canvas.height = ch;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('Canvas unavailable');
+  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, cw, ch);
+  ctx.drawImage(bmp as CanvasImageSource, 0, 0, cw, ch);
+  const blob: Blob | null = await new Promise((r) => canvas.toBlob(r, 'image/jpeg', 0.86));
+  if (!blob) throw new Error('Could not encode image');
+  return new File([blob], 'avatar.jpg', { type: 'image/jpeg' });
+}
+
 export async function uploadAvatar(userId: string, file: File) {
-  validateFile(file, ALLOWED_IMAGE_TYPES);
-  const ext = getFileExt(file);
-  const path = generateFileName(userId, 'avatar', ext);
+  const jpeg = await prepareAvatar(file);
+  validateFile(jpeg, ALLOWED_IMAGE_TYPES);
+  const path = generateFileName(userId, 'avatar', 'jpg');
 
   const { error } = await supabase.storage
     .from('avatars')
-    .upload(path, file, { upsert: true, contentType: file.type });
+    .upload(path, jpeg, { upsert: true, contentType: 'image/jpeg', cacheControl: '31536000' });
 
   if (error) throw new Error(`Upload failed: ${error.message}`);
 

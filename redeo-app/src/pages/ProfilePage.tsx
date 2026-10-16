@@ -229,24 +229,19 @@ export function ProfilePage() {
     if (!user?.id) return;
     setIsUploading(true);
     setShowUploadMenu(false);
+    const prev = avatarUrl;
     try {
       const url = await uploadAvatar(user.id, file);
+      // The photo only counts as saved once the profile row is updated — that is what other users see.
+      await apiPatch('profiles', 'id', user.id, { avatar: url });
       setAvatarUrl(url);
-      try {
-        await apiPatch('profiles', 'id', user.id, { avatar: url });
-      } catch { /* silent */ }
       setUser({ ...user, avatar: url });
       void syncVerification();
       toast.success(t('ui.avatar_uploaded_e37f'));
-    } catch {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const dataUrl = e.target?.result as string;
-        setAvatarUrl(dataUrl);
-        setUser({ ...user!, avatar: dataUrl });
-        toast.success(t('ui.avatar_saved_locally_9e55'));
-      };
-      reader.readAsDataURL(file);
+    } catch (err) {
+      console.error('[ProfilePage] avatar upload failed:', err);
+      setAvatarUrl(prev);
+      toast.error(t('avatar.err'));
     } finally {
       setIsUploading(false);
     }
@@ -279,7 +274,7 @@ export function ProfilePage() {
   const handleSave = async () => {
     if (!user?.id) return;
     setIsSaving(true);
-    const updates = { name, bio, phone, avatar: avatarUrl };
+    const updates = { name, bio, phone, ...(avatarUrl && !avatarUrl.startsWith('data:') ? { avatar: avatarUrl } : {}) };
     try {
       await apiPatch('profiles', 'id', user.id, updates);
       toast.success(t('ui.profile_saved_4b15'));

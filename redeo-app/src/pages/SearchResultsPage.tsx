@@ -62,7 +62,7 @@ function chipHtml(time: string, main: string, sub: string | undefined, above: bo
 }
 
 type Snap = 'peek' | 'half' | 'full';
-const SNAP_H: Record<Snap, string> = { peek: '236px', half: '56%', full: '92%' };
+const SNAP_H: Record<Snap, string> = { peek: '236px', half: '46%', full: '92%' };
 
 function OfferRow({ trip, selected, onSelect }: { trip: Trip; selected: boolean; onSelect: () => void }) {
   const { t } = useI18n();
@@ -256,7 +256,7 @@ export function SearchResultsPage() {
   useEffect(() => {
     if (sorted.length && !sorted.some((x) => x.id === selectedId)) setSelectedId(sorted[0].id);
   }, [sorted, selectedId]);
-  useEffect(() => { if (!hasFilters) setShowFilters(true); }, [hasFilters]);
+  useEffect(() => { if (!hasFilters) { setShowFilters(true); setSnap('full'); } }, [hasFilters]);
 
   // ─── Map init ───
   useEffect(() => {
@@ -291,10 +291,11 @@ export function SearchResultsPage() {
     const rtl = dir === 'rtl';
     const side = desktop ? 460 : 36;
     const pts: LL[] = from && to ? (route ? route.pts : [from, to]) : [[27.6, -13.5], [35.9, -1.0]];
+    const has = !!(from && to);
     m.fitBounds(L.latLngBounds(pts), {
-      paddingTopLeft: [rtl && desktop ? 40 : side, 140],
-      paddingBottomRight: [rtl && desktop ? side : 40, desktop ? 100 : sheetH + 110],
-      maxZoom: 11, animate: true,
+      paddingTopLeft: [rtl && desktop ? 40 : side, has ? 100 : 30],
+      paddingBottomRight: [rtl && desktop ? side : 40, desktop ? 80 : sheetH + (has ? 80 : 20)],
+      maxZoom: has ? 11 : 6, animate: true,
     });
   }, [from, to, route, dir]);
 
@@ -342,7 +343,7 @@ export function SearchResultsPage() {
 
   return (
     <div className={`fixed inset-x-0 top-[calc(4rem+env(safe-area-inset-top))] ${isAuth ? 'bottom-[calc(3.5rem+env(safe-area-inset-bottom))]' : 'bottom-0'} md:bottom-0 z-0 isolate overflow-hidden bg-[#e8e8e8]`}>
-      <div ref={mapEl} dir="ltr" className="absolute inset-0" />
+      <div ref={mapEl} dir="ltr" className="absolute inset-0 z-0 isolate" />
 
       <button
         onClick={() => navigate('/')}
@@ -427,15 +428,16 @@ export function SearchResultsPage() {
           )}
         </div>
 
+        {selected && (
         <div className="shrink-0 px-4 pt-2 pb-3 border-t border-white/5 bg-[#0F1115] rounded-b-3xl">
           <Button
-            disabled={!selected}
-            onClick={() => selected && navigate(`/trip/${selected.id}`)}
+            onClick={() => navigate(`/trip/${selected.id}`)}
             className="w-full h-12 rounded-xl bg-[#FF6B00] hover:bg-[#E56000] text-white font-semibold text-base disabled:opacity-40"
           >
-            {t('trip.book')}{selected ? ` · ${selected.price} ${t('trip.price')}` : ''}
+            {t('trip.book')} · {selected.price} {t('trip.price')}
           </Button>
         </div>
+        )}
       </div>
     </div>
   );

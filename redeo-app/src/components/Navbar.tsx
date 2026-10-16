@@ -105,7 +105,13 @@ export function Navbar() {
                   )}
                 </button>
 
-                {/* User Menu */}
+                {/* Avatar: opens the profile directly on mobile */}
+                <button onClick={() => navigate('/profile')} aria-label={t('nav.profile')} className="md:hidden p-1 rounded-full">
+                  <img src={resolveAvatar(user?.avatar, user?.id || 'guest')} alt={user?.name} className="w-9 h-9 rounded-full object-cover ring-2 ring-[#FF6B00]/40" />
+                </button>
+
+                {/* User Menu (desktop) */}
+                <div className="hidden md:block">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button className="flex items-center gap-2.5 p-1.5 pr-3 rounded-xl hover:bg-white/5 transition-colors">
@@ -151,6 +157,7 @@ export function Navbar() {
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
+                </div>
               </div>
             ) : (
               <div className="flex items-center gap-2">
@@ -183,8 +190,8 @@ export function Navbar() {
             )}
 
             {/* Mobile menu button */}
-            <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="md:hidden p-2.5 rounded-xl hover:bg-white/5 transition-colors">
-              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            <button onClick={() => (isAuthenticated ? navigate('/settings') : setMobileMenuOpen(!mobileMenuOpen))} aria-label={isAuthenticated ? t('nav.settings') : undefined} className="md:hidden p-2.5 rounded-xl hover:bg-white/5 transition-colors">
+              {mobileMenuOpen && !isAuthenticated ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
           </div>
         </div>
